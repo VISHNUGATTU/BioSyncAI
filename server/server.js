@@ -52,7 +52,11 @@ app.use('/api/lab-assistant/login', authLimiter);
 // ==========================================
 // GLOBAL MIDDLEWARES
 // ==========================================
-const allowedOrigins = [process.env.CLIENT_URL].filter(Boolean);
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'https://biosyncadmin.vercel.app'
+].filter(Boolean);
 
 app.use(cors({ 
   origin: (origin, callback) => {
