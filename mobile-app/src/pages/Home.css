@@ -1,0 +1,147 @@
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 32px; /* Extra padding for mobile status bar */
+}
+
+.greeting {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.avatar-small {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.section-title {
+  padding: 0 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 16px 0 12px;
+  color: var(--text-secondary);
+}
+
+.vitals-scroll {
+  display: flex;
+  overflow-x: auto;
+  padding: 0 20px 20px;
+  gap: 16px;
+  scroll-snap-type: x mandatory;
+}
+
+.vital-card {
+  flex: 0 0 140px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  scroll-snap-align: start;
+}
+
+.vital-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.vital-icon.pulse { background-color: rgba(239, 68, 68, 0.1); }
+.vital-icon.bp { background-color: rgba(59, 130, 246, 0.1); }
+.vital-icon.weight { background-color: rgba(16, 185, 129, 0.1); }
+
+.vital-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.vital-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.vital-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vital-value small {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.insight-header h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.insight-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.appointment-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.apt-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-light);
+  border-radius: var(--radius-md);
+  width: 56px;
+  height: 56px;
+}
+
+.apt-date .month {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-transform: uppercase;
+}
+
+.apt-date .day {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--primary-hover);
+}
+
+.apt-info h4 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.apt-info p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

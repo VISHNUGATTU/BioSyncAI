@@ -1,0 +1,97 @@
+.scan-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-bottom: 20px;
+}
+
+.camera-viewfinder {
+  flex: 1;
+  background-color: #000;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-frame {
+  width: 250px;
+  height: 250px;
+  position: relative;
+}
+
+.corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--primary-color);
+}
+
+.top-left { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 12px; }
+.top-right { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 12px; }
+.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 12px; }
+.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 12px; }
+
+.scan-line {
+  position: absolute;
+  top: 10px;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background-color: var(--primary-color);
+  box-shadow: 0 0 8px 2px rgba(14, 165, 233, 0.6);
+  animation: scan 2.5s infinite ease-in-out;
+}
+
+@keyframes scan {
+  0% { top: 10px; }
+  50% { top: 238px; }
+  100% { top: 10px; }
+}
+
+.scan-instructions {
+  color: white;
+  margin-top: 40px;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.scan-actions {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: var(--bg-primary);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  margin-top: -20px;
+  z-index: 5;
+}
+
+.primary-btn, .secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.primary-btn:active, .secondary-btn:active {
+  opacity: 0.8;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.secondary-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
