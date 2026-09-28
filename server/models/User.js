@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     dietPreference: { type: String, enum: ['Veg', 'Non-Veg', 'Vegan', 'Keto', 'Paleo', 'Unspecified'], default: 'Unspecified' },
     smokingHabit: { type: String, enum: ['Non-smoker', 'Occasional', 'Regular'], default: 'Non-smoker' },
     alcoholConsumption: { type: String, enum: ['None', 'Occasional', 'Regular'], default: 'None' },
-    activityLevel: { type: String, enum: ['Sedentary', 'Lightly Active', 'Active', 'Very Active'], default: 'Sedentary' }
+    activityLevel: { type: String, enum: ['Sedentary', 'Lightly Active', 'Light Activity', 'Active', 'Very Active', 'Moderately Active', 'Moderate'], default: 'Sedentary' }
   },
 
   wearableSync: {

@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "BioSyncAI",
+    "slug": "user-panel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "biosync-user",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
+    }
+  }
+}

@@ -645,10 +645,10 @@ export const updateAppointmentStatus = asyncHandler(async (req, res) => {
     throw new Error('Appointment not found');
   }
 
-  if (status === 'Sample_Collected') {
-    if (!collectionOTP || appointment.collectionOTP !== collectionOTP) {
+  if (status === 'Collecting' || status === 'Sample_Collected') {
+    if (!collectionOTP || appointment.collectionOTP !== collectionOTP.toString().trim()) {
       res.status(400);
-      throw new Error('Invalid Collection OTP provided by user.');
+      throw new Error(`Invalid Collection OTP. Please enter the valid code shown on the patient's screen.`);
     }
   }
 

@@ -197,7 +197,7 @@ export const getUserAppointments = asyncHandler(async (req, res) => {
 
   const appointments = await Appointment.find({ user: req.user._id })
     .populate('testCatalog', 'testName category preparationInstructions pricing price')
-    .populate('labAssistant', 'name phone vehicleType assignedZones performance')
+    .populate('labAssistant', 'name phone vehicleType assignedZones performance currentLocation')
     .sort({ scheduledDate: -1 })
     .skip(startIndex)
     .limit(limit)

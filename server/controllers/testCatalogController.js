@@ -16,7 +16,7 @@ export const getTests = asyncHandler(async (req, res) => {
     .limit(limit)
     .lean();
     
-  res.status(200).json({ success: true, count: tests.length, data: tests });
+  res.status(200).json({ success: true, count: tests.length, data: tests, tests });
 });
 
 export const updateTest = asyncHandler(async (req, res) => {
