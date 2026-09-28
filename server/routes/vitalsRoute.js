@@ -6,7 +6,8 @@ import {
   uploadPdfVitals, 
   getLatestVitals,
   getVitalsHistory,
-  getVitalsTrends
+  getVitalsTrends,
+  getAIFeatureVector
 } from '../controllers/vitalsController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { memoryUpload } from '../configs/multer.js'; 
@@ -27,5 +28,9 @@ vitalsRouter.post('/pdf', authUser, memoryUpload.single('vitalsPdf'), uploadPdfV
 vitalsRouter.get('/latest', authUser, getLatestVitals);
 vitalsRouter.get('/history', authUser, getVitalsHistory);
 vitalsRouter.get('/trends', authUser, getVitalsTrends);
+
+// Standardized AI Feature Vector & Physiological Risk Classification
+vitalsRouter.get('/ai-features', authUser, getAIFeatureVector);
+vitalsRouter.get('/ai-features/:userId', authUser, getAIFeatureVector);
 
 export default vitalsRouter;

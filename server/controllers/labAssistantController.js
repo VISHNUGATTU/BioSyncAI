@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { uploadToCloudinary } from '../configs/cloudinary.js';
 import { findNearestDoctor } from '../utils/distanceAssignment.js';
+import { calculateDerivedVitals } from '../utils/aiFeatureExtractor.js';
 
 const generateLATokenAndCookie = (res, laId, role = 'lab_assistant') => {
   const token = jwt.sign(
@@ -229,7 +230,7 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
     // Save field vitals & medical properties into database for AI engine prediction
     const intakeVitals = clinicalIntake?.vitals || vitals;
     if (intakeVitals && typeof intakeVitals === 'object') {
-      const cleanVitalsData = {
+      const cleanVitalsData = calculateDerivedVitals({
         user: appointment.user,
         source: 'Lab_Assistant',
         isInitialBaseline: true,
@@ -249,8 +250,9 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
         cardiovascularRisk: {
           systolic: Number(intakeVitals.systolic || intakeVitals.cardiovascularRisk?.systolic) || undefined,
           diastolic: Number(intakeVitals.diastolic || intakeVitals.cardiovascularRisk?.diastolic) || undefined,
-        }
-      };
+        },
+        hematology: intakeVitals.hematology || {}
+      });
 
       await Vitals.findOneAndUpdate(
         { user: appointment.user, isInitialBaseline: true },
@@ -506,7 +508,7 @@ export const recordAppointmentVitals = asyncHandler(async (req, res) => {
     throw new Error('Appointment not found');
   }
 
-  const cleanVitalsData = {
+  const cleanVitalsData = calculateDerivedVitals({
     user: appointment.user,
     source: 'Lab_Assistant',
     isInitialBaseline: true,
@@ -516,12 +518,13 @@ export const recordAppointmentVitals = asyncHandler(async (req, res) => {
     continuousMetrics: vitals?.continuousMetrics || {},
     metabolicHealth: vitals?.metabolicHealth || {},
     cardiovascularRisk: vitals?.cardiovascularRisk || {},
+    hematology: vitals?.hematology || {},
     immunology: vitals?.immunology || {},
     hormones: vitals?.hormones || {},
     organFunction: vitals?.organFunction || {},
     micronutrients: vitals?.micronutrients || {},
     geneticAndGut: vitals?.geneticAndGut || {}
-  };
+  });
 
   const record = await Vitals.findOneAndUpdate(
     { user: appointment.user, isInitialBaseline: true },
@@ -800,9 +803,9 @@ export const submitTestResults = asyncHandler(async (req, res) => {
 
       // Save/merge comprehensive vitals
       if (vitals && typeof vitals === 'object') {
-        const cleanVitalsData = {
+        const cleanVitalsData = calculateDerivedVitals({
           user: updatedAppt.user,
-          source: 'Lab_Assistant',
+          source: 'Doctor',
           isInitialBaseline: true,
           isVerifiedByUser: true,
           recordedAt: new Date(),
@@ -810,12 +813,13 @@ export const submitTestResults = asyncHandler(async (req, res) => {
           continuousMetrics: vitals.continuousMetrics || {},
           metabolicHealth: vitals.metabolicHealth || {},
           cardiovascularRisk: vitals.cardiovascularRisk || {},
+          hematology: vitals.hematology || {},
           immunology: vitals.immunology || {},
           hormones: vitals.hormones || {},
           organFunction: vitals.organFunction || {},
           micronutrients: vitals.micronutrients || {},
           geneticAndGut: vitals.geneticAndGut || {}
-        };
+        });
 
         await Vitals.findOneAndUpdate(
           { user: updatedAppt.user, isInitialBaseline: true },
@@ -828,6 +832,7 @@ export const submitTestResults = asyncHandler(async (req, res) => {
         const metabolicHealth = {};
         const cardiovascularRisk = {};
         const continuousMetrics = {};
+        const hematology = {};
         const organFunction = {};
         const immunology = {};
         const hormones = {};
@@ -850,7 +855,15 @@ export const submitTestResults = asyncHandler(async (req, res) => {
           else if (key.includes('spo2') || key.includes('oxygen')) continuousMetrics.oxygenSaturationSpO2 = val;
           else if (key.includes('weight')) bodyMetrics.weightKg = val;
           else if (key.includes('height')) bodyMetrics.heightCm = val;
+          else if (key.includes('hemoglobin') || key.includes('hb')) hematology.hemoglobin = val;
+          else if (key.includes('platelet')) hematology.platelets = val;
+          else if (key.includes('wbc') || key.includes('white blood')) hematology.wbc = val;
+          else if (key.includes('rbc') || key.includes('red blood')) hematology.rbc = val;
+          else if (key.includes('neutrophil')) hematology.neutrophilsPercent = val;
+          else if (key.includes('lymphocyte')) hematology.lymphocytesPercent = val;
           else if (key.includes('creatinine')) organFunction.creatinine = val;
+          else if (key.includes('egfr')) organFunction.egfr = val;
+          else if (key.includes('bun') || key.includes('urea')) organFunction.bun = val;
           else if (key.includes('uric acid')) organFunction.uricAcid = val;
           else if (key.includes('sgot') || key.includes('ast')) organFunction.astSgot = val;
           else if (key.includes('sgpt') || key.includes('alt')) organFunction.altSgpt = val;
@@ -862,25 +875,26 @@ export const submitTestResults = asyncHandler(async (req, res) => {
           else if (key.includes('b12')) micronutrients.vitaminB12 = val;
         });
 
+        const cleanVitalsData = calculateDerivedVitals({
+          user: updatedAppt.user,
+          source: 'Doctor',
+          isInitialBaseline: true,
+          isVerifiedByUser: true,
+          recordedAt: new Date(),
+          bodyMetrics,
+          metabolicHealth,
+          cardiovascularRisk,
+          continuousMetrics,
+          hematology,
+          organFunction,
+          immunology,
+          hormones,
+          micronutrients
+        });
+
         await Vitals.findOneAndUpdate(
           { user: updatedAppt.user, isInitialBaseline: true },
-          {
-            $set: {
-              user: updatedAppt.user,
-              source: 'Lab_Assistant',
-              isInitialBaseline: true,
-              isVerifiedByUser: true,
-              recordedAt: new Date(),
-              bodyMetrics,
-              metabolicHealth,
-              cardiovascularRisk,
-              continuousMetrics,
-              organFunction,
-              immunology,
-              hormones,
-              micronutrients
-            }
-          },
+          { $set: cleanVitalsData },
           { upsert: true, new: true }
         );
       }

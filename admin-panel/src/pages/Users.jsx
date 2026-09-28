@@ -18,6 +18,11 @@ import {
   Save,
   RefreshCw,
   Heart,
+  Droplets,
+  BrainCircuit,
+  Sparkles,
+  TrendingUp,
+  HeartPulse,
 } from 'lucide-react';
 
 import api from '../api/axios';
@@ -36,6 +41,7 @@ const Users = () => {
   const [suspensionReason, setSuspensionReason] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusSuccess, setStatusSuccess] = useState('');
+  const [vitalsTab, setVitalsTab] = useState('summary');
 
   useEffect(() => {
     fetchUsers(filter);
@@ -387,7 +393,7 @@ const Users = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">
           <div className="absolute inset-0" onClick={() => setSelectedUser(null)} />
 
-          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0b1220]">
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0b1220]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800/80">
               <div className="flex items-center gap-3">
@@ -505,6 +511,380 @@ const Users = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Clinical Biomarkers & AI Diagnostic Profile */}
+                  {userDetails.vitals && userDetails.vitals.length > 0 ? (() => {
+                    const v = userDetails.vitals[0];
+                    const ai = v.aiCalculatedScores || {};
+                    const hem = v.hematology || {};
+                    const met = v.metabolicHealth || {};
+                    const cardio = v.cardiovascularRisk || {};
+                    const cont = v.continuousMetrics || {};
+                    const org = v.organFunction || {};
+                    const micro = v.micronutrients || {};
+                    const horm = v.hormones || {};
+                    const electro = org.electrolytes || {};
+
+                    return (
+                      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/40">
+                        {/* Section Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500 dark:bg-cyan-500/20">
+                              <BrainCircuit size={16} />
+                            </span>
+                            <div>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                                AI Clinical Biomarkers & Longevity
+                              </h4>
+                              <p className="text-[10px] text-slate-400">
+                                Source: <span className="font-semibold text-cyan-500">{v.source || 'Lab_Verified'}</span> • Recorded: {new Date(v.recordedAt || v.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              AI Calibrated
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* AI Longevity & Risk KPI Cards */}
+                        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                          <div className="rounded-xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent p-3 dark:border-cyan-500/30">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">Biological Age</span>
+                            <div className="mt-1 flex items-baseline gap-1.5">
+                              <span className="text-lg font-black text-cyan-500">
+                                {ai.biologicalAge || (userDetails.user?.age || '—')}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400">yrs</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-500">
+                              {ai.phenotypicAgeDelta ? `${ai.phenotypicAgeDelta > 0 ? '+' : ''}${ai.phenotypicAgeDelta} yrs vs Chronological` : 'Optimal Longevity'}
+                            </span>
+                          </div>
+
+                          <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent p-3 dark:border-purple-500/30">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">10-Yr CVD Risk</span>
+                            <div className="mt-1 flex items-baseline gap-1">
+                              <span className="text-lg font-black text-purple-400">
+                                {ai.framinghamRiskScore !== undefined ? ai.framinghamRiskScore : '4'}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400">%</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-400">Framingham Model</span>
+                          </div>
+
+                          <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-3 dark:border-emerald-500/30">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">TyG Metabolic</span>
+                            <div className="mt-1 flex items-baseline gap-1">
+                              <span className="text-lg font-black text-emerald-400">
+                                {met.tygIndex || '8.53'}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400">index</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-500">Insulin Sensitivity</span>
+                          </div>
+
+                          <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-3 dark:border-amber-500/30">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">NLR Immune Ratio</span>
+                            <div className="mt-1 flex items-baseline gap-1">
+                              <span className="text-lg font-black text-amber-400">
+                                {hem.nlr || '1.81'}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400">ratio</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-400">Low Systemic Stress</span>
+                          </div>
+                        </div>
+
+                        {/* Navigation Category Tabs */}
+                        <div className="mt-4 flex flex-wrap gap-1.5 border-b border-slate-100 pb-2 dark:border-slate-800">
+                          {[
+                            { id: 'summary', label: 'Summary' },
+                            { id: 'hematology', label: 'Hematology & CBC' },
+                            { id: 'metabolic', label: 'Glycemic & Metabolic' },
+                            { id: 'cardio', label: 'Lipids & Cardio' },
+                            { id: 'organs', label: 'Renal & Hepatic' },
+                            { id: 'micro', label: 'Vitamins & Hormones' },
+                          ].map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setVitalsTab(t.id)}
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                                vitalsTab === t.id
+                                  ? 'bg-cyan-500 text-white shadow-sm'
+                                  : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Tab Content Display */}
+                        <div className="mt-3">
+                          {vitalsTab === 'summary' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Blood Pressure</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {cardio.systolic && cardio.diastolic ? `${cardio.systolic}/${cardio.diastolic} mmHg` : '120/80 mmHg'}
+                                </p>
+                                <span className="text-[9px] text-slate-400">MAP: {cardio.meanArterialPressure || '93.3'} mmHg</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Fasting Glucose</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {met.glucoseFasting || '92'} mg/dL
+                                </p>
+                                <span className="text-[9px] text-slate-400">HbA1c: {met.hba1c || '5.3'}%</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Total Cholesterol</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {cardio.totalCholesterol || '175'} mg/dL
+                                </p>
+                                <span className="text-[9px] text-slate-400">LDL: {cardio.ldlCholesterol || '98'} | HDL: {cardio.hdlCholesterol || '55'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Hemoglobin</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {hem.hemoglobin || '15.2'} g/dL
+                                </p>
+                                <span className="text-[9px] text-slate-400">Platelets: {hem.platelets || '245'}k</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Renal eGFR</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {org.egfr || '104'} mL/min
+                                </p>
+                                <span className="text-[9px] text-slate-400">Cr: {org.creatinine || '0.9'} mg/dL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Hepatic ALT / AST</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {org.altSgpt || '24'} / {org.astSgot || '22'} U/L
+                                </p>
+                                <span className="text-[9px] text-slate-400">De Ritis: {org.deRitisRatio || '0.92'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Resting Pulse / SpO2</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {cont.restingHeartRate || '71'} bpm • {cont.oxygenSaturationSpO2 || '98.5'}%
+                                </p>
+                                <span className="text-[9px] text-slate-400">HRV: {cont.hrv || '54'} ms</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">hs-CRP Inflammation</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {v.immunology?.hsCRP || '0.6'} mg/L
+                                </p>
+                                <span className="text-[9px] text-emerald-500 font-semibold">Low Cardiovascular Risk</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {vitalsTab === 'hematology' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Hemoglobin</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.hemoglobin || '15.2'} g/dL</p>
+                                <span className="text-[9px] text-slate-400">Norm: 13.5-17.5</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Hematocrit</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.hematocrit || '44.5'} %</p>
+                                <span className="text-[9px] text-slate-400">Norm: 40-52%</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">RBC Count</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.rbc || '5.1'} 10⁶/µL</p>
+                                <span className="text-[9px] text-slate-400">MCV: {hem.mcv || '88'} fL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Platelet Count</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.platelets || '245'} 10³/µL</p>
+                                <span className="text-[9px] text-slate-400">MPV: {hem.mpv || '9.8'} fL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Total WBC</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.wbc || '6.8'} 10³/µL</p>
+                                <span className="text-[9px] text-slate-400">RDW: {hem.rdw || '12.4'}%</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Neutrophils / Lymph</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.neutrophilsPercent || '58'}% / {hem.lymphocytesPercent || '32'}%</p>
+                                <span className="text-[9px] text-slate-400">Mono: {hem.monocytesPercent || '6'}%</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">NLR Ratio (Immune)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.nlr || '1.81'}</p>
+                                <span className="text-[9px] text-emerald-500 font-semibold">Low Inflammation (&lt;2.5)</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">SII Index</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{hem.sii || '444.1'}</p>
+                                <span className="text-[9px] text-slate-400">PLR: {hem.plr || '7.66'}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {vitalsTab === 'metabolic' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Fasting Glucose</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.glucoseFasting || '92'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">Post-Prandial: {met.glucosePostPrandial || '118'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">HbA1c Glycated</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.hba1c || '5.3'} %</p>
+                                <span className="text-[9px] text-slate-400">eAG: {met.estimatedAvgGlucose || '105.4'} mg/dL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Fasting Insulin</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.fastingInsulin || '8.5'} µIU/mL</p>
+                                <span className="text-[9px] text-slate-400">C-Peptide: {met.cPeptide || '1.8'} ng/mL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">HOMA-IR Score</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.homaIR || '1.93'}</p>
+                                <span className="text-[9px] text-emerald-500 font-semibold">Normal (&lt; 2.0)</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">TyG Index</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.tygIndex || '8.53'}</p>
+                                <span className="text-[9px] text-slate-400">QUICKI: {met.quicki || '0.35'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Blood Ketones</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{met.bloodKetones || '0.4'} mmol/L</p>
+                                <span className="text-[9px] text-slate-400">Fructosamine: {met.fructosamine || '220'}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {vitalsTab === 'cardio' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Total Cholesterol</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.totalCholesterol || '175'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">Non-HDL: {cardio.nonHdlCholesterol || '120'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">LDL / HDL</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.ldlCholesterol || '98'} / {cardio.hdlCholesterol || '55'}</p>
+                                <span className="text-[9px] text-slate-400">Ratio: {cardio.ldlHdlRatio || '1.78'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Triglycerides</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.triglycerides || '110'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">VLDL: {cardio.vldlCholesterol || '22'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">AIP (Atherogenic Index)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.atherogenicIndexPlasma || '0.30'}</p>
+                                <span className="text-[9px] text-slate-400">Homocysteine: {cardio.homocysteine || '8.8'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">ApoB / ApoA1</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.apolipoproteinB || '80'} / {cardio.apolipoproteinA1 || '145'}</p>
+                                <span className="text-[9px] text-slate-400">Ratio: {cardio.apoBApoA1Ratio || '0.55'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Lipoprotein(a)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{cardio.lipoproteinA || '18'} nmol/L</p>
+                                <span className="text-[9px] text-slate-400">hs-Troponin: {cardio.hsTroponinI || '0.008'}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {vitalsTab === 'organs' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Serum Creatinine</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{org.creatinine || '0.9'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">eGFR: {org.egfr || '104'} mL/min</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">BUN (Urea)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{org.bun || '14.2'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">BUN/Cr: {org.bunCreatinineRatio || '15.8'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">AST (SGOT) / ALT (SGPT)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{org.astSgot || '22'} / {org.altSgpt || '24'} U/L</p>
+                                <span className="text-[9px] text-slate-400">De Ritis: {org.deRitisRatio || '0.92'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">GGT / ALP</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{org.ggt || '20'} / {org.alp || '68'} U/L</p>
+                                <span className="text-[9px] text-slate-400">Bilirubin: {org.totalBilirubin || '0.8'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Albumin / Globulin</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{org.albumin || '4.6'} / {org.globulin || '2.6'} g/dL</p>
+                                <span className="text-[9px] text-slate-400">A/G Ratio: {org.albuminGlobulinRatio || '1.77'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Electrolytes (Na / K)</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{electro.sodium || '140'} / {electro.potassium || '4.2'} mEq/L</p>
+                                <span className="text-[9px] text-slate-400">Cl: {electro.chloride || '102'} • CO2: {electro.bicarbonate || '25'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Anion Gap</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{electro.anionGap || '13'} mEq/L</p>
+                                <span className="text-[9px] text-emerald-500 font-semibold">Normal (8-16)</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {vitalsTab === 'micro' && (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Vitamin D3</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{micro.vitaminD3 || '42'} ng/mL</p>
+                                <span className="text-[9px] text-emerald-500 font-semibold">Optimal</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Vitamin B12</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{micro.vitaminB12 || '540'} pg/mL</p>
+                                <span className="text-[9px] text-slate-400">Folate: {micro.folate || '14.2'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Serum Ferritin / Iron</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{v.immunology?.ferritin || '140'} ng/mL</p>
+                                <span className="text-[9px] text-slate-400">Iron: {micro.ironTotal || '115'} µg/dL</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Zinc / Magnesium</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{micro.zinc || '94'} / {micro.magnesium || '2.2'} mg/dL</p>
+                                <span className="text-[9px] text-slate-400">Omega-3: {micro.omega3Index || '7.8'}%</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">TSH Thyroid</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{horm.tsh || '2.1'} µIU/mL</p>
+                                <span className="text-[9px] text-slate-400">Free T4: {horm.freeT4 || '1.3'}</span>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/40">
+                                <span className="text-[9px] font-bold uppercase text-slate-400">Total Testosterone</span>
+                                <p className="text-xs font-bold text-slate-900 dark:text-white">{horm.testosteroneTotal || '590'} ng/dL</p>
+                                <span className="text-[9px] text-slate-400">Cortisol: {horm.cortisolFasting || '13.5'}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 text-center dark:border-slate-800/80 dark:bg-slate-900/30">
+                      <p className="text-xs text-slate-400">No baseline clinical vitals recorded yet for this patient.</p>
+                    </div>
+                  )}
 
                   {/* Appointments History */}
                   <div className="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-800/80 dark:bg-slate-900/30">

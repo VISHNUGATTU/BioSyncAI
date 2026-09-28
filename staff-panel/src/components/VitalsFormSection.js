@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Platform,
 } from 'react-native';
 import {
   Activity,
@@ -16,24 +15,24 @@ import {
   ShieldAlert,
   Dna,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
+  HeartPulse,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import GlassCard from './GlassCard';
 
 export const VitalsFormSection = ({
-  vitals,
+  vitals = {},
   updateMetric,
   onQuickFill,
 }) => {
   const [activeTab, setActiveTab] = useState('physical');
 
   const tabs = [
-    { id: 'physical', label: 'Body & Anthro', icon: Zap },
-    { id: 'vitals', label: 'Vitals & Card', icon: Heart },
-    { id: 'metabolic', label: 'Glycemic', icon: Droplets },
-    { id: 'lipids', label: 'Lipid Panel', icon: Activity },
+    { id: 'physical', label: 'Body', icon: Zap },
+    { id: 'vitals', label: 'Vitals & BP', icon: Heart },
+    { id: 'hematology', label: 'CBC & Blood', icon: Droplets },
+    { id: 'metabolic', label: 'Glycemic', icon: Activity },
+    { id: 'lipids', label: 'Lipid Panel', icon: HeartPulse },
     { id: 'organs', label: 'Organs & Horm', icon: ShieldAlert },
     { id: 'micro', label: 'Vitamins & Gut', icon: Dna },
   ];
@@ -72,7 +71,7 @@ export const VitalsFormSection = ({
             <Text style={styles.title}>Clinical Vitals & Biomarkers</Text>
           </View>
           <Text style={styles.subtitle}>
-            Comprehensive physiological baseline per clinical schema (Vitals.js)
+            Physiological baseline for AI diagnostic models
           </Text>
         </View>
 
@@ -122,7 +121,7 @@ export const VitalsFormSection = ({
           </View>
 
           <View style={styles.row}>
-            {renderInputField('BMI (Auto-Calc)', 'bodyMetrics', 'bmi', 'kg/m²')}
+            {renderInputField('BMI (Auto)', 'bodyMetrics', 'bmi', 'kg/m²')}
             {renderInputField('Body Fat', 'bodyMetrics', 'bodyFatPercentage', '%')}
           </View>
 
@@ -145,12 +144,17 @@ export const VitalsFormSection = ({
         </View>
       )}
 
-      {/* Tab 2: Vitals Signs & Cardiovascular Basic */}
+      {/* Tab 2: Vitals Signs & Hemodynamics */}
       {activeTab === 'vitals' && (
         <View style={styles.formGrid}>
           <View style={styles.row}>
             {renderInputField('BP Systolic', 'cardiovascularRisk', 'systolic', 'mmHg')}
             {renderInputField('BP Diastolic', 'cardiovascularRisk', 'diastolic', 'mmHg')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('MAP (Auto)', 'cardiovascularRisk', 'meanArterialPressure', 'mmHg')}
+            {renderInputField('Pulse Pressure', 'cardiovascularRisk', 'pulsePressure', 'mmHg')}
           </View>
 
           <View style={styles.row}>
@@ -174,7 +178,43 @@ export const VitalsFormSection = ({
         </View>
       )}
 
-      {/* Tab 3: Glycemic & Metabolic Health */}
+      {/* Tab 3: Complete Blood Count & Hematology */}
+      {activeTab === 'hematology' && (
+        <View style={styles.formGrid}>
+          <View style={styles.row}>
+            {renderInputField('Hemoglobin', 'hematology', 'hemoglobin', 'g/dL')}
+            {renderInputField('Hematocrit', 'hematology', 'hematocrit', '%')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('RBC Count', 'hematology', 'rbc', '10⁶/µL')}
+            {renderInputField('Platelet Count', 'hematology', 'platelets', '10³/µL')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('WBC Count', 'hematology', 'wbc', '10³/µL')}
+            {renderInputField('RDW Width', 'hematology', 'rdw', '%')}
+          </View>
+
+          <Text style={styles.subSectionTitle}>WBC Differential & Immune Indices</Text>
+          <View style={styles.row}>
+            {renderInputField('Neutrophils', 'hematology', 'neutrophilsPercent', '%')}
+            {renderInputField('Lymphocytes', 'hematology', 'lymphocytesPercent', '%')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('Monocytes', 'hematology', 'monocytesPercent', '%')}
+            {renderInputField('Eosinophils', 'hematology', 'eosinophilsPercent', '%')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('NLR Ratio (Auto)', 'hematology', 'nlr', 'ratio')}
+            {renderInputField('SII Index (Auto)', 'hematology', 'sii', 'index')}
+          </View>
+        </View>
+      )}
+
+      {/* Tab 4: Glycemic & Metabolic Health */}
       {activeTab === 'metabolic' && (
         <View style={styles.formGrid}>
           <View style={styles.row}>
@@ -189,22 +229,27 @@ export const VitalsFormSection = ({
 
           <View style={styles.row}>
             {renderInputField('HOMA-IR (Auto)', 'metabolicHealth', 'homaIR', 'index')}
+            {renderInputField('TyG Index (Auto)', 'metabolicHealth', 'tygIndex', 'index')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('eAG (Auto)', 'metabolicHealth', 'estimatedAvgGlucose', 'mg/dL')}
+            {renderInputField('Blood Ketones', 'metabolicHealth', 'bloodKetones', 'mmol/L')}
+          </View>
+
+          <View style={styles.row}>
             {renderInputField('C-Peptide', 'metabolicHealth', 'cPeptide', 'ng/mL')}
-          </View>
-
-          <View style={styles.row}>
             {renderInputField('Fructosamine', 'metabolicHealth', 'fructosamine', 'µmol/L')}
-            {renderInputField('Leptin', 'metabolicHealth', 'leptin', 'ng/mL')}
           </View>
 
           <View style={styles.row}>
-            {renderInputField('Ghrelin', 'metabolicHealth', 'ghrelin', 'pg/mL')}
+            {renderInputField('Leptin', 'metabolicHealth', 'leptin', 'ng/mL')}
             {renderInputField('Adiponectin', 'metabolicHealth', 'adiponectin', 'µg/mL')}
           </View>
         </View>
       )}
 
-      {/* Tab 4: Lipid & Cardiovascular Risk */}
+      {/* Tab 5: Lipid & Cardiovascular Risk */}
       {activeTab === 'lipids' && (
         <View style={styles.formGrid}>
           <View style={styles.row}>
@@ -214,12 +259,12 @@ export const VitalsFormSection = ({
 
           <View style={styles.row}>
             {renderInputField('HDL Cholesterol', 'cardiovascularRisk', 'hdlCholesterol', 'mg/dL')}
-            {renderInputField('VLDL Cholesterol', 'cardiovascularRisk', 'vldlCholesterol', 'mg/dL')}
+            {renderInputField('Triglycerides', 'cardiovascularRisk', 'triglycerides', 'mg/dL')}
           </View>
 
           <View style={styles.row}>
-            {renderInputField('Triglycerides', 'cardiovascularRisk', 'triglycerides', 'mg/dL')}
-            {renderInputField('Homocysteine', 'cardiovascularRisk', 'homocysteine', 'µmol/L')}
+            {renderInputField('Non-HDL (Auto)', 'cardiovascularRisk', 'nonHdlCholesterol', 'mg/dL')}
+            {renderInputField('AIP Index (Auto)', 'cardiovascularRisk', 'atherogenicIndexPlasma', 'index')}
           </View>
 
           <View style={styles.row}>
@@ -228,12 +273,18 @@ export const VitalsFormSection = ({
           </View>
 
           <View style={styles.row}>
+            {renderInputField('ApoB/A1 (Auto)', 'cardiovascularRisk', 'apoBApoA1Ratio', 'ratio')}
+            {renderInputField('Homocysteine', 'cardiovascularRisk', 'homocysteine', 'µmol/L')}
+          </View>
+
+          <View style={styles.row}>
             {renderInputField('Lipoprotein(a)', 'cardiovascularRisk', 'lipoproteinA', 'nmol/L')}
+            {renderInputField('hs-Troponin I', 'cardiovascularRisk', 'hsTroponinI', 'ng/mL')}
           </View>
         </View>
       )}
 
-      {/* Tab 5: Organs, Inflammation & Hormones */}
+      {/* Tab 6: Organs, Inflammation & Hormones */}
       {activeTab === 'organs' && (
         <View style={styles.formGrid}>
           <Text style={styles.subSectionTitle}>Renal & Hepatic Functions</Text>
@@ -243,13 +294,39 @@ export const VitalsFormSection = ({
           </View>
 
           <View style={styles.row}>
-            {renderInputField('Uric Acid', 'organFunction', 'uricAcid', 'mg/dL')}
-            {renderInputField('AST / SGOT', 'organFunction', 'astSgot', 'U/L')}
+            {renderInputField('BUN (Urea)', 'organFunction', 'bun', 'mg/dL')}
+            {renderInputField('BUN/Cr (Auto)', 'organFunction', 'bunCreatinineRatio', 'ratio')}
           </View>
 
           <View style={styles.row}>
+            {renderInputField('AST / SGOT', 'organFunction', 'astSgot', 'U/L')}
             {renderInputField('ALT / SGPT', 'organFunction', 'altSgpt', 'U/L')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('De Ritis (Auto)', 'organFunction', 'deRitisRatio', 'ratio')}
             {renderInputField('GGT Enzyme', 'organFunction', 'ggt', 'U/L')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('ALP Enzyme', 'organFunction', 'alp', 'U/L')}
+            {renderInputField('Uric Acid', 'organFunction', 'uricAcid', 'mg/dL')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('Total Protein', 'organFunction', 'totalProtein', 'g/dL')}
+            {renderInputField('Serum Albumin', 'organFunction', 'albumin', 'g/dL')}
+          </View>
+
+          <Text style={styles.subSectionTitle}>Serum Electrolytes</Text>
+          <View style={styles.row}>
+            {renderInputField('Sodium (Na+)', 'organFunction', 'electrolytes', 'mEq/L', 'sodium')}
+            {renderInputField('Potassium (K+)', 'organFunction', 'electrolytes', 'mEq/L', 'potassium')}
+          </View>
+
+          <View style={styles.row}>
+            {renderInputField('Chloride (Cl-)', 'organFunction', 'electrolytes', 'mEq/L', 'chloride')}
+            {renderInputField('Bicarbonate', 'organFunction', 'electrolytes', 'mEq/L', 'bicarbonate')}
           </View>
 
           <Text style={styles.subSectionTitle}>Immunology & Inflammation</Text>
@@ -278,19 +355,10 @@ export const VitalsFormSection = ({
             {renderInputField('Total Testosterone', 'hormones', 'testosteroneTotal', 'ng/dL')}
             {renderInputField('Free Testosterone', 'hormones', 'testosteroneFree', 'pg/mL')}
           </View>
-
-          <View style={styles.row}>
-            {renderInputField('Estradiol', 'hormones', 'estradiol', 'pg/mL')}
-            {renderInputField('Progesterone', 'hormones', 'progesterone', 'ng/mL')}
-          </View>
-
-          <View style={styles.row}>
-            {renderInputField('DHEA-S', 'hormones', 'dheas', 'µg/dL')}
-          </View>
         </View>
       )}
 
-      {/* Tab 6: Micronutrients & Nutrigenomics */}
+      {/* Tab 7: Micronutrients & Nutrigenomics */}
       {activeTab === 'micro' && (
         <View style={styles.formGrid}>
           <Text style={styles.subSectionTitle}>Micronutrients & Vitamins</Text>
@@ -317,7 +385,7 @@ export const VitalsFormSection = ({
           <Text style={styles.subSectionTitle}>Nutrigenomics & Gut Flora</Text>
           {/* MTHFR Status Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>MTHFR Mutation Status</Text>
+            <Text style={styles.inputLabel}>MTHFR Status</Text>
             <View style={styles.optionRow}>
               {['Negative', 'Heterozygous', 'Homozygous'].map((opt) => {
                 const isSel = vitals.geneticAndGut?.mthfrMutationStatus === opt;
@@ -358,7 +426,7 @@ export const VitalsFormSection = ({
           </View>
 
           <View style={styles.row}>
-            {renderInputField('Gut Diversity Score', 'geneticAndGut', 'gutMicrobiomeDiversityScore', '0-100')}
+            {renderInputField('Gut Diversity', 'geneticAndGut', 'gutMicrobiomeDiversityScore', '0-100')}
             {renderInputField('F/B Ratio', 'geneticAndGut', 'firmicutesToBacteroidetesRatio', 'ratio')}
           </View>
         </View>
@@ -370,6 +438,8 @@ export const VitalsFormSection = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
+    backgroundColor: '#0a0a0a',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -385,11 +455,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#ffffff',
   },
   subtitle: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: '#94a3b8',
     marginTop: 2,
   },
   quickFillBtn: {
@@ -431,7 +501,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 11,
-    color: colors.textMuted,
+    color: '#64748b',
     fontWeight: '600',
   },
   tabTextActive: {
@@ -442,11 +512,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subSectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.textCyan,
     marginTop: 10,
     marginBottom: 4,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   row: {
@@ -466,7 +537,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#94a3b8',
   },
   unitBadge: {
     fontSize: 9,
@@ -478,13 +549,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   textInput: {
-    backgroundColor: 'rgba(12, 12, 12, 0.8)',
+    backgroundColor: '#000000',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    color: colors.textPrimary,
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -508,7 +579,7 @@ const styles = StyleSheet.create({
   },
   pickerText: {
     fontSize: 10,
-    color: colors.textMuted,
+    color: '#64748b',
     fontWeight: '600',
   },
   pickerTextActive: {

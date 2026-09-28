@@ -1053,18 +1053,29 @@ async function seedCompleteTestData() {
         boneMassKg: 3.1,
         visceralFatIndex: 4,
         waterPercentage: 58,
+        measurements: {
+          waistCm: 80,
+          hipCm: 96,
+          neckCm: 38
+        }
       },
       continuousMetrics: {
         restingHeartRate: 71,
         hrv: 54,
+        vo2Max: 44.5,
         oxygenSaturationSpO2: 98.5,
         dailyStepCount: 8420,
+        activeCaloriesBurned: 480,
         basalBodyTemperatureF: 98.4
       },
       metabolicHealth: {
         glucoseFasting: 92,
+        glucosePostPrandial: 118,
         hba1c: 5.3,
-        insulinFasting: 8.5
+        fastingInsulin: 8.5,
+        cPeptide: 1.8,
+        fructosamine: 220,
+        bloodKetones: 0.4
       },
       cardiovascularRisk: {
         systolic: 120,
@@ -1072,30 +1083,84 @@ async function seedCompleteTestData() {
         totalCholesterol: 175,
         ldlCholesterol: 98,
         hdlCholesterol: 55,
-        triglycerides: 110
+        vldlCholesterol: 22,
+        triglycerides: 110,
+        apolipoproteinA1: 145,
+        apolipoproteinB: 80,
+        lipoproteinA: 18,
+        homocysteine: 8.8,
+        hsTroponinI: 0.008
+      },
+      hematology: {
+        hemoglobin: 15.2,
+        hematocrit: 44.5,
+        rbc: 5.1,
+        mcv: 88,
+        mch: 29.8,
+        mchc: 33.8,
+        rdw: 12.4,
+        wbc: 6.8,
+        neutrophilsPercent: 58,
+        lymphocytesPercent: 32,
+        monocytesPercent: 6,
+        eosinophilsPercent: 3,
+        basophilsPercent: 1,
+        platelets: 245,
+        mpv: 9.8
       },
       organFunction: {
         creatinine: 0.9,
-        uricAcid: 5.2,
+        egfr: 104,
         bun: 14.2,
-        egfr: 98
+        uricAcid: 5.2,
+        astSgot: 22,
+        altSgpt: 24,
+        ggt: 20,
+        alp: 68,
+        totalBilirubin: 0.8,
+        directBilirubin: 0.2,
+        totalProtein: 7.2,
+        albumin: 4.6,
+        globulin: 2.6,
+        electrolytes: {
+          sodium: 140,
+          potassium: 4.2,
+          chloride: 102,
+          bicarbonate: 25
+        }
       },
       immunology: {
-        crp: 0.6,
-        whiteBloodCellCount: 6800
+        hsCRP: 0.6,
+        esr: 8,
+        ferritin: 140,
+        interleukin6: 1.4
       },
       hormones: {
+        cortisolFasting: 13.5,
         tsh: 2.1,
-        freeT4: 1.3
+        freeT3: 3.2,
+        freeT4: 1.3,
+        testosteroneTotal: 590,
+        testosteroneFree: 14.8,
+        shbg: 36
       },
       micronutrients: {
-        vitaminD: 38,
+        vitaminD3: 42,
         vitaminB12: 540,
-        ferritin: 120
+        folate: 14.2,
+        calciumTotal: 9.6,
+        ironTotal: 115,
+        tibc: 320,
+        magnesium: 2.2,
+        zinc: 94,
+        copper: 105,
+        omega3Index: 7.8
       },
       geneticAndGut: {
-        gutMicrobiomeScore: 84,
-        inflammatoryRiskIndex: 'Low'
+        mthfrMutationStatus: 'Negative',
+        apoeGenotype: 'E3/E3',
+        gutMicrobiomeDiversityScore: 84,
+        firmicutesToBacteroidetesRatio: 1.2
       }
     });
 

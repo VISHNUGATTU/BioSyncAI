@@ -4,22 +4,50 @@ import UserDraft from '../models/UserDraft.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { GoogleGenAI } from '@google/genai';
 import { uploadToCloudinary } from '../configs/cloudinary.js';
+import { calculateDerivedVitals, extractAIFeatureVector } from '../utils/aiFeatureExtractor.js';
 
 // @desc    Add manual vitals for initial baseline or follow-up
 // @route   POST /api/vitals/manual
 // @access  Private (User)
 export const addManualVitals = asyncHandler(async (req, res) => {
-  const { bodyMetrics, metabolicHealth, cardiovascularRisk, continuousMetrics } = req.body;
+  const {
+    bodyMetrics,
+    metabolicHealth,
+    cardiovascularRisk,
+    continuousMetrics,
+    hematology,
+    organFunction,
+    immunology,
+    hormones,
+    micronutrients,
+    geneticAndGut,
+  } = req.body;
+
+  const user = await User.findById(req.user._id).lean();
+
+  // Run automated clinical feature derivations
+  const derivedPayload = calculateDerivedVitals(
+    {
+      bodyMetrics,
+      metabolicHealth,
+      cardiovascularRisk,
+      continuousMetrics,
+      hematology,
+      organFunction,
+      immunology,
+      hormones,
+      micronutrients,
+      geneticAndGut,
+    },
+    user || {}
+  );
 
   const vitals = await Vitals.create({
     user: req.user._id,
     source: 'Manual',
     isInitialBaseline: true,
     isVerifiedByUser: true,
-    bodyMetrics,
-    metabolicHealth,
-    cardiovascularRisk,
-    continuousMetrics,
+    ...derivedPayload
   });
 
   await User.findByIdAndUpdate(req.user._id, { vitalsStatus: 'Manual' });
@@ -66,7 +94,7 @@ Extract all verified biomarkers. Return STRICTLY a valid JSON object matching th
   "glucoseFasting": number (in mg/dL),
   "glucosePostPrandial": number (in mg/dL),
   "hba1c": number (in %),
-  "insulin": number,
+  "insulin": number (in uIU/mL),
   "totalCholesterol": number (in mg/dL),
   "ldlCholesterol": number (in mg/dL),
   "hdlCholesterol": number (in mg/dL),
@@ -76,7 +104,26 @@ Extract all verified biomarkers. Return STRICTLY a valid JSON object matching th
   "restingHeartRate": number (in BPM),
   "hrv": number (in ms),
   "oxygenSaturationSpO2": number (in %),
-  "hemoglobin": number (in g/dL)
+  "hemoglobin": number (in g/dL),
+  "hematocrit": number (in %),
+  "rbc": number (in 10^6/uL),
+  "platelets": number (in 10^3/uL),
+  "wbc": number (in 10^3/uL),
+  "neutrophilsPercent": number (in %),
+  "lymphocytesPercent": number (in %),
+  "creatinine": number (in mg/dL),
+  "egfr": number (in mL/min),
+  "bun": number (in mg/dL),
+  "uricAcid": number (in mg/dL),
+  "astSgot": number (in U/L),
+  "altSgpt": number (in U/L),
+  "ggt": number (in U/L),
+  "hsCRP": number (in mg/L),
+  "esr": number (in mm/hr),
+  "ferritin": number (in ng/mL),
+  "tsh": number (in uIU/mL),
+  "vitaminD3": number (in ng/mL),
+  "vitaminB12": number (in pg/mL)
 }
 Return only JSON. Do not include markdown codeblocks or other commentary.`;
 
@@ -139,9 +186,33 @@ export const confirmExtractedVitals = asyncHandler(async (req, res) => {
     metabolicHealth,
     cardiovascularRisk,
     continuousMetrics,
+    hematology,
+    organFunction,
+    immunology,
+    hormones,
+    micronutrients,
+    geneticAndGut,
     documentUrl,
     pdfRawText
   } = req.body;
+
+  const user = await User.findById(req.user._id).lean();
+
+  const derivedPayload = calculateDerivedVitals(
+    {
+      bodyMetrics: bodyMetrics || {},
+      metabolicHealth: metabolicHealth || {},
+      cardiovascularRisk: cardiovascularRisk || {},
+      continuousMetrics: continuousMetrics || {},
+      hematology: hematology || {},
+      organFunction: organFunction || {},
+      immunology: immunology || {},
+      hormones: hormones || {},
+      micronutrients: micronutrients || {},
+      geneticAndGut: geneticAndGut || {},
+    },
+    user || {}
+  );
 
   const vitals = await Vitals.create({
     user: req.user._id,
@@ -150,10 +221,7 @@ export const confirmExtractedVitals = asyncHandler(async (req, res) => {
     isVerifiedByUser: true,
     documentUrl: documentUrl || '',
     pdfRawText: pdfRawText || 'User verified extracted report',
-    bodyMetrics: bodyMetrics || {},
-    metabolicHealth: metabolicHealth || {},
-    cardiovascularRisk: cardiovascularRisk || {},
-    continuousMetrics: continuousMetrics || {}
+    ...derivedPayload
   });
 
   await User.findByIdAndUpdate(req.user._id, { vitalsStatus: 'PDF_Scanned' });
@@ -211,11 +279,40 @@ export const getVitalsHistory = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get AI Feature Vector & Physiological Risk Classification
+// @route   GET /api/vitals/ai-features/:userId?
+// @access  Private (User or Authorized Staff)
+export const getAIFeatureVector = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.userId || req.user._id;
+
+  const [user, latestVitals] = await Promise.all([
+    User.findById(targetUserId).select('-password -otp').lean(),
+    Vitals.findOne({ user: targetUserId }).sort({ recordedAt: -1 }).lean()
+  ]);
+
+  if (!latestVitals) {
+    return res.status(200).json({
+      success: true,
+      hasData: false,
+      message: 'No recorded vitals found for target user',
+      features: null
+    });
+  }
+
+  const aiFeatures = extractAIFeatureVector(latestVitals, user || {});
+
+  res.status(200).json({
+    success: true,
+    hasData: true,
+    ...aiFeatures
+  });
+});
+
 // @desc    Get formatted time-series trends for interactive health charts
 // @route   GET /api/vitals/trends
 // @access  Private (User)
 export const getVitalsTrends = asyncHandler(async (req, res) => {
-  const { range = '30D', metric = 'all' } = req.query;
+  const { range = '30D' } = req.query;
 
   let fromDate = new Date();
   switch (range.toUpperCase()) {
@@ -253,6 +350,9 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
   const heartRateSeries = [];
   const weightSeries = [];
   const spO2Series = [];
+  const lipidSeries = [];
+  const hematologySeries = [];
+  const inflammationSeries = [];
 
   records.forEach(doc => {
     const timestamp = doc.recordedAt || doc.createdAt;
@@ -275,6 +375,8 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         timestamp,
         systolic: doc.cardiovascularRisk.systolic || null,
         diastolic: doc.cardiovascularRisk.diastolic || null,
+        map: doc.cardiovascularRisk.meanArterialPressure || null,
+        pulsePressure: doc.cardiovascularRisk.pulsePressure || null,
         unit: 'mmHg'
       });
     }
@@ -307,6 +409,41 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         unit: '%'
       });
     }
+
+    if (doc.cardiovascularRisk?.totalCholesterol || doc.cardiovascularRisk?.ldlCholesterol) {
+      lipidSeries.push({
+        date: dateStr,
+        timestamp,
+        totalCholesterol: doc.cardiovascularRisk.totalCholesterol || null,
+        ldl: doc.cardiovascularRisk.ldlCholesterol || null,
+        hdl: doc.cardiovascularRisk.hdlCholesterol || null,
+        triglycerides: doc.cardiovascularRisk.triglycerides || null,
+        aip: doc.cardiovascularRisk.atherogenicIndexPlasma || null,
+        unit: 'mg/dL'
+      });
+    }
+
+    if (doc.hematology?.hemoglobin || doc.hematology?.wbc) {
+      hematologySeries.push({
+        date: dateStr,
+        timestamp,
+        hemoglobin: doc.hematology.hemoglobin || null,
+        wbc: doc.hematology.wbc || null,
+        platelets: doc.hematology.platelets || null,
+        nlr: doc.hematology.nlr || null,
+        unit: 'g/dL'
+      });
+    }
+
+    if (doc.immunology?.hsCRP) {
+      inflammationSeries.push({
+        date: dateStr,
+        timestamp,
+        hsCRP: doc.immunology.hsCRP,
+        esr: doc.immunology.esr || null,
+        unit: 'mg/L'
+      });
+    }
   });
 
   res.status(200).json({
@@ -317,7 +454,10 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
       bloodPressure: bpSeries,
       heartRate: heartRateSeries,
       weight: weightSeries,
-      spO2: spO2Series
+      spO2: spO2Series,
+      lipids: lipidSeries,
+      hematology: hematologySeries,
+      inflammation: inflammationSeries
     }
   });
 });
