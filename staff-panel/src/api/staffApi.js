@@ -95,6 +95,17 @@ export const staffApi = {
     return res.data;
   },
 
+  // Barcode Verification & Duplicate Checking
+  checkBarcodeAvailability: async (barcode) => {
+    const res = await api.get(`/lab-assistant/barcode/check/${encodeURIComponent(barcode)}`);
+    return res.data;
+  },
+
+  generateUniqueBarcode: async () => {
+    const res = await api.get('/lab-assistant/barcode/generate');
+    return res.data;
+  },
+
   // Samples Management
   getCollectedSamples: async () => {
     const res = await api.get('/lab-assistant/samples/collected');

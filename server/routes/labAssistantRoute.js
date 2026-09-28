@@ -5,7 +5,7 @@ import {
   getProfile, updateProfile, uploadCollectionEvidence, getCollectedSamples, getDashboardKPIs,
   getAppointmentsByCategory, getProcessingQueue, startSampleProcessing, submitTestResults, getEarnings,
   getAllAssistantSamples, recordAppointmentVitals, getAppointmentVitals,
-  updateSampleResultsStatus
+  updateSampleResultsStatus, checkBarcodeAvailability, generateUniqueBarcode
 } from '../controllers/labAssistantController.js';
 import { authLabAssistant } from '../middlewares/authLabAssistant.js';
 import { auditLogger } from '../middlewares/auditMiddleware.js';
@@ -14,6 +14,11 @@ import { memoryUpload } from '../configs/multer.js';
 const labAssistantRouter = express.Router();
 labAssistantRouter.post('/login', loginLabAssistant);
 labAssistantRouter.use(authLabAssistant);
+
+// Barcode Verification & Generation Endpoints
+labAssistantRouter.get('/barcode/check/:barcode', checkBarcodeAvailability);
+labAssistantRouter.get('/barcode/generate', generateUniqueBarcode);
+
 labAssistantRouter.get('/kpis', getDashboardKPIs);
 labAssistantRouter.get('/earnings', getEarnings);
 labAssistantRouter.get('/appointments/category/:category', getAppointmentsByCategory);

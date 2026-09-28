@@ -106,29 +106,38 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
   });
 
   // STEP 3: Tri-Specimen Collection State (Blood, Urine, Stool)
-  const primaryKitBarcode = `BIO-KIT-${Math.floor(100000 + Math.random() * 900000)}`;
+  // Strictly NO predefined barcodes - Barcode must be explicitly generated or scanned and verified against DB
   const [specimens, setSpecimens] = useState({
     blood: {
-      collected: true,
-      barcode: `${primaryKitBarcode}-BLD`,
+      collected: false,
+      barcode: '',
       photoUri: null,
       manualMode: false,
-      tubesFilled: true,
+      tubesFilled: false,
     },
     urine: {
-      collected: true,
-      barcode: `${primaryKitBarcode}-URN`,
+      collected: false,
+      barcode: '',
       photoUri: null,
       manualMode: false,
     },
     stool: {
-      collected: true,
-      barcode: `${primaryKitBarcode}-STL`,
+      collected: false,
+      barcode: '',
       photoUri: null,
       manualMode: false,
     },
-    coldStorageConfirmed: true,
+    coldStorageConfirmed: false,
   });
+
+  // Barcode Verification & Duplicate Prevention State
+  const [barcodeStatus, setBarcodeStatus] = useState({
+    checking: false,
+    verified: false,
+    error: null,
+    barcode: '',
+  });
+  const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
 
   // STEP 4: Payment State
   const billAmount = appointment?.totalPrice || appointment?.billingAmount || 499;
@@ -463,6 +472,106 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
     }
   };
 
+  // Step 3: Barcode Generation & Real-time Verification Handlers
+  const handleGenerateUniqueBarcode = async () => {
+    try {
+      setIsGeneratingBarcode(true);
+      const res = await staffApi.generateUniqueBarcode();
+      if (res.success && res.barcode) {
+        const bloodBc = res.specimenBarcodes?.blood || res.barcode;
+        const urineBc = res.specimenBarcodes?.urine || `${res.kitCode}-URN`;
+        const stoolBc = res.specimenBarcodes?.stool || `${res.kitCode}-STL`;
+
+        setSpecimens((p) => ({
+          ...p,
+          blood: {
+            ...p.blood,
+            barcode: bloodBc,
+            collected: true,
+            tubesFilled: true,
+          },
+          urine: {
+            ...p.urine,
+            barcode: urineBc,
+            collected: true,
+          },
+          stool: {
+            ...p.stool,
+            barcode: stoolBc,
+            collected: true,
+          },
+        }));
+
+        setBarcodeStatus({
+          checking: false,
+          verified: true,
+          error: null,
+          barcode: bloodBc,
+        });
+        Alert.alert('Barcode Generated', `Unique Barcode "${bloodBc}" generated and verified against database.`);
+      } else {
+        Alert.alert('Barcode Error', res.message || 'Failed to generate unique barcode.');
+      }
+    } catch (err) {
+      Alert.alert('Server Error', err.response?.data?.message || err.message || 'Could not reach server to generate unique barcode.');
+    } finally {
+      setIsGeneratingBarcode(false);
+    }
+  };
+
+  const verifyBarcodeUniqueness = async (barcodeToTest) => {
+    if (!barcodeToTest || barcodeToTest.trim().length === 0) {
+      setBarcodeStatus({
+        checking: false,
+        verified: false,
+        error: 'Barcode cannot be empty. Please enter or generate a barcode.',
+        barcode: '',
+      });
+      return false;
+    }
+
+    const trimmed = barcodeToTest.trim();
+    try {
+      setBarcodeStatus({ checking: true, verified: false, error: null, barcode: trimmed });
+      const res = await staffApi.checkBarcodeAvailability(trimmed);
+      if (res.success) {
+        if (res.available) {
+          setBarcodeStatus({
+            checking: false,
+            verified: true,
+            error: null,
+            barcode: trimmed,
+          });
+          return true;
+        } else {
+          setBarcodeStatus({
+            checking: false,
+            verified: false,
+            error: res.message || `Barcode "${trimmed}" already exists in the database.`,
+            barcode: trimmed,
+          });
+          return false;
+        }
+      } else {
+        setBarcodeStatus({
+          checking: false,
+          verified: false,
+          error: res.message || 'Failed to verify barcode.',
+          barcode: trimmed,
+        });
+        return false;
+      }
+    } catch (err) {
+      setBarcodeStatus({
+        checking: false,
+        verified: false,
+        error: err.response?.data?.message || 'Database check error.',
+        barcode: trimmed,
+      });
+      return false;
+    }
+  };
+
   // Step 3: Specimen Camera Photo Capture (Photo First)
   const handleCaptureSpecimenPhoto = async (specimenType) => {
     try {
@@ -482,6 +591,37 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const uri = result.assets[0].uri;
+        let currentBarcode = specimens[specimenType].barcode;
+
+        // If no barcode assigned yet, auto-generate unique barcode
+        if (!currentBarcode || currentBarcode.trim().length === 0) {
+          try {
+            const genRes = await staffApi.generateUniqueBarcode();
+            if (genRes.success && genRes.barcode) {
+              const newBlood = genRes.specimenBarcodes?.blood || genRes.barcode;
+              const newUrine = genRes.specimenBarcodes?.urine || `${genRes.kitCode}-URN`;
+              const newStool = genRes.specimenBarcodes?.stool || `${genRes.kitCode}-STL`;
+
+              setSpecimens((prev) => ({
+                ...prev,
+                blood: { ...prev.blood, barcode: newBlood, collected: true, photoUri: specimenType === 'blood' ? uri : prev.blood.photoUri },
+                urine: { ...prev.urine, barcode: newUrine, collected: true, photoUri: specimenType === 'urine' ? uri : prev.urine.photoUri },
+                stool: { ...prev.stool, barcode: newStool, collected: true, photoUri: specimenType === 'stool' ? uri : prev.stool.photoUri },
+              }));
+
+              setBarcodeStatus({
+                checking: false,
+                verified: true,
+                error: null,
+                barcode: newBlood,
+              });
+              return;
+            }
+          } catch (e) {
+            console.warn('Auto-gen on photo failed:', e.message);
+          }
+        }
+
         setSpecimens((prev) => ({
           ...prev,
           [specimenType]: {
@@ -512,11 +652,89 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
     }));
   };
 
+  // Step 3 Validation: Proceed to Step 4 only if barcode is non-null, valid, and not duplicate
+  const handleProceedToStep4 = async () => {
+    const bloodBarcode = specimens.blood.barcode?.trim();
+    if (!bloodBarcode || bloodBarcode.length === 0) {
+      Alert.alert(
+        'Barcode Required',
+        'Cannot proceed with empty or null barcode. You must click "Generate Unique Barcode" or scan/enter a verified barcode before continuing.',
+        [
+          { text: 'Generate Barcode Now', onPress: handleGenerateUniqueBarcode },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+      return;
+    }
+
+    if (barcodeStatus.error) {
+      Alert.alert(
+        'Duplicate Barcode Rejected',
+        `${barcodeStatus.error}\n\nPlease generate a new unique barcode before proceeding.`,
+        [
+          { text: 'Generate Unique Barcode', onPress: handleGenerateUniqueBarcode },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+      return;
+    }
+
+    // Live verification check against DB
+    if (!barcodeStatus.verified || barcodeStatus.barcode !== bloodBarcode) {
+      const isValid = await verifyBarcodeUniqueness(bloodBarcode);
+      if (!isValid) {
+        Alert.alert(
+          'Duplicate Barcode Rejected',
+          `Barcode "${bloodBarcode}" already exists in the database. Duplicates are strictly prevented.`,
+          [
+            { text: 'Generate Unique Barcode', onPress: handleGenerateUniqueBarcode },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+        return;
+      }
+    }
+
+    if (!specimens.coldStorageConfirmed) {
+      Alert.alert('Cold Storage Notice', 'Please verify and check that all specimens are secured in the 4°C cold-chain container.');
+      return;
+    }
+
+    setCurrentStep(4);
+  };
+
   // Step 4: Finalize Collection & Submit to Backend
   const handleFinalizeCollection = async () => {
     if (!isPaymentConfirmed) {
       Alert.alert('Payment Unconfirmed', 'Please confirm that payment has been collected from the patient.');
       return;
+    }
+
+    const bloodBarcode = specimens.blood.barcode?.trim();
+    if (!bloodBarcode || bloodBarcode.length === 0) {
+      Alert.alert('Barcode Missing', 'Null or empty barcode cannot be entered into the database. Please go back to Step 3 and generate a barcode.');
+      setCurrentStep(3);
+      return;
+    }
+
+    // Pre-flight check: Re-verify barcode uniqueness directly against database before sending
+    try {
+      setLoading(true);
+      const checkRes = await staffApi.checkBarcodeAvailability(bloodBarcode);
+      if (checkRes.success && !checkRes.available) {
+        setLoading(false);
+        Alert.alert('Duplicate Barcode Error', checkRes.message || 'This barcode already exists in the database. Please generate a unique barcode.');
+        setBarcodeStatus({
+          checking: false,
+          verified: false,
+          error: checkRes.message,
+          barcode: bloodBarcode,
+        });
+        setCurrentStep(3);
+        return;
+      }
+    } catch (err) {
+      console.warn('Barcode pre-check network warning:', err);
     }
 
     try {
@@ -1222,6 +1440,98 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               </View>
             </View>
 
+            {/* MASTER BARCODE GENERATION & VERIFICATION STATION */}
+            <GlassCard style={[styles.card, styles.barcodeStationCard]}>
+              <View style={styles.stationHeaderRow}>
+                <View style={styles.stationIconBox}>
+                  <Barcode size={22} color={colors.cyan} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stationTitle}>Primary Specimen Barcode</Text>
+                  <Text style={styles.stationSub}>Guaranteed unique • Validated against live database</Text>
+                </View>
+                {barcodeStatus.verified && (
+                  <View style={styles.verifiedPill}>
+                    <CircleCheck size={12} color={colors.emeraldLight} />
+                    <Text style={styles.verifiedPillText}>DB VERIFIED</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Barcode Display or Missing State */}
+              <View style={styles.barcodeDisplayArea}>
+                {specimens.blood.barcode ? (
+                  <View style={styles.activeBarcodeBox}>
+                    <Text style={styles.activeBarcodeNumber}>{specimens.blood.barcode}</Text>
+                    <View style={styles.barcodeStatusIndicatorRow}>
+                      {barcodeStatus.checking ? (
+                        <View style={styles.statusIndicatorAmber}>
+                          <ActivityIndicator size="small" color={colors.amberLight} />
+                          <Text style={styles.statusIndicatorAmberText}>Checking Database...</Text>
+                        </View>
+                      ) : barcodeStatus.error ? (
+                        <View style={styles.statusIndicatorRed}>
+                          <AlertCircle size={14} color={colors.roseLight} />
+                          <Text style={styles.statusIndicatorRedText}>{barcodeStatus.error}</Text>
+                        </View>
+                      ) : barcodeStatus.verified ? (
+                        <View style={styles.statusIndicatorGreen}>
+                          <CircleCheck size={14} color={colors.emeraldLight} />
+                          <Text style={styles.statusIndicatorGreenText}>Unique & Safe in Database</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.statusIndicatorAmber}>
+                          <AlertCircle size={14} color={colors.amberLight} />
+                          <Text style={styles.statusIndicatorAmberText}>Unverified against DB</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.emptyBarcodeWarningBox}>
+                    <AlertCircle size={18} color={colors.roseLight} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.emptyBarcodeWarningTitle}>Barcode Not Generated</Text>
+                      <Text style={styles.emptyBarcodeWarningText}>
+                        Null or empty barcodes are prohibited. Tap "Generate Unique Barcode" or photograph/enter barcode label.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Master Action Buttons */}
+                <View style={styles.stationActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.stationGenBtn, isGeneratingBarcode && styles.stationBtnDisabled]}
+                    onPress={handleGenerateUniqueBarcode}
+                    disabled={isGeneratingBarcode}
+                    activeOpacity={0.8}
+                  >
+                    {isGeneratingBarcode ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Sparkles size={16} color="#fff" />
+                    )}
+                    <Text style={styles.stationGenBtnText}>
+                      {isGeneratingBarcode ? 'Generating...' : specimens.blood.barcode ? 'Regenerate Unique Barcode' : 'Generate Unique Barcode'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {specimens.blood.barcode ? (
+                    <TouchableOpacity
+                      style={styles.stationVerifyBtn}
+                      onPress={() => verifyBarcodeUniqueness(specimens.blood.barcode)}
+                      disabled={barcodeStatus.checking}
+                      activeOpacity={0.8}
+                    >
+                      <ShieldCheck size={16} color={colors.cyan} />
+                      <Text style={styles.stationVerifyBtnText}>Re-check DB</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </View>
+            </GlassCard>
+
             {/* Specimen 1: Venous Blood Draw */}
             <GlassCard style={styles.card}>
               <View style={styles.specimenHeaderRow}>
@@ -1312,14 +1622,20 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
                   />
                   <TouchableOpacity
                     style={styles.genMiniBtn}
-                    onPress={() =>
-                      setSpecimens((p) => ({
-                        ...p,
-                        blood: { ...p.blood, barcode: `BIO-KIT-${Math.floor(100000 + Math.random() * 900000)}-BLD` },
-                      }))
-                    }
+                    onPress={handleGenerateUniqueBarcode}
+                    disabled={isGeneratingBarcode}
                   >
-                    <Sparkles size={14} color="#fff" />
+                    {isGeneratingBarcode ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Sparkles size={14} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.genMiniBtn, { backgroundColor: colors.cyan }]}
+                    onPress={() => verifyBarcodeUniqueness(specimens.blood.barcode)}
+                  >
+                    <ShieldCheck size={14} color="#000" />
                   </TouchableOpacity>
                 </View>
               )}
@@ -1496,7 +1812,7 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
 
             <TouchableOpacity
               style={styles.primaryActionBtn}
-              onPress={() => setCurrentStep(4)}
+              onPress={handleProceedToStep4}
               activeOpacity={0.8}
             >
               <CircleCheck size={18} color="#fff" />
@@ -2783,6 +3099,194 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 15,
     marginTop: 2,
+  },
+  barcodeStationCard: {
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+    backgroundColor: '#0a0a0a',
+    marginBottom: 16,
+  },
+  stationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  stationIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stationTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  stationSub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  verifiedPillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.emeraldLight,
+    letterSpacing: 0.5,
+  },
+  barcodeDisplayArea: {
+    gap: 12,
+  },
+  activeBarcodeBox: {
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeBarcodeNumber: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.cyan,
+    letterSpacing: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  barcodeStatusIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusIndicatorGreen: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  statusIndicatorGreenText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.emeraldLight,
+  },
+  statusIndicatorRed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(244, 63, 94, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+  },
+  statusIndicatorRedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.roseLight,
+  },
+  statusIndicatorAmber: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  statusIndicatorAmberText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.amberLight,
+  },
+  emptyBarcodeWarningBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(244, 63, 94, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  emptyBarcodeWarningTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.roseLight,
+  },
+  emptyBarcodeWarningText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  stationActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  stationGenBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.cyan,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: colors.cyan,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stationGenBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.3,
+  },
+  stationBtnDisabled: {
+    opacity: 0.6,
+  },
+  stationVerifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.35)',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  stationVerifyBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.cyan,
   },
 });
 

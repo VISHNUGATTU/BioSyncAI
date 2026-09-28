@@ -111,24 +111,49 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
 
   let sample = await Sample.findOne({ appointment: req.params.appointmentId });
 
-  // 1. Strict Duplicate Barcode Verification: Guarantee zero barcode collisions across samples
-  const finalBarcode = (barcode && barcode.trim().length > 0)
-    ? barcode.trim()
-    : `BIO-SMP-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  // 1. Strict Duplicate Barcode Verification: Reject null/empty and guarantee zero barcode collisions
+  if (!barcode || typeof barcode !== 'string' || barcode.trim().length === 0) {
+    res.status(400);
+    throw new Error('Barcode is strictly required. You must scan, enter, or generate a valid non-null barcode before collecting a sample.');
+  }
 
+  const finalBarcode = barcode.trim();
+
+  // Search across main barcode and all specimen barcodes
   const duplicateSample = await Sample.findOne({
-    barcode: finalBarcode,
+    $or: [
+      { barcode: finalBarcode },
+      { 'specimens.blood.barcode': finalBarcode },
+      { 'specimens.urine.barcode': finalBarcode },
+      { 'specimens.stool.barcode': finalBarcode }
+    ],
     _id: { $ne: sample?._id }
   }).lean();
 
   if (duplicateSample) {
     res.status(400);
-    throw new Error(`Duplicate barcode: Barcode "${finalBarcode}" is already assigned to sample ${duplicateSample._id}. Barcode must be unique.`);
+    throw new Error(`Duplicate barcode: Barcode "${finalBarcode}" is already in use by sample ${duplicateSample.barcode || duplicateSample._id}. Barcode must be strictly unique.`);
   }
 
   const bloodBarcode = (specimenBarcodes?.blood || finalBarcode).trim();
   const urineBarcode = (specimenBarcodes?.urine || `${finalBarcode}-U`).trim();
   const stoolBarcode = (specimenBarcodes?.stool || `${finalBarcode}-S`).trim();
+
+  // Also verify specimen-specific barcodes do not collide
+  const duplicateSpecimen = await Sample.findOne({
+    $or: [
+      { barcode: bloodBarcode },
+      { 'specimens.blood.barcode': bloodBarcode },
+      { 'specimens.urine.barcode': urineBarcode },
+      { 'specimens.stool.barcode': stoolBarcode }
+    ],
+    _id: { $ne: sample?._id }
+  }).lean();
+
+  if (duplicateSpecimen) {
+    res.status(400);
+    throw new Error(`Duplicate specimen barcode: One or more specimen barcodes are already assigned to sample ${duplicateSpecimen.barcode || duplicateSpecimen._id}.`);
+  }
 
   // 2. Ensure nearest doctor is assigned if not already set on appointment
   let assignedDoctorId = appointment.doctor || sample?.doctor;
@@ -991,5 +1016,91 @@ export const updateSampleResultsStatus = asyncHandler(async (req, res) => {
       ? 'Sample marked as results ready. You can enter vitals now.'
       : 'Sample marked as Res yet to be obtained.',
     sample
+  });
+});
+
+// @desc    Check if a barcode is available or duplicate across the database
+// @route   GET /api/lab-assistant/barcode/check/:barcode
+// @access  Private (LabAssistant)
+export const checkBarcodeAvailability = asyncHandler(async (req, res) => {
+  const rawBarcode = req.params.barcode;
+  if (!rawBarcode || rawBarcode.trim().length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      available: false,
+      message: 'Barcode parameter is required.' 
+    });
+  }
+
+  const barcode = rawBarcode.trim();
+
+  // Search across main barcode and specimen barcodes
+  const existing = await Sample.findOne({
+    $or: [
+      { barcode },
+      { 'specimens.blood.barcode': barcode },
+      { 'specimens.urine.barcode': barcode },
+      { 'specimens.stool.barcode': barcode }
+    ]
+  }).select('_id barcode status collectionTime').lean();
+
+  if (existing) {
+    return res.status(200).json({
+      success: true,
+      available: false,
+      barcode,
+      message: `Barcode "${barcode}" is already assigned in database (Status: ${existing.status}). Duplicate barcodes are rejected.`,
+      existingSampleId: existing._id
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    available: true,
+    barcode,
+    message: `Barcode "${barcode}" is 100% unique and ready for collection.`
+  });
+});
+
+// @desc    Generate a guaranteed unique, non-null barcode verified against the database
+// @route   GET /api/lab-assistant/barcode/generate
+// @access  Private (LabAssistant)
+export const generateUniqueBarcode = asyncHandler(async (req, res) => {
+  let uniqueBarcode = null;
+  let attempts = 0;
+
+  while (!uniqueBarcode && attempts < 15) {
+    attempts++;
+    const randomPart = Math.floor(100000 + Math.random() * 900000);
+    const candidate = `BIO-KIT-${randomPart}`;
+
+    const existing = await Sample.findOne({
+      $or: [
+        { barcode: candidate },
+        { 'specimens.blood.barcode': candidate },
+        { 'specimens.blood.barcode': `${candidate}-BLD` }
+      ]
+    }).lean();
+
+    if (!existing) {
+      uniqueBarcode = candidate;
+    }
+  }
+
+  if (!uniqueBarcode) {
+    res.status(500);
+    throw new Error('Failed to generate a unique barcode. Please retry.');
+  }
+
+  return res.status(200).json({
+    success: true,
+    barcode: `${uniqueBarcode}-BLD`,
+    kitCode: uniqueBarcode,
+    specimenBarcodes: {
+      blood: `${uniqueBarcode}-BLD`,
+      urine: `${uniqueBarcode}-URN`,
+      stool: `${uniqueBarcode}-STL`
+    },
+    message: `Unique barcode "${uniqueBarcode}-BLD" generated and pre-verified against database.`
   });
 });
