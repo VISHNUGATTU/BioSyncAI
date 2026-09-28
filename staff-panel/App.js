@@ -2,9 +2,13 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
-import { Platform } from 'react-native';
+import { Platform, LogBox } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { colors } from './src/theme/colors';
+
+// Suppress all on-screen warning banners and error overlays in development.
+// All diagnostic information, warnings, and errors strictly output to developer terminal.
+LogBox.ignoreAllLogs(true);
 
 const navigationTheme = {
   ...DarkTheme,

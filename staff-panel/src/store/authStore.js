@@ -130,7 +130,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       await staffApi.updateLiveLocation(latitude, longitude);
     } catch (err) {
-      console.warn('Failed to update live location:', err.message);
+      console.log('[AuthStore] Failed to update live location:', err.message);
     }
   },
 }));
