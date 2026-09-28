@@ -54,9 +54,14 @@ export const userApi = {
     return res.data;
   },
 
-  // Health Reports
+  // Health Reports & Vitals
   getReports: async () => {
     const res = await api.get('/users/reports');
+    return res.data;
+  },
+
+  getLatestVitals: async () => {
+    const res = await api.get('/vitals/latest');
     return res.data;
   },
 };

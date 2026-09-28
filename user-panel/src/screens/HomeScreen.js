@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -20,6 +21,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   RefreshCw,
+  Scan,
+  ShieldAlert,
+  AlertTriangle,
+  Flame,
+  ArrowRight,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -41,7 +47,7 @@ const TRACKING_STAGES = [
 
 export const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
+  const { user, hasVitals, fetchVitals } = useAuthStore();
   const {
     activeAppointment,
     appointments,
@@ -58,6 +64,7 @@ export const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     fetchAppointments();
     fetchTestCatalog();
+    fetchVitals();
   }, []);
 
   // Real-time polling every 4 seconds for instant state sync with staff-panel
@@ -70,7 +77,7 @@ export const HomeScreen = ({ navigation }) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchAppointments(false), fetchTestCatalog()]);
+    await Promise.all([fetchAppointments(false), fetchTestCatalog(), fetchVitals()]);
     setRefreshing(false);
   }, []);
 
@@ -85,6 +92,26 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   const currentStageIdx = activeAppointment ? getStageIndex(activeAppointment.status) : -1;
+  const vitalsPresent = hasVitals();
+
+  const handleScanPress = () => {
+    if (!vitalsPresent) {
+      Alert.alert(
+        'Your Vitals Are Not Present',
+        'Clinical vitals are required to calibrate the AI Food Scanner against your biological profile. Would you like to schedule a home lab collection?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Go to Bookings',
+            style: 'default',
+            onPress: () => navigation.navigate('BookAppointment'),
+          },
+        ]
+      );
+    } else {
+      navigation.navigate('FoodScanner');
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -118,6 +145,49 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
       >
+        {/* VITALS CALIBRATION STATUS BANNER */}
+        <TouchableOpacity
+          style={[
+            styles.vitalsBanner,
+            vitalsPresent ? styles.vitalsBannerVerified : styles.vitalsBannerPending,
+          ]}
+          onPress={() => {
+            if (!vitalsPresent) navigation.navigate('BookAppointment');
+          }}
+          activeOpacity={vitalsPresent ? 1 : 0.8}
+        >
+          <View style={styles.vitalsBannerLeft}>
+            {vitalsPresent ? (
+              <CheckCircle2 size={16} color={colors.emeraldLight} />
+            ) : (
+              <AlertTriangle size={16} color={colors.amberLight} />
+            )}
+            <View>
+              <Text
+                style={[
+                  styles.vitalsBannerTitle,
+                  vitalsPresent ? { color: colors.emeraldLight } : { color: colors.amberLight },
+                ]}
+              >
+                {vitalsPresent
+                  ? 'Clinical Vitals: Verified Baseline Active'
+                  : 'Metabolic Vitals: Pending Calibration'}
+              </Text>
+              <Text style={styles.vitalsBannerSub}>
+                {vitalsPresent
+                  ? 'Personalized glycemic & nutrient AI enabled'
+                  : 'Food scanning locked until baseline is collected'}
+              </Text>
+            </View>
+          </View>
+          {!vitalsPresent ? (
+            <View style={styles.vitalsBannerAction}>
+              <Text style={styles.vitalsBannerActionText}>Book Now</Text>
+              <ChevronRight size={14} color={colors.amberLight} />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+
         {/* ACTIVE APPOINTMENT SPOTLIGHT */}
         {activeAppointment ? (
           <View style={styles.section}>
@@ -224,6 +294,46 @@ export const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </GlassCard>
         )}
+
+        {/* AI FOOD SCANNER SPOTLIGHT CARD */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.foodScannerPromoCard}
+            onPress={handleScanPress}
+            activeOpacity={0.85}
+          >
+            <View style={styles.foodPromoLeft}>
+              <View style={styles.scanIconWrap}>
+                <Scan size={22} color={colors.cyan} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.foodPromoBadgeRow}>
+                  <Text style={styles.foodPromoBadge}>AI NUTRITION SCANNER</Text>
+                  {!vitalsPresent ? (
+                    <View style={styles.lockedPill}>
+                      <ShieldAlert size={10} color={colors.amberLight} />
+                      <Text style={styles.lockedPillText}>LOCKED</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.activePill}>
+                      <Sparkles size={10} color={colors.emeraldLight} />
+                      <Text style={styles.activePillText}>READY</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.foodPromoTitle}>Scan Meal for Metabolic Impact</Text>
+                <Text style={styles.foodPromoSub}>
+                  {vitalsPresent
+                    ? 'Instant glycemic spike & biological absorption forecast'
+                    : 'Requires lab vitals baseline • Tap to test scanner access'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.scanActionBtn}>
+              <ArrowRight size={16} color="#000000" />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* QUICK TEST CATALOG / BOOKING SHORTCUT */}
         <View style={styles.section}>
@@ -335,6 +445,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 40,
+  },
+  vitalsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  vitalsBannerPending: {
+    backgroundColor: '#120d04',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  vitalsBannerVerified: {
+    backgroundColor: '#06130b',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  vitalsBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  vitalsBannerTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  vitalsBannerSub: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  vitalsBannerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  vitalsBannerActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.amberLight,
   },
   section: {
     marginBottom: 20,
@@ -506,6 +658,89 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#000000',
     letterSpacing: 1,
+  },
+  foodScannerPromoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#081418',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.35)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  foodPromoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  scanIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foodPromoBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  foodPromoBadge: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: colors.cyan,
+    letterSpacing: 1,
+  },
+  lockedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  lockedPillText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: colors.amberLight,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  activePillText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: colors.emeraldLight,
+  },
+  foodPromoTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#ffffff',
+  },
+  foodPromoSub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  scanActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: colors.cyan,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
   sectionHeaderRow: {
     flexDirection: 'row',

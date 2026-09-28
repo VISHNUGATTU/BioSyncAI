@@ -5,6 +5,7 @@ import userApi from '../api/userApi';
 export const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
+  latestVitals: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
@@ -20,21 +21,48 @@ export const useAuthStore = create((set, get) => ({
       if (token && userStr) {
         const user = JSON.parse(userStr);
         set({ user, token, isAuthenticated: true, isLoading: false });
-        // Background refresh profile
-        userApi.getProfile()
-          .then((res) => {
+        
+        // Background refresh profile & vitals
+        Promise.all([
+          userApi.getProfile().then((res) => {
             if (res.success && res.user) {
               set({ user: res.user });
               AsyncStorage.setItem('biosync_user_profile', JSON.stringify(res.user));
             }
-          })
-          .catch(() => {});
+          }),
+          get().fetchVitals(),
+        ]).catch(() => {});
       } else {
         set({ user: null, token: null, isAuthenticated: false, isLoading: false });
       }
     } catch (e) {
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  fetchVitals: async () => {
+    try {
+      const res = await userApi.getLatestVitals();
+      if (res.success && res.vitals) {
+        set({ latestVitals: res.vitals });
+        return res.vitals;
+      }
+      set({ latestVitals: null });
+      return null;
+    } catch (e) {
+      set({ latestVitals: null });
+      return null;
+    }
+  },
+
+  hasVitals: () => {
+    const user = get().user;
+    if (!user) return false;
+    // Check if status is Lab_Verified, Manual, or PDF_Scanned, or if a vitals record exists
+    if (user.vitalsStatus === 'Lab_Verified' || user.vitalsStatus === 'Manual' || user.vitalsStatus === 'PDF_Scanned') {
+      return true;
+    }
+    return !!get().latestVitals;
   },
 
   login: async (phoneNumber, otp) => {
@@ -52,6 +80,8 @@ export const useAuthStore = create((set, get) => ({
         ]);
 
         set({ user, token, isAuthenticated: true, isLoading: false, error: null });
+        // Fetch vitals
+        get().fetchVitals();
         return { success: true };
       } else {
         set({ isLoading: false, error: res.message || 'OTP verification failed' });
@@ -74,7 +104,7 @@ export const useAuthStore = create((set, get) => ({
       AsyncStorage.removeItem('biosync_user_profile'),
     ]);
 
-    set({ user: null, token: null, isAuthenticated: false, error: null });
+    set({ user: null, token: null, latestVitals: null, isAuthenticated: false, error: null });
   },
 
   updateUser: (updatedData) => {

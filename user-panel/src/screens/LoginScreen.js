@@ -28,9 +28,9 @@ export const LoginScreen = () => {
 
   // Demo Patients seeded in MongoDB
   const DEMO_PATIENTS = [
-    { name: 'Priya Sharma', phone: '9876512345', note: 'Active Trip (OTP: 4829)' },
-    { name: 'Vikram Malhotra', phone: '9988776655', note: 'Lab Received (Scenario 2)' },
-    { name: 'Rahul Verma', phone: '9123456780', note: 'Doctor Review (Scenario 3)' },
+    { name: 'Vikram Malhotra', phone: '9988776655', note: 'Vitals Pending (Test Scanner Lock)' },
+    { name: 'Priya Sharma', phone: '9876512345', note: 'Active Visit (Test Handshake & OTP)' },
+    { name: 'Rahul Verma', phone: '9123456780', note: 'Lab Verified (Test Unlocked Scanner)' },
   ];
 
   const handleRequestOTP = async (numToUse) => {

@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, CalendarPlus, Activity, User } from 'lucide-react-native';
+import { Home, Scan, CalendarPlus, Activity, User } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
 import HomeScreen from '../screens/HomeScreen';
+import FoodScannerScreen from '../screens/FoodScannerScreen';
 import BookAppointmentScreen from '../screens/BookAppointmentScreen';
 import AppointmentsListScreen from '../screens/AppointmentsListScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -28,6 +29,14 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => <Home size={size || 20} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="FoodScanner"
+        component={FoodScannerScreen}
+        options={{
+          tabBarLabel: 'Scan Food',
+          tabBarIcon: ({ color, size }) => <Scan size={size || 20} color={color} />,
         }}
       />
       <Tab.Screen
@@ -70,8 +79,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   tabBarLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
 });
