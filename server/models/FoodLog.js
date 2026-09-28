@@ -23,9 +23,25 @@ const foodLogSchema = new mongoose.Schema({
     cholesterol: { type: Number, min: 0 }
   },
 
-  consumedQuantity: { type: Number, min: 0.1 },
-  servingUnit: { type: String },
+  consumedQuantity: { type: Number, min: 0.1, default: 1 },
+  servingUnit: { type: String, default: 'serving' },
+  servingSize: { type: String, trim: true, default: '1 standard portion' },
   isConfirmed: { type: Boolean, default: false },
+
+  candidates: [{
+    name: { type: String, trim: true },
+    confidence: { type: Number, min: 0, max: 1 }
+  }],
+  confidenceLevel: { type: String, enum: ['High', 'Medium', 'Low'], default: 'High' },
+  userDecision: {
+    type: String,
+    enum: ['Consume', 'Consume_Smaller_Portion', 'Replace', 'Do_Not_Consume'],
+    default: 'Consume'
+  },
+  disclaimer: {
+    type: String,
+    default: 'AI-generated estimate, not a medical diagnosis.'
+  },
 
   predictedImpact: {
     glucoseSpike: { type: Number },

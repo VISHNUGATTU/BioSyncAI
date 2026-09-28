@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import UserDraft from '../models/UserDraft.js';
 import Appointment from '../models/Appointment.js';
 import Sample from '../models/Sample.js';
 import Vitals from '../models/Vitals.js';
@@ -116,6 +117,168 @@ export const getUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
+export const updateUserProfile = asyncHandler(async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    dateOfBirth,
+    gender,
+    bloodGroup,
+    profilePicture,
+    address,
+    savedAddresses,
+    lifestyle,
+    emergencyContact,
+    preferences
+  } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (firstName !== undefined) user.firstName = firstName;
+  if (lastName !== undefined) user.lastName = lastName;
+  if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth;
+  if (gender !== undefined) user.gender = gender;
+  if (bloodGroup !== undefined) user.bloodGroup = bloodGroup;
+  if (profilePicture !== undefined) user.profilePicture = profilePicture;
+
+  if (address) {
+    user.address = {
+      ...user.address?.toObject(),
+      ...address
+    };
+  }
+
+  if (Array.isArray(savedAddresses)) {
+    user.savedAddresses = savedAddresses;
+  }
+
+  if (lifestyle) {
+    user.lifestyle = {
+      ...user.lifestyle?.toObject(),
+      ...lifestyle
+    };
+  }
+
+  if (emergencyContact) {
+    user.emergencyContact = {
+      ...user.emergencyContact?.toObject(),
+      ...emergencyContact
+    };
+  }
+
+  if (preferences) {
+    user.preferences = {
+      ...user.preferences?.toObject(),
+      ...preferences
+    };
+  }
+
+  user.lastActive = new Date();
+  await user.save();
+
+  // Clear profile edit draft if it was open
+  await UserDraft.deleteOne({ user: user._id, draftType: 'profile_edit' });
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    user
+  });
+});
+
+export const updateFCMToken = asyncHandler(async (req, res) => {
+  const { fcmToken } = req.body;
+
+  if (!fcmToken) {
+    res.status(400);
+    throw new Error('FCM token is required');
+  }
+
+  await User.findByIdAndUpdate(req.user._id, { $set: { fcmToken } });
+
+  res.status(200).json({ success: true, message: 'Push notification token updated' });
+});
+
+export const getUserReports = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 20;
+
+  const samples = await Sample.find({ user: req.user._id })
+    .populate('testCatalog', 'testName category preparationInstructions price turnaroundTimeHours')
+    .populate('appointment', 'scheduledDate timeSlot status')
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    count: samples.length,
+    reports: samples
+  });
+});
+
+// ==========================================
+// USER DRAFT PERSISTENCE CONTROLLERS
+// ==========================================
+
+export const getDraft = asyncHandler(async (req, res) => {
+  const { draftType } = req.params;
+
+  const draft = await UserDraft.findOne({
+    user: req.user._id,
+    draftType
+  }).lean();
+
+  res.status(200).json({
+    success: true,
+    draft: draft || null
+  });
+});
+
+export const saveDraft = asyncHandler(async (req, res) => {
+  const { draftType } = req.params;
+  const { step, totalSteps, data } = req.body;
+
+  const draft = await UserDraft.findOneAndUpdate(
+    { user: req.user._id, draftType },
+    {
+      $set: {
+        step: step || 1,
+        totalSteps: totalSteps || 1,
+        data: data || {},
+        lastSaved: new Date()
+      }
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  ).lean();
+
+  res.status(200).json({
+    success: true,
+    message: 'Draft progress securely saved to backend.',
+    draft
+  });
+});
+
+export const deleteDraft = asyncHandler(async (req, res) => {
+  const { draftType } = req.params;
+
+  await UserDraft.deleteOne({
+    user: req.user._id,
+    draftType
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Draft cleared.'
+  });
+});
+
 export const logoutUser = asyncHandler(async (req, res) => {
   res.cookie('token', '', {
     httpOnly: true,
@@ -145,6 +308,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
     FoodLog.deleteMany({ user: userId }),
     Sample.deleteMany({ user: userId }),
     Appointment.deleteMany({ user: userId }),
+    UserDraft.deleteMany({ user: userId }),
     User.findByIdAndDelete(userId)
   ]);
 
@@ -154,4 +318,4 @@ export const deleteAccount = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json({ success: true, message: 'Account and associated data successfully deleted.' });
-});
+});

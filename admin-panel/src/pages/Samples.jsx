@@ -10,34 +10,97 @@ import {
   RefreshCw,
   ChevronDown,
   Activity,
+  X,
+  CheckCircle2,
+  Save,
+  QrCode,
+  Calendar,
 } from 'lucide-react';
 
 import api from '../api/axios';
 
 const Samples = () => {
   const [samples, setSamples] = useState([]);
+  const [labAssistants, setLabAssistants] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
 
+  // Selected sample modal state
+  const [selectedSample, setSelectedSample] = useState(null);
+  const [assignAssistantId, setAssignAssistantId] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState('');
+
   useEffect(() => {
     fetchSamples();
+    fetchAssistants();
   }, []);
 
   const fetchSamples = async () => {
     try {
       setLoading(true);
-
       const res = await api.get('/admin/dashboard/sample-pipeline');
-
       if (res.data.success) {
-        setSamples(res.data.data);
+        setSamples(res.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching samples:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAssistants = async () => {
+    try {
+      const res = await api.get('/admin/lab-assistants');
+      if (res.data.success) {
+        setLabAssistants(res.data.labAssistants || []);
+      }
+    } catch (error) {
+      console.error('Error fetching assistants:', error);
+    }
+  };
+
+  const openSampleModal = (sample) => {
+    setSelectedSample(sample);
+    setAssignAssistantId(sample.labAssistant?._id || sample.labAssistant || '');
+    setAssignSuccess('');
+  };
+
+  const handleAssignAssistant = async (e) => {
+    e.preventDefault();
+    if (!selectedSample || !assignAssistantId) return;
+
+    try {
+      setAssigning(true);
+      setAssignSuccess('');
+      const res = await api.put(`/admin/samples/${selectedSample._id}/assign`, {
+        labAssistantId: assignAssistantId,
+      });
+
+      if (res.data.success) {
+        const updated = res.data.sample;
+        const assignedLa = labAssistants.find((la) => la._id === assignAssistantId);
+        const completeUpdated = {
+          ...selectedSample,
+          status: 'Assigned',
+          labAssistant: assignedLa || { name: 'Assigned Assistant' },
+        };
+
+        setSelectedSample(completeUpdated);
+        setSamples((prev) =>
+          prev.map((s) => (s._id === selectedSample._id ? completeUpdated : s))
+        );
+        setAssignSuccess('Lab Assistant successfully assigned to sample & appointment');
+        setTimeout(() => setAssignSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.error('Error assigning assistant:', err);
+      alert(err.response?.data?.message || 'Failed to assign lab assistant');
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -51,14 +114,16 @@ const Samples = () => {
 
       const testName = sample.testCatalog?.testName || '';
       const assistantName = sample.labAssistant?.name || '';
-      const trackingId = sample.sampleTrackingId || '';
+      const barcode = sample.barcode || '';
+      const id = sample._id || '';
 
       const matchesSearch =
         !query ||
         patientName.toLowerCase().includes(query) ||
         testName.toLowerCase().includes(query) ||
         assistantName.toLowerCase().includes(query) ||
-        trackingId.toLowerCase().includes(query);
+        barcode.toLowerCase().includes(query) ||
+        id.toLowerCase().includes(query);
 
       const matchesStatus =
         statusFilter === 'All' || sample.status === statusFilter;
@@ -70,20 +135,13 @@ const Samples = () => {
   const statusStats = useMemo(() => {
     return {
       total: samples.length,
-      requested: samples.filter(
-        (sample) => sample.status === 'Requested'
-      ).length,
-      collected: samples.filter(
-        (sample) => sample.status === 'Sample_Collected'
-      ).length,
+      requested: samples.filter((s) => s.status === 'Requested').length,
+      assigned: samples.filter((s) => s.status === 'Assigned').length,
+      collected: samples.filter((s) => s.status === 'Sample_Collected').length,
       processing: samples.filter(
-        (sample) =>
-          sample.status === 'Processing' ||
-          sample.status === 'At_Laboratory'
+        (s) => s.status === 'Processing' || s.status === 'At_Laboratory'
       ).length,
-      completed: samples.filter(
-        (sample) => sample.status === 'Report_Generated'
-      ).length,
+      completed: samples.filter((s) => s.status === 'Report_Generated' || s.status === 'Delivered').length,
     };
   }, [samples]);
 
@@ -91,101 +149,40 @@ const Samples = () => {
     switch (status) {
       case 'Requested':
         return 'border-slate-400/15 bg-slate-400/[0.08] text-slate-400';
-
       case 'Assigned':
         return 'border-amber-400/15 bg-amber-400/[0.08] text-amber-400';
-
       case 'Sample_Collected':
-        return 'border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-400';
-
       case 'At_Laboratory':
-        return 'border-blue-400/15 bg-blue-400/[0.08] text-blue-400';
-
+        return 'border-cyan-400/15 bg-cyan-400/[0.08] text-cyan-400';
       case 'Processing':
         return 'border-violet-400/15 bg-violet-400/[0.08] text-violet-400';
-
       case 'Report_Generated':
-        return 'border-cyan-400/15 bg-cyan-400/[0.08] text-cyan-400';
-
+      case 'Delivered':
+        return 'border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-400';
       default:
         return 'border-slate-400/15 bg-slate-400/[0.08] text-slate-400';
     }
   };
 
-  const getStatusDot = (status) => {
-    switch (status) {
-      case 'Requested':
-        return 'bg-slate-400';
-
-      case 'Assigned':
-        return 'bg-amber-400';
-
-      case 'Sample_Collected':
-        return 'bg-emerald-400';
-
-      case 'At_Laboratory':
-        return 'bg-blue-400';
-
-      case 'Processing':
-        return 'bg-violet-400';
-
-      case 'Report_Generated':
-        return 'bg-cyan-400';
-
-      default:
-        return 'bg-slate-400';
-    }
-  };
-
   const formatStatus = (status) => {
-    if (!status) return 'Unknown';
-
-    return status
-      .split('_')
-      .map(
-        (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      )
-      .join(' ');
+    return (status || 'Requested').replace(/_/g, ' ');
   };
 
   const formatDate = (date) => {
-    if (!date) {
-      return {
-        date: '—',
-        time: '',
-      };
-    }
-
-    const parsedDate = new Date(date);
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return {
-        date: '—',
-        time: '',
-      };
-    }
-
+    if (!date) return { date: '—', time: '' };
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return { date: '—', time: '' };
     return {
-      date: parsedDate.toLocaleDateString(undefined, {
+      date: parsed.toLocaleDateString(undefined, {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
       }),
-      time: parsedDate.toLocaleTimeString([], {
+      time: parsed.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       }),
     };
-  };
-
-  const getInitials = (name, fallback = 'NA') => {
-    const parts = name?.trim()?.split(/\s+/) || [];
-
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-    }
-
-    return name?.slice(0, 2).toUpperCase() || fallback;
   };
 
   return (
@@ -195,169 +192,169 @@ const Samples = () => {
         <div>
           <div className="mb-2 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-500 dark:text-cyan-400">
-              Sample Operations
+              Diagnostic Logistics
             </span>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-[-0.035em] text-slate-900 dark:text-white sm:text-[28px]">
-            Sample Tracking
+            Sample Tracking & Pipeline
           </h1>
 
           <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-500">
-            Monitor sample collection and processing throughout the diagnostic
-            lifecycle.
+            Monitor chain of custody, biological specimen barcodes, and laboratory turnaround times.
           </p>
         </div>
 
-        {/* Pipeline summary */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="min-w-[100px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-600">
-              Total
-            </p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              fetchSamples();
+              fetchAssistants();
+            }}
+            disabled={loading}
+            className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <RefreshCw
+              size={14}
+              className={`text-slate-500 ${loading ? 'animate-spin' : ''}`}
+            />
+            Refresh Pipeline
+          </button>
+        </div>
+      </div>
 
-            <p className="mt-1 text-lg font-semibold tracking-tight text-slate-800 dark:text-slate-200">
-              {statusStats.total}
-            </p>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
+              Total In Pipeline
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-400">
+              <TestTube2 size={16} />
+            </div>
           </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+            {statusStats.total}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            All registered specimens
+          </p>
+        </div>
 
-          <div className="min-w-[100px] rounded-xl border border-emerald-400/10 bg-emerald-400/[0.035] px-3 py-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/70">
-              Collected
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-emerald-400">
-              {statusStats.collected}
-            </p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-500">
+              Awaiting Collection
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400/[0.08] text-amber-400">
+              <Clock3 size={16} />
+            </div>
           </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-amber-500 sm:text-3xl">
+            {statusStats.requested + statusStats.assigned}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            Pending field phlebotomist visit
+          </p>
+        </div>
 
-          <div className="min-w-[100px] rounded-xl border border-violet-400/10 bg-violet-400/[0.035] px-3 py-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-violet-500/70">
-              Processing
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-violet-400">
-              {statusStats.processing}
-            </p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-500">
+              Lab Processing
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-400/[0.08] text-violet-400">
+              <Activity size={16} />
+            </div>
           </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-violet-500 sm:text-3xl">
+            {statusStats.processing}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            Under clinical assay evaluation
+          </p>
+        </div>
 
-          <div className="min-w-[100px] rounded-xl border border-cyan-400/10 bg-cyan-400/[0.035] px-3 py-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-cyan-500/70">
-              Completed
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-cyan-400">
-              {statusStats.completed}
-            </p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500">
+              Reports Ready
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/[0.08] text-emerald-400">
+              <CheckCircle2 size={16} />
+            </div>
           </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-emerald-500 sm:text-3xl">
+            {statusStats.completed}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            Certified by pathologist
+          </p>
         </div>
       </div>
 
       {/* Main card */}
       <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
         {/* Toolbar */}
-        <div className="border-b border-slate-200/80 px-5 py-4 dark:border-slate-800/80 sm:px-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Sample Pipeline
-              </h2>
-
-              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-600">
-                {filteredSamples.length} sample
-                {filteredSamples.length !== 1 ? 's' : ''} currently shown
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {/* Search */}
-              <div className="relative sm:w-[250px]">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600"
-                />
-
-                <input
-                  type="search"
-                  placeholder="Search samples..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-400/50 focus:bg-white focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-600 dark:hover:border-slate-700 dark:focus:bg-slate-950"
-                />
-              </div>
-
-              {/* Status */}
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 pr-9 text-xs font-medium text-slate-600 outline-none transition-all hover:border-slate-300 focus:border-cyan-400/50 focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-700 sm:w-[170px]"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Requested">Requested</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="Sample_Collected">Collected</option>
-                  <option value="At_Laboratory">At Laboratory</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Report_Generated">
-                    Report Generated
-                  </option>
-                </select>
-
-                <ChevronDown
-                  size={14}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-              </div>
-
-              {/* Refresh */}
+        <div className="flex flex-col gap-4 border-b border-slate-200/80 px-5 py-4 dark:border-slate-800/80 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {['All', 'Requested', 'Assigned', 'Sample_Collected', 'Processing', 'Report_Generated'].map((tab) => (
               <button
+                key={tab}
                 type="button"
-                onClick={fetchSamples}
-                disabled={loading}
-                title="Refresh samples"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-500 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-slate-300"
+                onClick={() => setStatusFilter(tab)}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  statusFilter === tab
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                }`}
               >
-                <RefreshCw
-                  size={15}
-                  className={loading ? 'animate-spin' : ''}
-                />
+                {tab === 'All' ? 'All Samples' : formatStatus(tab)}
               </button>
-            </div>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-[280px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600"
+            />
+            <input
+              type="search"
+              placeholder="Search barcode, patient, assistant..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-400/50 focus:bg-white focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-600 dark:hover:border-slate-700 dark:focus:bg-slate-950"
+            />
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] border-collapse">
+          <table className="w-full min-w-[950px] border-collapse">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Sample
+                  Barcode & Specimen
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Patient
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Test
+                  Diagnostic Test
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Assigned To
+                  Field Assistant
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Status
+                  Pipeline Status
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Last Updated
                 </th>
-
                 <th className="px-6 py-3.5 text-right text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Actions
                 </th>
@@ -370,10 +367,7 @@ const Samples = () => {
                   <td colSpan="7" className="px-6 py-16">
                     <div className="flex flex-col items-center justify-center">
                       <span className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-400 dark:border-slate-700 dark:border-t-cyan-400" />
-
-                      <p className="text-xs font-medium text-slate-500">
-                        Loading sample pipeline...
-                      </p>
+                      <p className="text-xs font-medium text-slate-500">Tracking specimens...</p>
                     </div>
                   </td>
                 </tr>
@@ -384,55 +378,41 @@ const Samples = () => {
                       <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-600">
                         <TestTube2 size={18} />
                       </div>
-
                       <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                         No samples found
                       </p>
-
                       <p className="mt-1 text-xs text-slate-400 dark:text-slate-600">
-                        Try changing the search or status filter.
+                        Try modifying search or filter criteria.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filteredSamples.map((sample) => {
-                  const patientName =
-                    `${sample.user?.firstName || ''} ${
-                      sample.user?.lastName || ''
-                    }`.trim() || 'N/A';
-
-                  const assistantName =
-                    sample.labAssistant?.name || 'Unassigned';
-
-                  const testName =
-                    sample.testCatalog?.testName || 'Unknown Test';
-
-                  const updated = formatDate(sample.updatedAt);
+                  const patientName = `${sample.user?.firstName || ''} ${
+                    sample.user?.lastName || ''
+                  }`.trim() || 'Patient';
+                  const assistantName = sample.labAssistant?.name || 'Unassigned';
+                  const updated = formatDate(sample.updatedAt || sample.createdAt);
 
                   return (
                     <tr
                       key={sample._id}
-                      className="group border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 dark:border-slate-800/60 dark:hover:bg-slate-800/20"
+                      onClick={() => openSampleModal(sample)}
+                      className="group cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 dark:border-slate-800/60 dark:hover:bg-slate-800/20"
                     >
-                      {/* Sample */}
+                      {/* Barcode */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/[0.07] text-cyan-400">
-                            <TestTube2 size={16} />
-
-                            {sample.status === 'Processing' && (
-                              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.8)]" />
-                            )}
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-400/[0.08] text-cyan-500">
+                            <QrCode size={15} />
                           </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
-                              {sample.sampleTrackingId || 'Unknown'}
-                            </p>
-
-                            <p className="mt-0.5 max-w-[180px] truncate font-mono text-[9px] text-slate-400 dark:text-slate-600">
-                              {sample._id}
+                          <div>
+                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                              {sample.barcode || `SMP-${sample._id?.substring(0, 6)}`}
+                            </span>
+                            <p className="font-mono text-[10px] text-slate-400">
+                              #{sample._id?.substring(0, 8)}
                             </p>
                           </div>
                         </div>
@@ -440,59 +420,37 @@ const Samples = () => {
 
                       {/* Patient */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-400/[0.08] text-[9px] font-bold text-blue-400">
-                            {getInitials(patientName, 'PT')}
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-300">
-                              {patientName}
-                            </p>
-
-                            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-600">
-                              <UserRound size={10} />
-                              Patient
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {patientName}
+                        </p>
                       </td>
 
                       {/* Test */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Activity
-                            size={13}
-                            className="text-slate-400 dark:text-slate-600"
-                          />
-
-                          <span className="max-w-[190px] truncate text-xs font-medium text-slate-600 dark:text-slate-400">
-                            {testName}
-                          </span>
-                        </div>
+                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {sample.testCatalog?.testName || 'Diagnostic Panel'}
+                        </p>
                       </td>
 
                       {/* Assistant */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[8px] font-bold ${
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs ${
                               sample.labAssistant
-                                ? 'bg-emerald-400/[0.08] text-emerald-400'
-                                : 'bg-slate-400/[0.07] text-slate-500'
+                                ? 'bg-emerald-400/[0.08] text-emerald-500'
+                                : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
                             }`}
                           >
                             <UserRoundCog size={13} />
                           </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-slate-600 dark:text-slate-400">
+                          <div>
+                            <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               {assistantName}
                             </p>
-
                             {!sample.labAssistant && (
-                              <p className="mt-0.5 text-[10px] text-amber-500">
-                                Awaiting assignment
+                              <p className="text-[9px] font-semibold text-amber-500">
+                                Click to assign
                               </p>
                             )}
                           </div>
@@ -506,57 +464,31 @@ const Samples = () => {
                             sample.status
                           )}`}
                         >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                              sample.status
-                            )}`}
-                          />
-
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
                           {formatStatus(sample.status)}
                         </span>
                       </td>
 
-                      {/* Updated */}
+                      {/* Date */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Clock3
-                            size={13}
-                            className="shrink-0 text-slate-400 dark:text-slate-600"
-                          />
-
-                          <div>
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                              {updated.date}
-                            </p>
-
-                            <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-600">
-                              {updated.time}
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {updated.date}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{updated.time}</p>
                       </td>
 
-                      {/* Actions */}
-                      <td className="px-6 py-4">
-                        <div className="flex justify-end gap-1.5">
-                          <button
-                            type="button"
-                            title="Track sample"
-                            aria-label={`Track ${sample.sampleTrackingId}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.07] hover:text-cyan-400 dark:text-slate-600 dark:hover:text-cyan-400"
-                          >
-                            <Navigation size={15} />
-                          </button>
-
-                          <button
-                            type="button"
-                            title="View details"
-                            aria-label={`View details for ${sample.sampleTrackingId}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-600 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-                          >
-                            <FileText size={15} />
-                          </button>
-                        </div>
+                      {/* Action */}
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openSampleModal(sample);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-cyan-400/20 hover:text-cyan-500 dark:border-slate-800 dark:bg-slate-950"
+                        >
+                          <Navigation size={14} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -570,24 +502,152 @@ const Samples = () => {
         {!loading && filteredSamples.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-slate-200/80 px-5 py-3.5 dark:border-slate-800/80 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-[10px] font-medium text-slate-400 dark:text-slate-600">
-              Showing{' '}
-              <span className="text-slate-600 dark:text-slate-400">
-                {filteredSamples.length}
-              </span>{' '}
-              of{' '}
-              <span className="text-slate-600 dark:text-slate-400">
-                {samples.length}
-              </span>{' '}
-              samples
+              Showing <span className="text-slate-600 dark:text-slate-400">{filteredSamples.length}</span>{' '}
+              of <span className="text-slate-600 dark:text-slate-400">{samples.length}</span> samples
             </p>
-
             <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400 dark:text-slate-600">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              Pipeline synchronized
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Specimen tracking synchronized
             </div>
           </div>
         )}
       </section>
+
+      {/* Sample Detail & Lab Assistant Assignment Modal */}
+      {selectedSample && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">
+          <div className="absolute inset-0" onClick={() => setSelectedSample(null)} />
+
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0b1220]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-400">
+                  <TestTube2 size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                    Specimen Tracking & Custody
+                  </h2>
+                  <p className="font-mono text-xs text-slate-500">
+                    Barcode: {selectedSample.barcode || `SMP-${selectedSample._id?.substring(0, 6)}`}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedSample(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              {assignSuccess && (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 size={15} />
+                  {assignSuccess}
+                </div>
+              )}
+
+              {/* Patient & Test Overview */}
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800/80 dark:bg-slate-900/40 sm:grid-cols-2">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Patient</span>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {selectedSample.user?.firstName} {selectedSample.user?.lastName || ''}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Specimen: {selectedSample.testCatalog?.sampleType || 'Blood'}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Diagnostic Panel</span>
+                  <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">
+                    {selectedSample.testCatalog?.testName || 'Diagnostic Test'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Turnaround: {selectedSample.turnaroundTimeHours || '12'} hours
+                  </p>
+                </div>
+              </div>
+
+              {/* Lab Assistant Dispatch Form */}
+              <form onSubmit={handleAssignAssistant} className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/30">
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Phlebotomist & Courier Allocation
+                </h3>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                      Select Available Field Assistant
+                    </label>
+                    <select
+                      value={assignAssistantId}
+                      onChange={(e) => setAssignAssistantId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                    >
+                      <option value="">-- Choose Assistant --</option>
+                      {labAssistants.map((la) => (
+                        <option key={la._id} value={la._id}>
+                          {la.name} ({la.status}) {la.vehicleType ? `- ${la.vehicleType}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={assigning || !assignAssistantId}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-cyan-500 disabled:opacity-50"
+                  >
+                    <Save size={13} className={assigning ? 'animate-spin' : ''} />
+                    <span>{assigning ? 'Assigning...' : 'Assign Staff'}</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Custody Dates */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3 dark:border-slate-800/80 dark:bg-slate-900/40">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Collection Date</span>
+                  <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {selectedSample.collectionTime ? new Date(selectedSample.collectionTime).toLocaleDateString() : 'Pending'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3 dark:border-slate-800/80 dark:bg-slate-900/40">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Lab Ingestion</span>
+                  <p className="mt-1 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {selectedSample.labProcessingStartTime ? new Date(selectedSample.labProcessingStartTime).toLocaleDateString() : 'Awaiting receipt'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3 dark:border-slate-800/80 dark:bg-slate-900/40">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Current Phase</span>
+                  <p className="mt-1 text-xs font-bold text-cyan-600 dark:text-cyan-400">
+                    {formatStatus(selectedSample.status)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end border-t border-slate-200/80 bg-slate-50/50 px-6 py-4 dark:border-slate-800/80 dark:bg-slate-900/30">
+              <button
+                type="button"
+                onClick={() => setSelectedSample(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

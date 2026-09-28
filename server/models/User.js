@@ -48,6 +48,31 @@ const userSchema = new mongoose.Schema({
     phoneNumber: { type: String, trim: true }
   },
 
+  savedAddresses: [{
+    label: { type: String, trim: true, default: 'Home' },
+    houseNumber: String,
+    street: String,
+    landmark: String,
+    city: String,
+    state: String,
+    pincode: String,
+    coordinates: {
+      lat: { type: Number, min: -90, max: 90 },
+      lng: { type: Number, min: -180, max: 180 }
+    },
+    isDefault: { type: Boolean, default: false }
+  }],
+
+  preferences: {
+    appearance: { type: String, enum: ['Light', 'Dark', 'System'], default: 'System' },
+    notifications: {
+      appointments: { type: Boolean, default: true },
+      health: { type: Boolean, default: true },
+      food: { type: Boolean, default: true },
+      system: { type: Boolean, default: true }
+    }
+  },
+
   vitalsStatus: { type: String, enum: ['Pending', 'Manual', 'PDF_Scanned', 'Lab_Verified'], default: 'Pending' },
   accountStatus: { type: String, enum: ['Active', 'Suspended', 'Banned'], default: 'Active', index: true },
   suspensionReason: { type: String, trim: true },

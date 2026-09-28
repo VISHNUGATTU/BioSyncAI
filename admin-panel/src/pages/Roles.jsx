@@ -8,6 +8,8 @@ import {
   Users,
   KeyRound,
   ChevronRight,
+  X,
+  Check,
 } from 'lucide-react';
 
 import api from '../api/axios';
@@ -16,6 +18,85 @@ const Roles = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Modal and action states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const [currentRole, setCurrentRole] = useState({ name: '', description: '', permissions: {} });
+  const [toast, setToast] = useState(null);
+
+  const defaultPermissions = {
+    dashboard: false,
+    users: false,
+    roles: false,
+    reports: false,
+    settings: false,
+  };
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleEdit = (role) => {
+    setModalMode('edit');
+    setCurrentRole({ 
+      _id: role._id, 
+      name: role.name || '', 
+      description: role.description || '', 
+      permissions: role.permissions || defaultPermissions,
+      isSystem: role.isSystem 
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCreate = () => {
+    setModalMode('create');
+    setCurrentRole({ name: '', description: '', permissions: defaultPermissions });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (role) => {
+    if (role.isSystem) {
+      alert("System roles cannot be deleted.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+      try {
+        const res = await api.delete(`/admin/roles/${role._id}`);
+        if (res.data.success) {
+          setRoles(prev => prev.filter(r => r._id !== role._id));
+          showToast('Role deleted successfully.');
+        }
+      } catch (error) {
+        alert(error.response?.data?.message || 'Failed to delete role');
+      }
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!currentRole.name.trim()) return;
+
+    try {
+      if (modalMode === 'create') {
+        const res = await api.post('/admin/roles', currentRole);
+        if (res.data.success) {
+          setRoles(prev => [...prev, { ...res.data.data, users: 0 }]);
+          showToast('Role created successfully.');
+        }
+      } else {
+        const res = await api.put(`/admin/roles/${currentRole._id}`, currentRole);
+        if (res.data.success) {
+          setRoles(prev => prev.map(r => r._id === currentRole._id ? { ...res.data.data, users: r.users } : r));
+          showToast('Role updated successfully.');
+        }
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to save role');
+    }
+  };
 
   useEffect(() => {
     fetchRoles();
@@ -45,7 +126,7 @@ const Roles = () => {
     return roles.filter((role) => {
       return (
         role.name?.toLowerCase().includes(query) ||
-        role.access?.toLowerCase().includes(query)
+        role.description?.toLowerCase().includes(query)
       );
     });
   }, [roles, search]);
@@ -60,6 +141,16 @@ const Roles = () => {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-2xl animate-in slide-in-from-bottom-5">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+            <Check size={12} strokeWidth={3} />
+          </div>
+          {toast}
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -169,6 +260,7 @@ const Roles = () => {
 
             <button
               type="button"
+              onClick={handleCreate}
               className="flex h-10 items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 text-xs font-bold text-white shadow-[0_8px_24px_rgba(139,92,246,0.12)] transition-all hover:bg-violet-400"
             >
               <KeyRound size={14} />
@@ -263,10 +355,18 @@ const Roles = () => {
                           size={13}
                           className="mt-0.5 shrink-0 text-violet-400"
                         />
-
-                        <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
-                          {role.access || 'No access summary available.'}
-                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-xs font-semibold leading-5 text-slate-800 dark:text-slate-200">
+                            {role.description || 'No description provided.'}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {role.permissions && Object.entries(role.permissions).map(([key, val]) => val && (
+                              <span key={key} className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                {key}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </td>
 
@@ -294,6 +394,7 @@ const Roles = () => {
                         <button
                           type="button"
                           title="Edit Permissions"
+                          onClick={() => handleEdit(role)}
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-violet-400/30 hover:bg-violet-400/[0.06] hover:text-violet-400 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-500 dark:hover:border-violet-400/20"
                         >
                           <Edit size={14} />
@@ -301,8 +402,14 @@ const Roles = () => {
 
                         <button
                           type="button"
-                          title="Delete Role"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-red-400/30 hover:bg-red-400/[0.06] hover:text-red-400 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-500 dark:hover:border-red-400/20"
+                          title={role.isSystem ? "System Roles cannot be deleted" : "Delete Role"}
+                          disabled={role.isSystem}
+                          onClick={() => handleDelete(role)}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all ${
+                            role.isSystem 
+                              ? 'cursor-not-allowed opacity-40' 
+                              : 'hover:border-red-400/30 hover:bg-red-400/[0.06] hover:text-red-400 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-500 dark:hover:border-red-400/20'
+                          }`}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -336,6 +443,90 @@ const Roles = () => {
           </div>
         )}
       </section>
+
+      {/* Action Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md animate-in zoom-in-95 rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                {modalMode === 'create' ? 'Create New Role' : 'Edit Role'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  Role Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={currentRole.isSystem}
+                  value={currentRole.name}
+                  onChange={(e) => setCurrentRole({ ...currentRole, name: e.target.value })}
+                  placeholder="e.g., Compliance Officer"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  Description
+                </label>
+                <textarea
+                  required
+                  value={currentRole.description}
+                  onChange={(e) => setCurrentRole({ ...currentRole, description: e.target.value })}
+                  placeholder="Describe the privileges this role has..."
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  Module Permissions
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.keys(currentRole.permissions || {}).map((mod) => (
+                    <label key={mod} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/50">
+                      <input
+                        type="checkbox"
+                        checked={currentRole.permissions[mod]}
+                        onChange={(e) => setCurrentRole({
+                          ...currentRole,
+                          permissions: { ...currentRole.permissions, [mod]: e.target.checked }
+                        })}
+                        className="h-4 w-4 rounded border-slate-300 text-violet-500 focus:ring-violet-500"
+                      />
+                      <span className="text-xs font-medium capitalize text-slate-700 dark:text-slate-300">
+                        {mod}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-violet-500 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-violet-400 active:scale-[0.98]"
+                >
+                  {modalMode === 'create' ? 'Create Role' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

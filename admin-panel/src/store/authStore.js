@@ -6,6 +6,7 @@ const useAuthStore = create(
   persist(
     (set) => ({
       admin: null,
+      token: null,
       isAuthenticated: false,
 
       login: async (email, password) => {
@@ -18,6 +19,7 @@ const useAuthStore = create(
           if (response.data.success) {
             set({
               admin: response.data.admin,
+              token: response.data.token,
               isAuthenticated: true,
             });
 
@@ -43,14 +45,15 @@ const useAuthStore = create(
       logout: () => {
         set({
           admin: null,
+          token: null,
           isAuthenticated: false,
         });
       },
 
       updateAdmin: (adminData) => {
-        set({
-          admin: adminData,
-        });
+        set((state) => ({
+          admin: { ...state.admin, ...adminData },
+        }));
       },
     }),
     {

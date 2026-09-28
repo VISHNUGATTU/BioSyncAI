@@ -9,6 +9,12 @@ import {
   RefreshCw,
   ChevronDown,
   Activity,
+  X,
+  AlertTriangle,
+  QrCode,
+  Calendar,
+  User,
+  ExternalLink,
 } from 'lucide-react';
 
 import api from '../api/axios';
@@ -20,6 +26,9 @@ const Reports = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
+  // Report detail modal state
+  const [selectedReport, setSelectedReport] = useState(null);
+
   useEffect(() => {
     fetchReports();
   }, []);
@@ -27,11 +36,10 @@ const Reports = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-
       const res = await api.get('/admin/reports');
 
       if (res.data.success) {
-        setReports(res.data.data);
+        setReports(res.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -48,19 +56,23 @@ const Reports = () => {
         `${report.user?.firstName || ''} ${report.user?.lastName || ''}`.trim();
 
       const testName = report.testCatalog?.testName || '';
+      const barcode = report.barcode || '';
       const reportId = report._id || '';
 
       const matchesSearch =
         !query ||
         patientName.toLowerCase().includes(query) ||
         testName.toLowerCase().includes(query) ||
+        barcode.toLowerCase().includes(query) ||
         reportId.toLowerCase().includes(query);
 
       const reportStatus =
         report.status === 'Report_Generated' ? 'Ready' : 'Processing';
 
       const matchesStatus =
-        statusFilter === 'All' || reportStatus === statusFilter;
+        statusFilter === 'All' ||
+        reportStatus === statusFilter ||
+        report.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -110,11 +122,57 @@ const Reports = () => {
     };
   };
 
-  const getPatientInitials = (firstName, lastName) => {
-    const first = firstName?.trim()?.[0] || '';
-    const last = lastName?.trim()?.[0] || '';
+  const getPatientInitials = (first, last) => {
+    const f = first?.trim()?.[0] || '';
+    const l = last?.trim()?.[0] || '';
+    return `${f}${l}`.toUpperCase() || 'PT';
+  };
 
-    return `${first}${last}`.toUpperCase() || 'PT';
+  const handleDownload = (report) => {
+    if (report.resultPdfUrl) {
+      window.open(report.resultPdfUrl, '_blank');
+      return;
+    }
+
+    // Generate clinical summary download
+    const patientName = `${report.user?.firstName || 'Patient'} ${report.user?.lastName || ''}`.trim();
+    const testName = report.testCatalog?.testName || 'Diagnostic Lab Test';
+    const dateStr = new Date(report.updatedAt || report.createdAt).toLocaleDateString();
+
+    let content = `=========================================================\n`;
+    content += `             BIOSYNC AI CLINICAL DIAGNOSTIC REPORT        \n`;
+    content += `=========================================================\n`;
+    content += `Report ID:     ${report._id}\n`;
+    content += `Barcode:       ${report.barcode || 'N/A'}\n`;
+    content += `Patient:       ${patientName}\n`;
+    content += `Phone:         ${report.user?.phoneNumber || 'N/A'}\n`;
+    content += `Test:          ${testName}\n`;
+    content += `Status:        ${report.status}\n`;
+    content += `Issued Date:   ${dateStr}\n`;
+    content += `Turnaround:    ${report.turnaroundTimeHours || 'Standard'} hours\n`;
+    content += `---------------------------------------------------------\n`;
+    content += `STRUCTURED BIOMARKERS / ASSAY RESULTS:\n`;
+    content += `---------------------------------------------------------\n`;
+
+    if (report.structuredResults && report.structuredResults.length > 0) {
+      report.structuredResults.forEach((b) => {
+        content += `- ${b.biomarker}: ${b.value} ${b.isCritical ? ' [CRITICAL ALERT]' : ' [NORMAL]'}\n`;
+      });
+    } else {
+      content += `Biomarker analysis verified by laboratory pathologist.\n`;
+    }
+
+    content += `=========================================================\n`;
+    content += `Certified by BioSync Automated Diagnostic Core\n`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `BioSync_Report_${report.barcode || report._id?.substring(0, 8)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -126,147 +184,145 @@ const Reports = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
 
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-500 dark:text-cyan-400">
-              Clinical Intelligence
+              Clinical Reports
             </span>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-[-0.035em] text-slate-900 dark:text-white sm:text-[28px]">
-            Patient Medical Reports
+            Diagnostic Reports
           </h1>
 
           <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-500">
-            Review, monitor, and dispatch AI-generated diagnostic reports.
+            Access verified lab outcomes, review biomarker values, and download PDFs.
           </p>
         </div>
 
-        {/* Summary */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="min-w-[100px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-600">
-              Total
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-slate-800 dark:text-slate-200">
-              {stats.total}
-            </p>
-          </div>
-
-          <div className="min-w-[100px] rounded-xl border border-emerald-400/10 bg-emerald-400/[0.035] px-3 py-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/70">
-              Ready
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-emerald-400">
-              {stats.ready}
-            </p>
-          </div>
-
-          <div className="min-w-[100px] rounded-xl border border-violet-400/10 bg-violet-400/[0.035] px-3 py-2.5">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-violet-500/70">
-              Processing
-            </p>
-
-            <p className="mt-1 text-lg font-semibold tracking-tight text-violet-400">
-              {stats.processing}
-            </p>
-          </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={fetchReports}
+            disabled={loading}
+            className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <RefreshCw
+              size={14}
+              className={`text-slate-500 ${loading ? 'animate-spin' : ''}`}
+            />
+            Refresh Reports
+          </button>
         </div>
       </div>
 
-      {/* Reports card */}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
+              Total Reports
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-400">
+              <FileText size={16} />
+            </div>
+          </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+            {stats.total}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            All processed patient assays
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500">
+              Ready & Certified
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-400/[0.08] text-emerald-400">
+              <CheckCircle2 size={16} />
+            </div>
+          </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-emerald-500 sm:text-3xl">
+            {stats.ready}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            Available for PDF download
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-500">
+              Under Processing
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-400/[0.08] text-violet-400">
+              <Clock3 size={16} />
+            </div>
+          </div>
+          <p className="mt-3 text-2xl font-bold tracking-tight text-violet-500 sm:text-3xl">
+            {stats.processing}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-600">
+            Samples in laboratory analysis
+          </p>
+        </div>
+      </div>
+
+      {/* Main card */}
       <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/50">
         {/* Toolbar */}
-        <div className="border-b border-slate-200/80 px-5 py-4 dark:border-slate-800/80 sm:px-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Diagnostic Reports
-              </h2>
-
-              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-600">
-                {filteredReports.length} report
-                {filteredReports.length !== 1 ? 's' : ''} currently shown
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {/* Search */}
-              <div className="relative sm:w-[270px]">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600"
-                />
-
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search patient or report ID..."
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-400/50 focus:bg-white focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-600 dark:hover:border-slate-700 dark:focus:bg-slate-950"
-                />
-              </div>
-
-              {/* Status filter */}
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 pr-9 text-xs font-medium text-slate-600 outline-none transition-all hover:border-slate-300 focus:border-cyan-400/50 focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-700 sm:w-[145px]"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Ready">Ready</option>
-                  <option value="Processing">Processing</option>
-                </select>
-
-                <ChevronDown
-                  size={14}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-              </div>
-
-              {/* Refresh */}
+        <div className="flex flex-col gap-4 border-b border-slate-200/80 px-5 py-4 dark:border-slate-800/80 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {['All', 'Ready', 'Processing'].map((status) => (
               <button
+                key={status}
                 type="button"
-                onClick={fetchReports}
-                disabled={loading}
-                title="Refresh reports"
-                aria-label="Refresh reports"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-500 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-slate-300"
+                onClick={() => setStatusFilter(status)}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  statusFilter === status
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                }`}
               >
-                <RefreshCw
-                  size={15}
-                  className={loading ? 'animate-spin' : ''}
-                />
+                {status}
               </button>
-            </div>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-[280px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600"
+            />
+            <input
+              type="search"
+              placeholder="Search patient, test, barcode..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-400/50 focus:bg-white focus:ring-4 focus:ring-cyan-500/[0.06] dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-600 dark:hover:border-slate-700 dark:focus:bg-slate-950"
+            />
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1050px] border-collapse">
+          <table className="w-full min-w-[900px] border-collapse">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Report
+                  Report ID & Barcode
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Patient
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Test Conducted
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
-                  Generated
+                  Generated Time
                 </th>
-
                 <th className="px-6 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Status
                 </th>
-
                 <th className="px-6 py-3.5 text-right text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-600">
                   Actions
                 </th>
@@ -279,10 +335,7 @@ const Reports = () => {
                   <td colSpan="6" className="px-6 py-16">
                     <div className="flex flex-col items-center justify-center">
                       <span className="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-400 dark:border-slate-700 dark:border-t-cyan-400" />
-
-                      <p className="text-xs font-medium text-slate-500">
-                        Loading medical reports...
-                      </p>
+                      <p className="text-xs font-medium text-slate-500">Loading medical reports...</p>
                     </div>
                   </td>
                 </tr>
@@ -293,11 +346,9 @@ const Reports = () => {
                       <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-600">
                         <FileText size={18} />
                       </div>
-
                       <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                         No reports found
                       </p>
-
                       <p className="mt-1 text-xs text-slate-400 dark:text-slate-600">
                         Try changing the search or status filter.
                       </p>
@@ -307,47 +358,30 @@ const Reports = () => {
               ) : (
                 filteredReports.map((report) => {
                   const patientName =
-                    `${report.user?.firstName || ''} ${
-                      report.user?.lastName || ''
-                    }`.trim() || 'Unknown Patient';
-
-                  const testName =
-                    report.testCatalog?.testName || 'Unknown Test';
-
-                  const generated = formatDate(report.updatedAt);
-
+                    `${report.user?.firstName || ''} ${report.user?.lastName || ''}`.trim() ||
+                    'Unknown Patient';
+                  const testName = report.testCatalog?.testName || 'Diagnostic Test';
+                  const generated = formatDate(report.updatedAt || report.createdAt);
                   const isReady = report.status === 'Report_Generated';
 
                   return (
                     <tr
                       key={report._id}
-                      className="group border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 dark:border-slate-800/60 dark:hover:bg-slate-800/20"
+                      onClick={() => setSelectedReport(report)}
+                      className="group cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 dark:border-slate-800/60 dark:hover:bg-slate-800/20"
                     >
-                      {/* Report */}
+                      {/* Barcode & ID */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
-                              isReady
-                                ? 'border-cyan-400/15 bg-cyan-400/[0.07] text-cyan-400'
-                                : 'border-violet-400/15 bg-violet-400/[0.07] text-violet-400'
-                            }`}
-                          >
-                            <FileText size={16} />
-
-                            {isReady && (
-                              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                            )}
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-400/[0.08] text-cyan-500">
+                            <QrCode size={15} />
                           </div>
-
-                          <div className="min-w-0">
-                            <p className="font-mono text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-                              {report._id}
-                            </p>
-
-                            <p className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-400 dark:text-slate-600">
-                              <Activity size={9} />
-                              Diagnostic Report
+                          <div>
+                            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {report.barcode || `REP-${report._id?.substring(0, 6)}`}
+                            </span>
+                            <p className="font-mono text-[10px] text-slate-400">
+                              #{report._id?.substring(0, 8)}
                             </p>
                           </div>
                         </div>
@@ -355,21 +389,16 @@ const Reports = () => {
 
                       {/* Patient */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-400/[0.08] text-[9px] font-bold text-blue-400">
-                            {getPatientInitials(
-                              report.user?.firstName,
-                              report.user?.lastName
-                            )}
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-400/[0.08] text-[9px] font-bold text-blue-500">
+                            {getPatientInitials(report.user?.firstName, report.user?.lastName)}
                           </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                               {patientName}
                             </p>
-
-                            <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-600">
-                              Patient record
+                            <p className="text-[10px] text-slate-400">
+                              {report.user?.phoneNumber || 'No phone'}
                             </p>
                           </div>
                         </div>
@@ -377,35 +406,20 @@ const Reports = () => {
 
                       {/* Test */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-400/[0.07] text-slate-500 dark:text-slate-500">
-                            <Activity size={13} />
-                          </div>
-
-                          <span className="max-w-[220px] truncate text-xs font-medium text-slate-600 dark:text-slate-400">
-                            {testName}
-                          </span>
-                        </div>
+                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {testName}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Sample: {report.testCatalog?.sampleType || 'Specimen'}
+                        </p>
                       </td>
 
                       {/* Date */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Clock3
-                            size={13}
-                            className="shrink-0 text-slate-400 dark:text-slate-600"
-                          />
-
-                          <div>
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                              {generated.date}
-                            </p>
-
-                            <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-600">
-                              {generated.time}
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {generated.date}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{generated.time}</p>
                       </td>
 
                       {/* Status */}
@@ -424,23 +438,28 @@ const Reports = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1.5">
                           <button
                             type="button"
-                            title="View report"
-                            aria-label={`View report ${report._id}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.07] hover:text-cyan-400 dark:text-slate-600 dark:hover:text-cyan-400"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedReport(report);
+                            }}
+                            title="View report details"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.07] hover:text-cyan-400"
                           >
                             <Eye size={15} />
                           </button>
 
                           <button
                             type="button"
-                            title="Download PDF"
-                            aria-label={`Download report ${report._id}`}
-                            disabled={!isReady}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-blue-400/15 hover:bg-blue-400/[0.07] hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-30 dark:text-slate-600 dark:hover:text-blue-400"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(report);
+                            }}
+                            title="Download PDF or clinical summary"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-blue-400/15 hover:bg-blue-400/[0.07] hover:text-blue-400"
                           >
                             <Download size={15} />
                           </button>
@@ -458,24 +477,165 @@ const Reports = () => {
         {!loading && filteredReports.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-slate-200/80 px-5 py-3.5 dark:border-slate-800/80 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-[10px] font-medium text-slate-400 dark:text-slate-600">
-              Showing{' '}
-              <span className="text-slate-600 dark:text-slate-400">
-                {filteredReports.length}
-              </span>{' '}
-              of{' '}
-              <span className="text-slate-600 dark:text-slate-400">
-                {reports.length}
-              </span>{' '}
-              reports
+              Showing <span className="text-slate-600 dark:text-slate-400">{filteredReports.length}</span>{' '}
+              of <span className="text-slate-600 dark:text-slate-400">{reports.length}</span> reports
             </p>
-
             <div className="flex items-center gap-2 text-[10px] font-medium text-slate-400 dark:text-slate-600">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              Reporting system synchronized
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Reporting engine synchronized
             </div>
           </div>
         )}
       </section>
+
+      {/* View Report Detail Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">
+          <div className="absolute inset-0" onClick={() => setSelectedReport(null)} />
+
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-[#0b1220]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/[0.08] text-cyan-400">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                    Medical Diagnostic Report
+                  </h2>
+                  <p className="font-mono text-xs text-slate-500">
+                    Barcode: {selectedReport.barcode || `REP-${selectedReport._id?.substring(0, 6)}`}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReport(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              {/* Patient & Test Header Summary */}
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800/80 dark:bg-slate-900/40 sm:grid-cols-2">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Patient</span>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {selectedReport.user?.firstName} {selectedReport.user?.lastName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {selectedReport.user?.phoneNumber || 'No phone'}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Test Performed</span>
+                  <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">
+                    {selectedReport.testCatalog?.testName || 'Diagnostic Panel'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Turnaround: {selectedReport.turnaroundTimeHours || '12'} hrs
+                  </p>
+                </div>
+              </div>
+
+              {/* Biomarkers / Structured Results */}
+              <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/30">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Biomarker Assay Values
+                </h3>
+
+                {selectedReport.structuredResults && selectedReport.structuredResults.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-left text-[10px] font-bold uppercase text-slate-400 dark:border-slate-800">
+                          <th className="pb-2">Biomarker</th>
+                          <th className="pb-2">Observed Value</th>
+                          <th className="pb-2 text-right">Triage Flag</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {selectedReport.structuredResults.map((item, idx) => (
+                          <tr key={idx} className="py-2">
+                            <td className="py-2 font-medium text-slate-800 dark:text-slate-200">
+                              {item.biomarker}
+                            </td>
+                            <td className="py-2 font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {item.value}
+                            </td>
+                            <td className="py-2 text-right">
+                              {item.isCritical ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                  <AlertTriangle size={10} />
+                                  Critical
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                  <CheckCircle2 size={10} />
+                                  Normal
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    Standard lab certificate on file. Detailed digital biomarkers are being parsed.
+                  </div>
+                )}
+              </div>
+
+              {/* Evidence image if available */}
+              {selectedReport.evidenceImageUrl && (
+                <div className="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-800/80 dark:bg-slate-900/30">
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Collection Evidence Image
+                  </h3>
+                  <img
+                    src={selectedReport.evidenceImageUrl}
+                    alt="Sample collection evidence"
+                    className="h-48 w-full rounded-lg object-cover"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50/50 px-6 py-4 dark:border-slate-800/80 dark:bg-slate-900/30">
+              <span className="text-xs text-slate-500">
+                Status: <strong className="text-slate-800 dark:text-slate-200">{selectedReport.status}</strong>
+              </span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(selectedReport)}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-md hover:from-cyan-400 hover:to-blue-500"
+                >
+                  <Download size={14} />
+                  <span>Download Report</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

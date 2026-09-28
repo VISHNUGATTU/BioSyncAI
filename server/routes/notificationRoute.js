@@ -1,5 +1,10 @@
 import express from 'express';
-import { sendNotification, getMyNotifications, markAsRead } from '../controllers/notificationController.js';
+import { 
+  sendNotification, 
+  getMyNotifications, 
+  markAsRead,
+  markAllAsRead 
+} from '../controllers/notificationController.js';
 import { authAdmin } from '../middlewares/authAdmin.js';
 import { authGeneral } from '../middlewares/authGeneral.js';
 
@@ -9,6 +14,7 @@ notificationRouter.post('/', authAdmin, sendNotification);
 
 // Accessible by both User and LabAssistant 
 notificationRouter.get('/', authGeneral, getMyNotifications);
+notificationRouter.put('/read-all', authGeneral, markAllAsRead);
 notificationRouter.put('/:id/read', authGeneral, markAsRead);
 
 export default notificationRouter;

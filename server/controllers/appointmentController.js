@@ -4,7 +4,9 @@ import TestCatalog from '../models/TestCatalog.js';
 import Sample from '../models/Sample.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
+import UserDraft from '../models/UserDraft.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
+import { findNearestLabAssistant, findNearestDoctor } from '../utils/distanceAssignment.js';
 
 export const bookAppointment = asyncHandler(async (req, res) => {
   const { testId, scheduledDate, timeSlot, preparationAcknowledged, address } = req.body;
@@ -24,6 +26,39 @@ export const bookAppointment = asyncHandler(async (req, res) => {
   const collectionOTP = Math.floor(100000 + Math.random() * 900000).toString();
   const totalAmount = test.pricing.basePrice + (test.pricing.basePrice * (test.pricing.taxPercentage / 100));
 
+  // Determine user coordinates for distance-based nearest staff assignment
+  const userCoords = address?.coordinates?.lat != null && address?.coordinates?.lng != null
+    ? address.coordinates
+    : req.user?.address?.coordinates;
+
+  const [nearestLAData, nearestDocData] = await Promise.all([
+    findNearestLabAssistant(userCoords),
+    findNearestDoctor(userCoords)
+  ]);
+
+  const nearestLA = nearestLAData.nearestAssistant;
+  const laDistance = nearestLAData.distanceKm;
+  const nearestDoc = nearestDocData.nearestDoctor;
+  const docDistance = nearestDocData.distanceKm;
+
+  const initialStatus = nearestLA ? 'Assistant_Assigned' : 'Booked';
+
+  const trackingLogs = [
+    {
+      status: 'Booked',
+      timestamp: new Date(),
+      notes: 'Home appointment confirmed and booked.'
+    }
+  ];
+
+  if (nearestLA) {
+    trackingLogs.push({
+      status: 'Assistant_Assigned',
+      timestamp: new Date(),
+      notes: `Shortest distance assignment: Assigned nearest Lab Assistant "${nearestLA.name}" (${laDistance !== Infinity ? laDistance + ' km away' : 'nearby'}) and Pathologist "${nearestDoc?.name || 'Central Lab'}" (${docDistance !== Infinity ? docDistance + ' km away' : 'hub'}).`
+    });
+  }
+
   // START TRANSACTION: Ensure all 3 records are created, or none at all
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -32,18 +67,25 @@ export const bookAppointment = asyncHandler(async (req, res) => {
     const appointment = new Appointment({
       user: req.user._id,
       appointmentType: 'Lab_Collection',
+      testCatalog: test._id,
+      labAssistant: nearestLA ? nearestLA._id : null,
+      doctor: nearestDoc ? nearestDoc._id : null,
+      preparationInstructions: test.preparationInstructions || 'Fasting for 10-12 hours recommended. Drink plenty of water.',
       scheduledDate: new Date(scheduledDate),
       timeSlot,
-      status: 'Booked',
+      status: initialStatus,
       address,
-      collectionOTP
+      collectionOTP,
+      trackingLogs
     });
 
     const sample = new Sample({
       user: req.user._id,
       appointment: appointment._id,
       testCatalog: test._id,
-      status: 'Requested'
+      labAssistant: nearestLA ? nearestLA._id : null,
+      doctor: nearestDoc ? nearestDoc._id : null,
+      status: nearestLA ? 'Assigned' : 'Requested'
     });
 
     const transaction = new Transaction({
@@ -64,6 +106,9 @@ export const bookAppointment = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Clear appointment booking draft upon successful booking
+    await UserDraft.deleteOne({ user: req.user._id, draftType: 'appointment_booking' });
 
     res.status(201).json({
       success: true,
@@ -147,10 +192,12 @@ export const attemptCancellation = asyncHandler(async (req, res) => {
 export const getUserAppointments = asyncHandler(async (req, res) => {
   // Added pagination and lean() for performance
   const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 10;
+  const limit = parseInt(req.query.limit, 10) || 15;
   const startIndex = (page - 1) * limit;
 
   const appointments = await Appointment.find({ user: req.user._id })
+    .populate('testCatalog', 'testName category preparationInstructions pricing price')
+    .populate('labAssistant', 'name phone vehicleType assignedZones performance')
     .sort({ scheduledDate: -1 })
     .skip(startIndex)
     .limit(limit)

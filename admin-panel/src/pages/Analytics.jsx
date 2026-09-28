@@ -72,7 +72,7 @@ const Analytics = () => {
   );
 
   const formatCurrency = (value) => {
-    return `$${Number(value || 0).toLocaleString()}`;
+    return `₹${Number(value || 0).toLocaleString('en-IN')}`;
   };
 
   return (
@@ -321,13 +321,16 @@ const Analytics = () => {
                       fontSize: 10,
                     }}
                     tickFormatter={(value) => {
+                      if (value >= 100000) {
+                        return `₹${(value / 100000).toFixed(1)}L`;
+                      }
                       if (value >= 1000) {
-                        return `$${value / 1000}k`;
+                        return `₹${(value / 1000).toFixed(0)}k`;
                       }
 
-                      return `$${value}`;
+                      return `₹${value}`;
                     }}
-                    width={50}
+                    width={55}
                   />
 
                   <Tooltip
@@ -348,7 +351,7 @@ const Analytics = () => {
                       marginBottom: '4px',
                     }}
                     formatter={(value) => [
-                      `$${Number(value || 0).toLocaleString()}`,
+                      `₹${Number(value || 0).toLocaleString('en-IN')}`,
                       'Revenue',
                     ]}
                   />

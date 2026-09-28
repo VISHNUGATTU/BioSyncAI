@@ -37,22 +37,30 @@ const Notifications = () => {
       setSending(true);
       setStatusMsg('');
 
+      const targetAudience =
+        notification.targetUserType === 'User'
+          ? 'Users'
+          : notification.targetUserType === 'LabAssistant'
+          ? 'LabAssistants'
+          : notification.targetUserType === 'Doctor'
+          ? 'Doctors'
+          : 'All';
+
       const payload = {
         title: notification.title,
         message: notification.message,
         type: 'System_Alert',
-        priority: notification.priority,
-        targetUserType:
-          notification.targetUserType === 'All'
-            ? null
-            : notification.targetUserType,
+        targetAudience,
+        metadata: {
+          priority: notification.priority,
+        },
       };
 
       const res = await api.post('/notifications', payload);
 
       if (res.data.success) {
         setStatusMsg(
-          'Push notification sent successfully across the platform!'
+          'Push notification dispatched successfully across the platform!'
         );
 
         setNotification({
@@ -66,7 +74,7 @@ const Notifications = () => {
       }
     } catch (error) {
       console.error('Error sending notification:', error);
-      alert('Error sending notification.');
+      alert(error.response?.data?.message || 'Error sending notification.');
     } finally {
       setSending(false);
     }
@@ -76,19 +84,19 @@ const Notifications = () => {
     {
       value: 'All',
       title: 'Everyone',
-      description: 'Users & Lab Assistants',
+      description: 'Patients, Staff & Specialists',
       icon: Users,
     },
     {
       value: 'User',
       title: 'Patients',
-      description: 'Registered users only',
+      description: 'Registered platform users',
       icon: UserRound,
     },
     {
       value: 'LabAssistant',
       title: 'Lab Assistants',
-      description: 'Laboratory team only',
+      description: 'Active phlebotomists & lab staff',
       icon: FlaskConical,
     },
   ];

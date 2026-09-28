@@ -4,7 +4,7 @@ const vitalsSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   source: {
     type: String,
-    enum: ['Manual', 'PDF_Scan', 'Lab_Assistant', 'Wearable_Sync', 'CGM_Sensor'],
+    enum: ['Manual', 'PDF_Scan', 'Lab_Assistant', 'Doctor', 'Wearable_Sync', 'CGM_Sensor'],
     required: true,
     trim: true
   },
@@ -133,6 +133,8 @@ const vitalsSchema = new mongoose.Schema({
 
   // 10. METADATA
   pdfRawText: { type: String, trim: true },
+  documentUrl: { type: String, trim: true },
+  isVerifiedByUser: { type: Boolean, default: false },
   isInitialBaseline: { type: Boolean, default: false },
   recordedAt: { type: Date, default: Date.now },
   criticalAlertTriggered: { type: Boolean, default: false },

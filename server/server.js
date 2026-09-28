@@ -19,6 +19,7 @@ import applicationRouter from './routes/applicationRoute.js';
 import testCatalogRouter from './routes/testCatalogRoute.js';
 import ticketRouter from './routes/ticketRoute.js';
 import notificationRouter from './routes/notificationRoute.js';
+import doctorRouter from './routes/doctorRoute.js';
 
 // Load environment secrets
 dotenv.config();
@@ -89,6 +90,7 @@ app.use('/api/tests', testCatalogRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/doctor', doctorRouter);
 
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'BioSync AI Backend API is running optimally.' });

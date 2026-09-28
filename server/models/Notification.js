@@ -6,13 +6,37 @@ const notificationSchema = new mongoose.Schema({
   
   type: {
     type: String,
-    enum: ['Announcement', 'Test_Reminder', 'System_Alert', 'Emergency', 'Report_Ready'],
+    enum: [
+      'Appointments', 
+      'Health', 
+      'Reports', 
+      'AI', 
+      'Payments', 
+      'System', 
+      'Announcement', 
+      'Test_Reminder', 
+      'System_Alert', 
+      'Emergency', 
+      'Report_Ready'
+    ],
+    default: 'System',
     trim: true
   },
   
-  targetAudience: { type: String, enum: ['All', 'Users', 'LabAssistants', 'Doctors', 'Specific'], trim: true },
-  targetUserId: { type: mongoose.Schema.Types.ObjectId }, 
+  targetAudience: { 
+    type: String, 
+    enum: ['All', 'Users', 'LabAssistants', 'Doctors', 'Specific'], 
+    default: 'Specific',
+    trim: true 
+  },
+  targetUserId: { type: mongoose.Schema.Types.ObjectId, index: true }, 
   
+  metadata: {
+    screen: { type: String, trim: true },
+    resourceId: { type: String, trim: true },
+    actionUrl: { type: String, trim: true }
+  },
+
   isRead: { type: Boolean, default: false }
 }, { 
   timestamps: true,
@@ -20,5 +44,6 @@ const notificationSchema = new mongoose.Schema({
 });
 
 notificationSchema.index({ targetUserId: 1, isRead: 1 });
+notificationSchema.index({ targetAudience: 1, createdAt: -1 });
 
 export default mongoose.model('Notification', notificationSchema);
