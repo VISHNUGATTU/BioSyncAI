@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 // Default Wi-Fi IP of the host development machine, fallback for emulators
-const DEFAULT_HOST_IP = '192.168.137.1';
+const DEFAULT_HOST_IP = '192.168.137.216';
 export const DEFAULT_BASE_URL = Platform.select({
   android: `http://${DEFAULT_HOST_IP}:6446/api`,
   ios: `http://${DEFAULT_HOST_IP}:6446/api`,
