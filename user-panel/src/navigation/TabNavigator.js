@@ -1,13 +1,13 @@
 import React from 'react';
 import { StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Scan, CalendarPlus, Activity, User } from 'lucide-react-native';
+import { Home, Utensils, Scan, TrendingUp, User } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
 import HomeScreen from '../screens/HomeScreen';
+import FoodHistoryScreen from '../screens/FoodHistoryScreen';
 import FoodScannerScreen from '../screens/FoodScannerScreen';
-import BookAppointmentScreen from '../screens/BookAppointmentScreen';
-import AppointmentsListScreen from '../screens/AppointmentsListScreen';
+import VitalsAnalysisScreen from '../screens/VitalsAnalysisScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -32,29 +32,27 @@ export default function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="FoodScanner"
+        name="History"
+        component={FoodHistoryScreen}
+        options={{
+          tabBarLabel: 'History',
+          tabBarIcon: ({ color, size }) => <Utensils size={size || 20} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Scan"
         component={FoodScannerScreen}
         options={{
-          tabBarLabel: 'Scan Food',
+          tabBarLabel: 'Scan',
           tabBarIcon: ({ color, size }) => <Scan size={size || 20} color={color} />,
         }}
       />
       <Tab.Screen
-        name="BookAppointment"
-        component={BookAppointmentScreen}
+        name="Analysis"
+        component={VitalsAnalysisScreen}
         options={{
-          tabBarLabel: 'Schedule',
-          tabBarIcon: ({ color, size }) => (
-            <CalendarPlus size={size || 20} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Appointments"
-        component={AppointmentsListScreen}
-        options={{
-          tabBarLabel: 'Visits',
-          tabBarIcon: ({ color, size }) => <Activity size={size || 20} color={color} />,
+          tabBarLabel: 'Analysis',
+          tabBarIcon: ({ color, size }) => <TrendingUp size={size || 20} color={color} />,
         }}
       />
       <Tab.Screen

@@ -64,6 +64,34 @@ export const userApi = {
     const res = await api.get('/vitals/latest');
     return res.data;
   },
+
+  getVitalsTrends: async () => {
+    const res = await api.get('/vitals/trends');
+    return res.data;
+  },
+
+  getVitalsHistory: async () => {
+    const res = await api.get('/vitals/history');
+    return res.data;
+  },
+
+  // Food Intelligence & History
+  getFoodHistory: async () => {
+    const res = await api.get('/food/history');
+    return res.data;
+  },
+
+  logMeal: async (mealPayload) => {
+    const res = await api.post('/food/log', mealPayload);
+    return res.data;
+  },
+
+  scanFood: async (formData) => {
+    const res = await api.post('/food/scan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
 };
 
 export default userApi;

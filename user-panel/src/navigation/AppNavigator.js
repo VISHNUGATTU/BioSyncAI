@@ -8,6 +8,8 @@ import { colors, gradients } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
 import LoginScreen from '../screens/LoginScreen';
 import OtpScreen from '../screens/OtpScreen';
+import BookAppointmentScreen from '../screens/BookAppointmentScreen';
+import AppointmentsListScreen from '../screens/AppointmentsListScreen';
 import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -66,7 +68,18 @@ export default function AppNavigator() {
           <Stack.Screen name="OtpScreen" component={OtpScreen} />
         </>
       ) : (
-        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <>
+          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen
+            name="BookAppointment"
+            component={BookAppointmentScreen}
+            options={{ animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="AppointmentsList"
+            component={AppointmentsListScreen}
+          />
+        </>
       )}
     </Stack.Navigator>
   );

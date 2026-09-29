@@ -352,6 +352,60 @@ export const getFoodHistory = asyncHandler(async (req, res) => {
     total,
     page,
     pages: Math.ceil(total / limit) || 1,
-    data: history
+    data: history,
+    foodLogs: history
+  });
+});
+
+// @desc    Log confirmed meal directly into longitudinal timeline
+// @route   POST /api/food/log
+// @access  Private (User)
+export const logDirectMeal = asyncHandler(async (req, res) => {
+  const {
+    recognizedItemName,
+    consumedQuantity = 1,
+    servingUnit = 'portion',
+    mealType = 'Lunch',
+    nutrients = {},
+    predictedImpact = {}
+  } = req.body;
+
+  const latestVitals = await Vitals.findOne({ user: req.user._id }).sort({ recordedAt: -1 }).lean();
+  const baseGlucose = latestVitals?.metabolicHealth?.glucoseFasting || 90;
+  const carbs = nutrients.carbohydrates || 38;
+  const carbMultiplier = baseGlucose > 105 ? 0.38 : 0.22;
+  const glucoseSpike = predictedImpact.glucoseSpike || Number((carbs * carbMultiplier).toFixed(1));
+
+  const foodLog = await FoodLog.create({
+    user: req.user._id,
+    imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+    recognizedItemName: recognizedItemName || 'Nutrient Balanced Meal',
+    servingSize: `${consumedQuantity} ${servingUnit}`,
+    servingUnit,
+    consumedQuantity,
+    mealType,
+    isConfirmed: true,
+    nutrients: {
+      calories: nutrients.calories || 380,
+      carbohydrates: nutrients.carbohydrates || 42,
+      proteins: nutrients.proteins || 28,
+      fats: nutrients.fats || 14,
+      fiber: nutrients.fiber || 6,
+      sugar: nutrients.sugar || 4,
+      sodium: nutrients.sodium || 280,
+      cholesterol: nutrients.cholesterol || 15
+    },
+    predictedImpact: {
+      glucoseSpike,
+      bpSpikeSystolic: predictedImpact.bpSpikeSystolic || 1.2,
+      aiWarningMessage: predictedImpact.aiWarningMessage || (glucoseSpike > 35 ? 'Moderate glycemic surge. Light 10m walk recommended.' : 'Optimal metabolic response for your baseline profile.'),
+      aiAlternativeSuggestions: ['Drink water post meal', 'A 10-minute post-meal walk is clinically shown to lower postprandial spikes.']
+    }
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Meal recorded directly to your longitudinal health timeline.',
+    data: foodLog
   });
 });

@@ -3,7 +3,8 @@ import {
   scanAndAnalyzeFood, 
   confirmConsumption, 
   getFoodHistory,
-  getUnconfirmedScan 
+  getUnconfirmedScan,
+  logDirectMeal
 } from '../controllers/foodController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { memoryUpload } from '../configs/multer.js';
@@ -14,5 +15,6 @@ foodRouter.post('/scan', authUser, memoryUpload.single('foodImage'), scanAndAnal
 foodRouter.get('/unconfirmed', authUser, getUnconfirmedScan);
 foodRouter.put('/:id/confirm', authUser, confirmConsumption);
 foodRouter.get('/history', authUser, getFoodHistory);
+foodRouter.post('/log', authUser, logDirectMeal);
 
 export default foodRouter;

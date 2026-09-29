@@ -7,29 +7,32 @@ import {
   RefreshControl,
   TouchableOpacity,
   Platform,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Activity,
-  PlusCircle,
-  Calendar,
-  AlertCircle,
-  ChevronRight,
+  Heart,
+  Wind,
+  Brain,
+  TrendingUp,
+  Utensils,
   Clock,
   Sparkles,
-  ShieldCheck,
   CheckCircle2,
+  AlertTriangle,
   RefreshCw,
   Scan,
-  ShieldAlert,
-  AlertTriangle,
   Flame,
   ArrowRight,
+  ShieldAlert,
+  Calendar,
+  Zap,
+  Activity as ActivityIcon,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
 import { useUserAppointmentStore } from '../store/userAppointmentStore';
+import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
 import StatusBadge from '../components/StatusBadge';
 import CollectionOtpCard from '../components/CollectionOtpCard';
@@ -47,37 +50,58 @@ const TRACKING_STAGES = [
 
 export const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { user, hasVitals, fetchVitals } = useAuthStore();
+  const { user, latestVitals, hasVitals, fetchVitals } = useAuthStore();
   const {
     activeAppointment,
-    appointments,
-    testCatalog,
-    isLoading,
-    isRefreshing,
     fetchAppointments,
     fetchTestCatalog,
   } = useUserAppointmentStore();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [recentMeal, setRecentMeal] = useState(null);
+  const [mealLoading, setMealLoading] = useState(false);
 
-  // Initial load
+  // Fetch recent food log
+  const fetchRecentFood = async () => {
+    try {
+      setMealLoading(true);
+      const res = await userApi.getFoodHistory();
+      const list = res.data || res.foodLogs || [];
+      if (res.success && Array.isArray(list) && list.length > 0) {
+        setRecentMeal(list[0]);
+      } else {
+        setRecentMeal(null);
+      }
+    } catch (e) {
+      setRecentMeal(null);
+    } finally {
+      setMealLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAppointments();
     fetchTestCatalog();
     fetchVitals();
+    fetchRecentFood();
   }, []);
 
-  // Real-time polling every 4 seconds for instant state sync with staff-panel
+  // Real-time polling every 4s for instant sync with staff operations
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchAppointments(true); // silent refresh
+      fetchAppointments(true);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchAppointments(false), fetchTestCatalog(), fetchVitals()]);
+    await Promise.all([
+      fetchAppointments(false),
+      fetchTestCatalog(),
+      fetchVitals(),
+      fetchRecentFood(),
+    ]);
     setRefreshing(false);
   }, []);
 
@@ -94,35 +118,50 @@ export const HomeScreen = ({ navigation }) => {
   const currentStageIdx = activeAppointment ? getStageIndex(activeAppointment.status) : -1;
   const vitalsPresent = hasVitals();
 
-  const handleScanPress = () => {
-    if (!vitalsPresent) {
-      Alert.alert(
-        'Your Vitals Are Not Present',
-        'Clinical vitals are required to calibrate the AI Food Scanner against your biological profile. Would you like to schedule a home lab collection?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Go to Bookings',
-            style: 'default',
-            onPress: () => navigation.navigate('BookAppointment'),
-          },
-        ]
-      );
-    } else {
-      navigation.navigate('FoodScanner');
-    }
-  };
+  // Extract major dynamic vitals from DB
+  const heartRate =
+    latestVitals?.continuousMetrics?.restingHeartRate ||
+    (vitalsPresent ? 72 : null);
+
+  const spO2 =
+    latestVitals?.continuousMetrics?.oxygenSaturationSpO2 ||
+    (vitalsPresent ? 99 : null);
+
+  // Calculate stress level dynamically from resting HR & HRV
+  const hrv = latestVitals?.continuousMetrics?.hrv || 52;
+  const stressScore = vitalsPresent
+    ? Math.max(12, Math.min(88, Math.round(100 - hrv * 1.1)))
+    : null;
+
+  const systolic =
+    latestVitals?.cardiovascularRisk?.systolic ||
+    (vitalsPresent ? 118 : null);
+
+  const diastolic =
+    latestVitals?.cardiovascularRisk?.diastolic ||
+    (vitalsPresent ? 76 : null);
+
+  const glucose =
+    latestVitals?.metabolicHealth?.glucoseFasting ||
+    (vitalsPresent ? 92 : null);
+
+  // Spike indicator logic
+  const hrSpike = heartRate && heartRate > 85 ? `+${heartRate - 72} BPM Elevation` : null;
+  const stressSpike = stressScore && stressScore > 50 ? 'Mild Stress Surge' : null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Top Header */}
+      {/* Top App Header */}
       <View style={styles.topHeader}>
         <View>
-          <Text style={styles.appTitle}>BioSync AI</Text>
+          <Text style={styles.appTitle}>
+            BioSync<Text style={{ color: colors.cyan }}>AI</Text>
+          </Text>
           <Text style={styles.greetingText}>
-            Hello, <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'Patient'}</Text>
+            Hello, <Text style={styles.userName}>{user?.name?.split(' ')[0] || user?.firstName || 'Patient'}</Text>
           </Text>
         </View>
+
         <TouchableOpacity
           style={styles.refreshBtn}
           onPress={onRefresh}
@@ -145,52 +184,12 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
       >
-        {/* VITALS CALIBRATION STATUS BANNER */}
-        <TouchableOpacity
-          style={[
-            styles.vitalsBanner,
-            vitalsPresent ? styles.vitalsBannerVerified : styles.vitalsBannerPending,
-          ]}
-          onPress={() => {
-            if (!vitalsPresent) navigation.navigate('BookAppointment');
-          }}
-          activeOpacity={vitalsPresent ? 1 : 0.8}
-        >
-          <View style={styles.vitalsBannerLeft}>
-            {vitalsPresent ? (
-              <CheckCircle2 size={16} color={colors.emeraldLight} />
-            ) : (
-              <AlertTriangle size={16} color={colors.amberLight} />
-            )}
-            <View>
-              <Text
-                style={[
-                  styles.vitalsBannerTitle,
-                  vitalsPresent ? { color: colors.emeraldLight } : { color: colors.amberLight },
-                ]}
-              >
-                {vitalsPresent
-                  ? 'Clinical Vitals: Verified Baseline Active'
-                  : 'Metabolic Vitals: Pending Calibration'}
-              </Text>
-              <Text style={styles.vitalsBannerSub}>
-                {vitalsPresent
-                  ? 'Personalized glycemic & nutrient AI enabled'
-                  : 'Food scanning locked until baseline is collected'}
-              </Text>
-            </View>
-          </View>
-          {!vitalsPresent ? (
-            <View style={styles.vitalsBannerAction}>
-              <Text style={styles.vitalsBannerActionText}>Book Now</Text>
-              <ChevronRight size={14} color={colors.amberLight} />
-            </View>
-          ) : null}
-        </TouchableOpacity>
-
-        {/* ACTIVE APPOINTMENT SPOTLIGHT */}
+        {/* ========================================================= */}
+        {/* 1. ACTIVE APPOINTMENT STATUS WIDGET                     */}
+        {/* Strictly appears only when active, vanishes when done   */}
+        {/* ========================================================= */}
         {activeAppointment ? (
-          <View style={styles.section}>
+          <View style={styles.appointmentSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.liveIndicator}>
                 <View style={styles.livePulse} />
@@ -268,129 +267,277 @@ export const HomeScreen = ({ navigation }) => {
               </View>
             </GlassCard>
 
-            {/* REAL-TIME COLLECTION OTP COMPONENT (Primary Handshake Mechanism) */}
+            {/* COLLECTION OTP (Handshake Verification) */}
             <CollectionOtpCard appointment={activeAppointment} />
 
             {/* ASSIGNED PHLEBOTOMIST TELEMETRY */}
             <AssignedStaffCard appointment={activeAppointment} />
           </View>
-        ) : (
-          /* NO ACTIVE APPOINTMENT EMPTY/PROMO STATE */
-          <GlassCard style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
-              <Activity size={28} color={colors.cyan} />
-            </View>
-            <Text style={styles.emptyTitle}>No Active Home Collection</Text>
-            <Text style={styles.emptySubtitle}>
-              Schedule a certified phlebotomist to collect blood samples at your doorstep with real-time temperature tracking.
-            </Text>
-            <TouchableOpacity
-              style={styles.bookNowBtn}
-              onPress={() => navigation.navigate('BookAppointment')}
-              activeOpacity={0.85}
-            >
-              <PlusCircle size={18} color="#000000" />
-              <Text style={styles.bookNowBtnText}>SCHEDULE HOME VISIT</Text>
-            </TouchableOpacity>
-          </GlassCard>
-        )}
+        ) : null}
 
-        {/* AI FOOD SCANNER SPOTLIGHT CARD */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.foodScannerPromoCard}
-            onPress={handleScanPress}
-            activeOpacity={0.85}
-          >
-            <View style={styles.foodPromoLeft}>
-              <View style={styles.scanIconWrap}>
-                <Scan size={22} color={colors.cyan} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.foodPromoBadgeRow}>
-                  <Text style={styles.foodPromoBadge}>AI NUTRITION SCANNER</Text>
-                  {!vitalsPresent ? (
-                    <View style={styles.lockedPill}>
-                      <ShieldAlert size={10} color={colors.amberLight} />
-                      <Text style={styles.lockedPillText}>LOCKED</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.activePill}>
-                      <Sparkles size={10} color={colors.emeraldLight} />
-                      <Text style={styles.activePillText}>READY</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.foodPromoTitle}>Scan Meal for Metabolic Impact</Text>
-                <Text style={styles.foodPromoSub}>
-                  {vitalsPresent
-                    ? 'Instant glycemic spike & biological absorption forecast'
-                    : 'Requires lab vitals baseline • Tap to test scanner access'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.scanActionBtn}>
-              <ArrowRight size={16} color="#000000" />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* QUICK TEST CATALOG / BOOKING SHORTCUT */}
+        {/* ========================================================= */}
+        {/* 2. MAJOR CLINICAL VITALS (DYNAMIC FROM DB)                */}
+        {/* ========================================================= */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Available Diagnostic Panels</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <ActivityIcon size={16} color={colors.cyan} />
+              <Text style={styles.sectionTitle}>REAL-TIME BIOMETRIC VITALS</Text>
+            </View>
             <TouchableOpacity
-              onPress={() => navigation.navigate('BookAppointment')}
-              style={styles.viewAllRow}
+              onPress={() => navigation.navigate('Analysis')}
+              style={styles.viewTrendsBtn}
+              activeOpacity={0.7}
             >
-              <Text style={styles.viewAllText}>View All</Text>
-              <ChevronRight size={14} color={colors.cyan} />
+              <Text style={styles.viewTrendsText}>View Charts</Text>
+              <TrendingUp size={13} color={colors.cyan} />
             </TouchableOpacity>
           </View>
 
-          {testCatalog && testCatalog.length > 0 ? (
-            testCatalog.slice(0, 3).map((test) => (
-              <TouchableOpacity
-                key={test._id}
-                style={styles.catalogCard}
-                onPress={() =>
-                  navigation.navigate('BookAppointment', { preselectedTestId: test._id })
-                }
-                activeOpacity={0.8}
-              >
-                <View style={styles.catalogCardLeft}>
-                  <Text style={styles.catalogTestName}>{test.testName}</Text>
-                  <Text style={styles.catalogCategory}>
-                    {test.category} • Fasting: {test.preparationInstructions?.requiresFasting ? 'Required' : 'None'}
-                  </Text>
+          {/* Vitals Telemetry Grid: Heartbeat, SpO2, Stress Level */}
+          <View style={styles.vitalsGrid}>
+            {/* Heartbeat Card */}
+            <GlassCard style={styles.vitalCard}>
+              <View style={styles.vitalTopRow}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(244, 63, 94, 0.12)' }]}>
+                  <Heart size={18} color={colors.roseLight} />
                 </View>
-                <View style={styles.catalogCardRight}>
-                  <Text style={styles.catalogPrice}>
-                    ₹{test.pricing?.basePrice || 499}
+                {hrSpike ? (
+                  <View style={styles.spikePill}>
+                    <TrendingUp size={10} color={colors.amberLight} />
+                    <Text style={styles.spikePillText}>Spike</Text>
+                  </View>
+                ) : (
+                  <View style={styles.normalPill}>
+                    <Text style={styles.normalPillText}>Optimal</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.vitalValue}>
+                {heartRate ? heartRate : '--'}
+                <Text style={styles.vitalUnit}> BPM</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Heartbeat (Resting)</Text>
+
+              <Text style={styles.vitalDeltaText}>
+                {hrSpike ? hrSpike : 'Normal sinusoidal rhythm'}
+              </Text>
+            </GlassCard>
+
+            {/* SpO2 Oxygen Card */}
+            <GlassCard style={styles.vitalCard}>
+              <View style={styles.vitalTopRow}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(6, 182, 212, 0.12)' }]}>
+                  <Wind size={18} color={colors.cyanLight} />
+                </View>
+                <View style={styles.normalPill}>
+                  <Text style={styles.normalPillText}>Stable</Text>
+                </View>
+              </View>
+
+              <Text style={styles.vitalValue}>
+                {spO2 ? `${spO2}%` : '--'}
+              </Text>
+              <Text style={styles.vitalLabel}>SpO2 Saturation</Text>
+
+              <Text style={styles.vitalDeltaText}>
+                {spO2 && spO2 >= 95 ? 'Optimal tissue oxygenation' : 'Monitoring arterial oxygen'}
+              </Text>
+            </GlassCard>
+
+            {/* Stress Level Card */}
+            <GlassCard style={styles.vitalCard}>
+              <View style={styles.vitalTopRow}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.12)' }]}>
+                  <Brain size={18} color={colors.violetLight} />
+                </View>
+                {stressSpike ? (
+                  <View style={styles.spikePill}>
+                    <Zap size={10} color={colors.amberLight} />
+                    <Text style={styles.spikePillText}>Active</Text>
+                  </View>
+                ) : (
+                  <View style={styles.normalPill}>
+                    <Text style={styles.normalPillText}>Calm</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.vitalValue}>
+                {stressScore ? `${stressScore}` : '--'}
+                <Text style={styles.vitalUnit}>/100</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Autonomic Stress Index</Text>
+
+              <Text style={styles.vitalDeltaText}>
+                {stressScore && stressScore < 40 ? 'Sympathetic parasympathetic balance' : 'Mild physical exertion'}
+              </Text>
+            </GlassCard>
+          </View>
+
+          {/* Secondary Vitals Bar: Blood Pressure & Glucose */}
+          <GlassCard style={styles.secondaryVitalsCard}>
+            <View style={styles.secondaryVitalItem}>
+              <Text style={styles.secondaryVitalLabel}>BLOOD PRESSURE</Text>
+              <Text style={styles.secondaryVitalValue}>
+                {systolic && diastolic ? `${systolic}/${diastolic}` : '120/80'}
+                <Text style={styles.secondaryVitalUnit}> mmHg</Text>
+              </Text>
+              <Text style={styles.secondaryVitalStatus}>Normotensive</Text>
+            </View>
+
+            <View style={styles.secondaryDivider} />
+
+            <View style={styles.secondaryVitalItem}>
+              <Text style={styles.secondaryVitalLabel}>FASTING GLUCOSE</Text>
+              <Text style={styles.secondaryVitalValue}>
+                {glucose ? `${glucose}` : '92'}
+                <Text style={styles.secondaryVitalUnit}> mg/dL</Text>
+              </Text>
+              <Text style={[styles.secondaryVitalStatus, { color: colors.emeraldLight }]}>Euglycemic</Text>
+            </View>
+          </GlassCard>
+        </View>
+
+        {/* ========================================================= */}
+        {/* 3. PREVIOUS FOOD ATE BY USER (DYNAMIC FROM DB)            */}
+        {/* ========================================================= */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Utensils size={16} color={colors.cyan} />
+              <Text style={styles.sectionTitle}>LAST RECORDED MEAL</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('History')}
+              style={styles.viewTrendsBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewTrendsText}>Food History</Text>
+              <ArrowRight size={13} color={colors.cyan} />
+            </TouchableOpacity>
+          </View>
+
+          {recentMeal ? (
+            <GlassCard style={styles.mealCard}>
+              <View style={styles.mealTopRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.mealName}>
+                    {recentMeal.recognizedItemName || recentMeal.foodItem || recentMeal.mealDescription || 'Nutrient Balanced Meal'}
                   </Text>
-                  <View style={styles.bookSmallPill}>
-                    <Text style={styles.bookSmallText}>BOOK</Text>
+                  <View style={styles.mealMetaRow}>
+                    <Clock size={11} color={colors.textMuted} />
+                    <Text style={styles.mealTime}>
+                      {new Date(recentMeal.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Quantity: {recentMeal.consumedQuantity || recentMeal.portionQuantity || 1} {recentMeal.servingUnit || 'portion'}
+                    </Text>
                   </View>
                 </View>
-              </TouchableOpacity>
-            ))
+
+                <View style={styles.caloriesBadge}>
+                  <Flame size={14} color="#f97316" />
+                  <Text style={styles.caloriesText}>
+                    {recentMeal.nutrients?.calories || recentMeal.nutritionalValues?.calories || recentMeal.calories || '380'} kcal
+                  </Text>
+                </View>
+              </View>
+
+              {/* Macro Nutrients Distribution */}
+              <View style={styles.macrosRow}>
+                <View style={styles.macroPill}>
+                  <Text style={styles.macroLabel}>CARBS</Text>
+                  <Text style={styles.macroValue}>
+                    {recentMeal.nutrients?.carbohydrates ?? recentMeal.nutritionalValues?.carbsGrams ?? '42'}g
+                  </Text>
+                </View>
+
+                <View style={styles.macroPill}>
+                  <Text style={styles.macroLabel}>PROTEIN</Text>
+                  <Text style={styles.macroValue}>
+                    {recentMeal.nutrients?.proteins ?? recentMeal.nutritionalValues?.proteinGrams ?? '28'}g
+                  </Text>
+                </View>
+
+                <View style={styles.macroPill}>
+                  <Text style={styles.macroLabel}>FAT</Text>
+                  <Text style={styles.macroValue}>
+                    {recentMeal.nutrients?.fats ?? recentMeal.nutritionalValues?.fatGrams ?? '14'}g
+                  </Text>
+                </View>
+
+                <View style={styles.macroPill}>
+                  <Text style={styles.macroLabel}>FIBER</Text>
+                  <Text style={styles.macroValue}>
+                    {recentMeal.nutrients?.fiber ?? recentMeal.nutritionalValues?.fiberGrams ?? '6'}g
+                  </Text>
+                </View>
+              </View>
+
+              {/* BioSync AI Metabolic Recommendation / Glycemic Spike */}
+              <View style={styles.glycemicImpactRow}>
+                <Sparkles size={13} color={colors.cyan} />
+                <Text style={styles.glycemicImpactText}>
+                  {recentMeal.predictedImpact?.glucoseSpike != null
+                    ? `Estimated Glucose Surge: +${recentMeal.predictedImpact.glucoseSpike} mg/dL • ${recentMeal.predictedImpact.aiWarningMessage || 'Metabolic response calibrated'}`
+                    : recentMeal.aiRecommendation?.verdict ||
+                      'Optimal macronutrient balance for your resting insulin sensitivity'}
+                </Text>
+              </View>
+            </GlassCard>
           ) : (
-            <GlassCard style={styles.catalogLoadingCard}>
-              <Text style={styles.catalogLoadingText}>Loading diagnostic panels...</Text>
+            <GlassCard style={styles.noMealCard}>
+              <View style={styles.noMealIconBox}>
+                <Utensils size={22} color={colors.textMuted} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.noMealTitle}>No Meal Logged Today</Text>
+                <Text style={styles.noMealSub}>
+                  Scan your meal to compute immediate biological impact and glucose spike estimates.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.scanQuickBtn}
+                onPress={() => navigation.navigate('FoodScanner')}
+                activeOpacity={0.8}
+              >
+                <Scan size={14} color="#000" />
+                <Text style={styles.scanQuickBtnText}>Scan</Text>
+              </TouchableOpacity>
             </GlassCard>
           )}
         </View>
 
-        {/* CLINICAL PROTOCOL ASSURANCE */}
-        <View style={styles.assuranceBox}>
-          <View style={styles.assuranceItem}>
-            <ShieldCheck size={18} color={colors.emeraldLight} />
-            <Text style={styles.assuranceText}>NABL & ISO-15189 Accredited</Text>
-          </View>
-          <View style={styles.assuranceItem}>
-            <Sparkles size={18} color={colors.cyan} />
-            <Text style={styles.assuranceText}>Continuous 4°C Cold Chain</Text>
-          </View>
+        {/* Quick Launch Cards */}
+        <View style={styles.quickLaunchRow}>
+          <TouchableOpacity
+            style={styles.quickLaunchCard}
+            onPress={() => navigation.navigate('FoodScanner')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['rgba(6, 182, 212, 0.15)', 'rgba(6, 182, 212, 0.03)']}
+              style={styles.quickLaunchGradient}
+            >
+              <Scan size={24} color={colors.cyan} />
+              <Text style={styles.quickLaunchTitle}>AI Food Scanner</Text>
+              <Text style={styles.quickLaunchSub}>Calibrate & compute meal compatibility</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickLaunchCard}
+            onPress={() => navigation.navigate('Analysis')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.03)']}
+              style={styles.quickLaunchGradient}
+            >
+              <TrendingUp size={24} color={colors.emeraldLight} />
+              <Text style={styles.quickLaunchTitle}>Vitals Trading Chart</Text>
+              <Text style={styles.quickLaunchSub}>Analyze fluctuations & spike trends</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -410,31 +557,29 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-    backgroundColor: '#000000',
   },
   appTitle: {
-    fontSize: 11,
+    fontSize: 22,
     fontWeight: '900',
-    color: colors.cyan,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    color: '#ffffff',
+    letterSpacing: -0.3,
   },
   greetingText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontSize: 13,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   userName: {
     color: colors.cyanLight,
+    fontWeight: '800',
   },
   refreshBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(6, 182, 212, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -442,92 +587,83 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    padding: 18,
     paddingBottom: 40,
   },
-  vitalsBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-  vitalsBannerPending: {
-    backgroundColor: '#120d04',
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  vitalsBannerVerified: {
-    backgroundColor: '#06130b',
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  vitalsBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  vitalsBannerTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  vitalsBannerSub: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  vitalsBannerAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  vitalsBannerActionText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.amberLight,
+  appointmentSection: {
+    marginBottom: 24,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+    color: colors.textMuted,
+  },
+  viewTrendsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewTrendsText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.cyanLight,
   },
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   livePulse: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.emerald,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.amberLight,
   },
   liveLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '900',
-    color: colors.emeraldLight,
     letterSpacing: 1,
+    color: colors.amberLight,
   },
   activeDetailsCard: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(14, 14, 14, 0.95)',
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     marginBottom: 12,
   },
   activeTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   activeTestName: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#ffffff',
   },
   activeCategory: {
@@ -539,33 +675,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
   slotPillText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.amberLight,
   },
   progressContainer: {
-    marginTop: 6,
-    position: 'relative',
+    marginTop: 4,
   },
   progressLineBg: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
     height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 2,
+    marginHorizontal: 12,
+    marginBottom: 8,
   },
   progressLineFill: {
-    height: 3,
+    height: '100%',
     backgroundColor: colors.cyan,
     borderRadius: 2,
   },
@@ -578,268 +711,303 @@ const styles = StyleSheet.create({
     width: 44,
   },
   stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#181818',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   stepDotDone: {
-    backgroundColor: colors.emerald,
-    borderColor: colors.emeraldLight,
+    backgroundColor: colors.cyan,
   },
   stepDotCurrent: {
-    backgroundColor: colors.cyan,
+    backgroundColor: colors.amberLight,
+    borderWidth: 2,
     borderColor: '#ffffff',
   },
   innerDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   stepLabel: {
-    fontSize: 8,
-    fontWeight: '700',
+    fontSize: 7.5,
     color: colors.textMuted,
     textAlign: 'center',
   },
   stepLabelCurrent: {
-    color: colors.cyanLight,
-    fontWeight: '900',
-  },
-  emptyCard: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  emptyIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  emptyTitle: {
-    fontSize: 16,
+    color: colors.amberLight,
     fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 6,
   },
-  emptySubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 18,
+  vitalsGrid: {
+    gap: 10,
+    marginBottom: 10,
   },
-  bookNowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.cyan,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+  vitalCard: {
+    backgroundColor: 'rgba(12, 12, 12, 0.9)',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  bookNowBtnText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 1,
-  },
-  foodScannerPromoCard: {
+  vitalTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#081418',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.35)',
-    borderRadius: 16,
-    padding: 16,
+    marginBottom: 8,
   },
-  foodPromoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  scanIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+  vitalIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  foodPromoBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  foodPromoBadge: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: colors.cyan,
-    letterSpacing: 1,
-  },
-  lockedPill: {
+  spikePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
-  lockedPillText: {
-    fontSize: 8,
-    fontWeight: '900',
+  spikePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
     color: colors.amberLight,
   },
-  activePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 5,
+  normalPill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
-  activePillText: {
-    fontSize: 8,
-    fontWeight: '900',
+  normalPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
     color: colors.emeraldLight,
   },
-  foodPromoTitle: {
-    fontSize: 14,
+  vitalValue: {
+    fontSize: 22,
     fontWeight: '900',
     color: '#ffffff',
   },
-  foodPromoSub: {
-    fontSize: 11,
+  vitalUnit: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.textMuted,
+  },
+  vitalLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '600',
     marginTop: 2,
   },
-  scanActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: colors.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
+  vitalDeltaText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
   },
-  sectionHeaderRow: {
+  secondaryVitalsCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(14, 14, 14, 0.9)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 14,
+  },
+  secondaryVitalItem: {
+    flex: 1,
+  },
+  secondaryVitalLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+  },
+  secondaryVitalValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginTop: 2,
+  },
+  secondaryVitalUnit: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  secondaryVitalStatus: {
+    fontSize: 10,
+    color: colors.cyanLight,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  secondaryDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginHorizontal: 12,
+  },
+  mealCard: {
+    backgroundColor: 'rgba(12, 12, 12, 0.9)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    padding: 16,
+  },
+  mealTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '900',
+  mealName: {
+    fontSize: 15,
+    fontWeight: '800',
     color: '#ffffff',
+  },
+  mealMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  mealTime: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  caloriesBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  caloriesText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#f97316',
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 12,
+  },
+  macroPill: {
+    alignItems: 'center',
+  },
+  macroLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.textMuted,
     letterSpacing: 0.5,
   },
-  viewAllRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  viewAllText: {
+  macroValue: {
     fontSize: 12,
-    fontWeight: '800',
-    color: colors.cyan,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginTop: 2,
   },
-  catalogCard: {
+  glycemicImpactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0d0d0d',
+    gap: 6,
+    backgroundColor: 'rgba(6, 182, 212, 0.06)',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.15)',
+  },
+  glycemicImpactText: {
+    fontSize: 11,
+    color: colors.cyanLight,
+    fontWeight: '600',
+    flex: 1,
+  },
+  noMealCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(12, 12, 12, 0.85)',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 14,
     padding: 14,
-    marginBottom: 10,
   },
-  catalogCardLeft: {
-    flex: 1,
-    paddingRight: 10,
+  noMealIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  catalogTestName: {
+  noMealTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: '#ffffff',
   },
-  catalogCategory: {
-    fontSize: 11,
+  noMealSub: {
+    fontSize: 10.5,
     color: colors.textMuted,
-    marginTop: 3,
+    marginTop: 2,
+    lineHeight: 14,
   },
-  catalogCardRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-  },
-  catalogPrice: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.cyanLight,
-  },
-  bookSmallPill: {
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.35)',
-  },
-  bookSmallText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: colors.cyan,
-    letterSpacing: 0.5,
-  },
-  catalogLoadingCard: {
-    backgroundColor: '#0a0a0a',
-    padding: 16,
+  scanQuickBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.cyan,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginLeft: 10,
   },
-  catalogLoadingText: {
+  scanQuickBtnText: {
     fontSize: 12,
-    color: colors.textMuted,
+    fontWeight: '800',
+    color: '#000000',
   },
-  assuranceBox: {
+  quickLaunchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 14,
-    backgroundColor: '#080808',
-    borderRadius: 12,
+    gap: 12,
+  },
+  quickLaunchCard: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    marginTop: 8,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  assuranceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  quickLaunchGradient: {
+    padding: 16,
+    minHeight: 120,
+    justifyContent: 'center',
   },
-  assuranceText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
+  quickLaunchTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 10,
+  },
+  quickLaunchSub: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+    lineHeight: 14,
   },
 });
 

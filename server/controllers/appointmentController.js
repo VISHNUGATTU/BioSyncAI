@@ -9,11 +9,26 @@ import asyncHandler from '../middlewares/asyncHandler.js';
 import { findNearestLabAssistant, findNearestDoctor } from '../utils/distanceAssignment.js';
 
 export const bookAppointment = asyncHandler(async (req, res) => {
-  const { testId, scheduledDate, timeSlot, preparationAcknowledged, address } = req.body;
+  const { testId, scheduledDate, timeSlot, preparationAcknowledged, address, paymentMode = 'COD' } = req.body;
 
   if (!preparationAcknowledged) {
     res.status(400);
     throw new Error('You must acknowledge preparation instructions.');
+  }
+
+  // 30-day calibration rule check
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentAppointment = await Appointment.findOne({
+    user: req.user._id,
+    status: { $nin: ['Cancelled', 'Failed'] },
+    scheduledDate: { $gte: thirtyDaysAgo }
+  }).sort({ scheduledDate: -1 });
+
+  if (recentAppointment) {
+    const daysSince = Math.floor((Date.now() - new Date(recentAppointment.scheduledDate).getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.max(1, 30 - daysSince);
+    res.status(400);
+    throw new Error(`AI Calibration Cycle is active. Next recalibration appointment available in ${daysRemaining} days (30-day calibration rule).`);
   }
 
   const test = await TestCatalog.findById(testId).lean();
@@ -59,6 +74,8 @@ export const bookAppointment = asyncHandler(async (req, res) => {
     });
   }
 
+  const isOnline = paymentMode === 'Online' || paymentMode === 'UPI';
+
   // START TRANSACTION: Ensure all 3 records are created, or none at all
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -76,7 +93,12 @@ export const bookAppointment = asyncHandler(async (req, res) => {
       status: initialStatus,
       address,
       collectionOTP,
-      trackingLogs
+      trackingLogs,
+      paymentDetails: {
+        isPaid: isOnline,
+        amount: totalAmount,
+        method: isOnline ? 'Online' : 'Cash',
+      }
     });
 
     const sample = new Sample({
@@ -92,8 +114,8 @@ export const bookAppointment = asyncHandler(async (req, res) => {
       user: req.user._id,
       appointment: appointment._id,
       amount: totalAmount,
-      status: 'Pending',
-      paymentGateway: 'Cash_On_Delivery',
+      status: isOnline ? 'Success' : 'Pending',
+      paymentGateway: isOnline ? 'UPI_Online' : 'Cash_On_Delivery',
       revenueType: 'Lab_Test'
     });
 
@@ -112,7 +134,9 @@ export const bookAppointment = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Appointment booked successfully. Please keep exact change ready for COD.',
+      message: isOnline
+        ? 'Appointment booked and online payment verified.'
+        : 'Appointment booked successfully. Please keep exact change ready for COD.',
       appointment,
       sample,
       transaction

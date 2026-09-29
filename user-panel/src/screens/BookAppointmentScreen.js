@@ -22,6 +22,8 @@ import {
   ArrowLeft,
   Check,
   Zap,
+  Banknote,
+  CreditCard,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -51,6 +53,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
   );
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState(MORNING_SLOTS[1]);
+  const [paymentMode, setPaymentMode] = useState('COD'); // 'COD' | 'Online'
   const [prepAcknowledged, setPrepAcknowledged] = useState(false);
   const [bookingSuccessData, setBookingSuccessData] = useState(null);
 
@@ -97,6 +100,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
       testId: selectedPlan._id,
       scheduledDate: availableDates[selectedDateIdx].isoString,
       timeSlot: selectedSlot,
+      paymentMode,
       preparationAcknowledged: true,
       address: user?.address || {
         street: 'Flat 402, Cyber Heights',
@@ -425,6 +429,68 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               </GlassCard>
             </View>
 
+            {/* Mode of Payment (COD or Online) */}
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <CreditCard size={16} color={colors.cyan} />
+                <Text style={styles.detailSectionTitle}>4. MODE OF PAYMENT</Text>
+              </View>
+
+              <View style={styles.paymentOptionsRow}>
+                {/* Cash on Delivery (COD) Card */}
+                <TouchableOpacity
+                  style={[
+                    styles.paymentCard,
+                    paymentMode === 'COD' && styles.paymentCardSelected,
+                  ]}
+                  onPress={() => setPaymentMode('COD')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentCardTop}>
+                    <View style={[styles.paymentIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                      <Banknote size={18} color={colors.emeraldLight} />
+                    </View>
+                    {paymentMode === 'COD' ? (
+                      <View style={styles.selectedPill}>
+                        <Check size={10} color="#000000" />
+                        <Text style={styles.selectedPillText}>SELECTED</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.paymentTitle}>Cash on Delivery</Text>
+                  <Text style={styles.paymentDesc}>
+                    Pay in cash or UPI to the certified phlebotomist at your doorstep upon sample collection.
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Online Payment Card */}
+                <TouchableOpacity
+                  style={[
+                    styles.paymentCard,
+                    paymentMode === 'Online' && styles.paymentCardSelected,
+                  ]}
+                  onPress={() => setPaymentMode('Online')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentCardTop}>
+                    <View style={[styles.paymentIconWrap, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
+                      <CreditCard size={18} color={colors.cyanLight} />
+                    </View>
+                    {paymentMode === 'Online' ? (
+                      <View style={styles.selectedPill}>
+                        <Check size={10} color="#000000" />
+                        <Text style={styles.selectedPillText}>SELECTED</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.paymentTitle}>Online Payment</Text>
+                  <Text style={styles.paymentDesc}>
+                    Instant settlement via UPI / Debit / Credit Card with automated digital tax invoice.
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Preparation Acknowledgement */}
             <TouchableOpacity
               style={[styles.ackCard, prepAcknowledged && styles.ackCardChecked]}
@@ -455,7 +521,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                 <>
                   <Sparkles size={18} color="#000000" />
                   <Text style={styles.confirmBtnText}>
-                    CONFIRM & SCHEDULE VISIT • ₹{selectedPlan.pricing?.basePrice || 499}
+                    CONFIRM & SCHEDULE • ₹{selectedPlan.pricing?.basePrice || 499} ({paymentMode === 'Online' ? 'ONLINE' : 'COD'})
                   </Text>
                 </>
               )}
@@ -834,6 +900,59 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
     lineHeight: 14,
+  },
+  paymentOptionsRow: {
+    gap: 10,
+  },
+  paymentCard: {
+    backgroundColor: '#0a0a0a',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    padding: 14,
+  },
+  paymentCardSelected: {
+    borderColor: colors.cyan,
+    backgroundColor: '#07181f',
+  },
+  paymentCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  paymentIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.cyan,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  selectedPillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  paymentTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#ffffff',
+  },
+  paymentDesc: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 3,
+    lineHeight: 15,
   },
   ackCard: {
     flexDirection: 'row',
