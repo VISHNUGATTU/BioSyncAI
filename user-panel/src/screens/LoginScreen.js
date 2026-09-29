@@ -26,11 +26,12 @@ export const LoginScreen = () => {
 
   const login = useAuthStore((state) => state.login);
 
-  // Demo Patients seeded in MongoDB
+  // Real Patient Numbers for Testing
   const DEMO_PATIENTS = [
-    { name: 'Vikram Malhotra', phone: '9988776655', note: 'Vitals Pending (Test Scanner Lock)' },
-    { name: 'Priya Sharma', phone: '9876512345', note: 'Active Visit (Test Handshake & OTP)' },
-    { name: 'Rahul Verma', phone: '9123456780', note: 'Lab Verified (Test Unlocked Scanner)' },
+    { name: 'My Registered Mobile', phone: '8341426446', note: 'Real Mobile Number' },
+    { name: 'Vikram Malhotra', phone: '9988776655', note: 'Vitals Pending (Scanner Gated)' },
+    { name: 'Priya Sharma', phone: '9876512345', note: 'Active Visit (Doorstep OTP Handshake)' },
+    { name: 'Rahul Verma', phone: '9123456780', note: 'Vitals Verified (Food AI Unlocked)' },
   ];
 
   const handleRequestOTP = async (numToUse) => {
@@ -45,10 +46,10 @@ export const LoginScreen = () => {
       const res = await userApi.requestOTP(target);
       if (res.success) {
         setOtpSent(true);
-        // Pre-fill default dev OTP or 123456
+        setOtp('');
         Alert.alert(
-          'OTP Generated',
-          `Verification OTP sent for +91 ${target}.\nIn local development, any 6-digit code or generated code will verify.`
+          'Real-Time OTP Generated',
+          `A secure 6-digit OTP was generated for +91 ${target}.\n\nCheck your server terminal to view the real-time code.`
         );
       } else {
         Alert.alert('OTP Error', res.message || 'Failed to request OTP');
@@ -77,19 +78,10 @@ export const LoginScreen = () => {
     }
   };
 
-  const handleQuickDemoLogin = async (patient) => {
+  const handleQuickDemoLogin = (patient) => {
     setPhoneNumber(patient.phone);
-    try {
-      setLoading(true);
-      await userApi.requestOTP(patient.phone);
-      setOtpSent(true);
-      // Automatically attempt login or allow user to type OTP
-      setOtp('123456');
-    } catch (e) {
-      console.log('Demo login init err:', e.message);
-    } finally {
-      setLoading(false);
-    }
+    setOtp('');
+    setOtpSent(false);
   };
 
   return (
@@ -203,8 +195,11 @@ export const LoginScreen = () => {
           <View style={styles.demoSection}>
             <View style={styles.demoHeaderRow}>
               <Sparkles size={14} color={colors.cyan} />
-              <Text style={styles.demoSectionTitle}>ONE-TAP DEMO PATIENT ACCESS</Text>
+              <Text style={styles.demoSectionTitle}>SELECT TEST MOBILE NUMBER</Text>
             </View>
+            <Text style={{ fontSize: 10, color: colors.textMuted, marginBottom: 8 }}>
+              Tap to fill mobile number, then click Request OTP to generate your real-time code in the server terminal.
+            </Text>
             <View style={styles.demoChipsList}>
               {DEMO_PATIENTS.map((p) => (
                 <TouchableOpacity

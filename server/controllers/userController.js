@@ -45,9 +45,12 @@ export const sendOTP = asyncHandler(async (req, res) => {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  console.log(`\n========================================`);
-  console.log(`🔐 DEV MODE: OTP for +91 ${cleanNumber} is: ${generatedOTP}`);
-  console.log(`========================================\n`);
+  console.log('\n╔══════════════════════════════════════════════════════╗');
+  console.log(`║ 🔐 REAL-TIME AUTHENTICATION OTP                      ║`);
+  console.log(`║ 📱 Mobile: +91 ${cleanNumber.padEnd(38, ' ')}║`);
+  console.log(`║ 🔑 OTP Code: ${generatedOTP.padEnd(36, ' ')}║`);
+  console.log(`║ ⏱️  Validity: 5 Minutes (Expires at ${new Date(expiresAt).toLocaleTimeString().padEnd(17, ' ')})║`);
+  console.log('╚══════════════════════════════════════════════════════╝\n');
 
   try {
     if (process.env.NODE_ENV === 'production') {
@@ -77,24 +80,20 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     throw new Error('Please request an OTP first.');
   }
 
-  const isDevMasterOtp = process.env.NODE_ENV !== 'production' && otp === '123456';
+  if (!user.otp || !user.otp.code) {
+    res.status(401);
+    throw new Error('No active OTP found. Please request an OTP first.');
+  }
 
-  if (!isDevMasterOtp) {
-    if (!user.otp || !user.otp.code) {
-      res.status(401);
-      throw new Error('Please request an OTP first.');
-    }
+  if (user.otp.code !== otp.trim()) {
+    res.status(401);
+    throw new Error('Invalid OTP. Please check the real-time code printed in your server terminal.');
+  }
 
-    if (user.otp.code !== otp) {
-      res.status(401);
-      throw new Error('Invalid OTP');
-    }
-
-    if (Date.now() > user.otp.expiresAt.getTime()) {
-      await User.updateOne({ _id: user._id }, { $unset: { otp: 1 } });
-      res.status(401);
-      throw new Error('OTP has expired. Please request a new one.');
-    }
+  if (Date.now() > user.otp.expiresAt.getTime()) {
+    await User.updateOne({ _id: user._id }, { $unset: { otp: 1 } });
+    res.status(401);
+    throw new Error('OTP has expired. Please request a new one.');
   }
 
   await User.updateOne({ _id: user._id }, { $unset: { otp: 1 } });
