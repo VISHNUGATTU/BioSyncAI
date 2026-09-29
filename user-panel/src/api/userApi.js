@@ -65,8 +65,8 @@ export const userApi = {
     return res.data;
   },
 
-  getVitalsTrends: async () => {
-    const res = await api.get('/vitals/trends');
+  getVitalsTrends: async (params = {}) => {
+    const res = await api.get('/vitals/trends', { params });
     return res.data;
   },
 

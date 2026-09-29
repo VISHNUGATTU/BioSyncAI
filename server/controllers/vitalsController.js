@@ -312,45 +312,50 @@ export const getAIFeatureVector = asyncHandler(async (req, res) => {
 // @route   GET /api/vitals/trends
 // @access  Private (User)
 export const getVitalsTrends = asyncHandler(async (req, res) => {
-  const { range = '30D' } = req.query;
+  const { range = 'ALL', date } = req.query;
 
-  let fromDate = new Date();
-  switch (range.toUpperCase()) {
-    case '1D':
-      fromDate.setHours(fromDate.getHours() - 24);
-      break;
-    case '7D':
-      fromDate.setDate(fromDate.getDate() - 7);
-      break;
-    case '30D':
-      fromDate.setDate(fromDate.getDate() - 30);
-      break;
-    case '3M':
-      fromDate.setMonth(fromDate.getMonth() - 3);
-      break;
-    case '6M':
-      fromDate.setMonth(fromDate.getMonth() - 6);
-      break;
-    case '1Y':
-      fromDate.setFullYear(fromDate.getFullYear() - 1);
-      break;
-    case 'ALL':
-      fromDate = new Date(0);
-      break;
-    default:
-      fromDate.setDate(fromDate.getDate() - 30);
-  }
+  let queryCondition = { user: req.user._id };
 
-  const records = await Vitals.find({
-    user: req.user._id,
-    $or: [
+  if (date) {
+    const selectedDate = new Date(date);
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    queryCondition.$or = [
+      { recordedAt: { $gte: startOfDay, $lte: endOfDay } },
+      { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+    ];
+  } else {
+    let fromDate = new Date();
+    switch (range.toUpperCase()) {
+      case '1D':
+        fromDate.setHours(fromDate.getHours() - 24);
+        break;
+      case '7D':
+        fromDate.setDate(fromDate.getDate() - 7);
+        break;
+      case '30D':
+        fromDate.setDate(fromDate.getDate() - 30);
+        break;
+      case 'ALL':
+        fromDate = new Date(0);
+        break;
+      default:
+        fromDate = new Date(0);
+    }
+
+    queryCondition.$or = [
       { recordedAt: { $gte: fromDate } },
       { createdAt: { $gte: fromDate } },
       { recordedAt: { $exists: false } }
-    ]
-  })
-  .sort({ recordedAt: 1, createdAt: 1 })
-  .lean();
+    ];
+  }
+
+  const records = await Vitals.find(queryCondition)
+    .sort({ recordedAt: 1, createdAt: 1 })
+    .lean();
 
   const glucoseSeries = [];
   const bpSeries = [];
