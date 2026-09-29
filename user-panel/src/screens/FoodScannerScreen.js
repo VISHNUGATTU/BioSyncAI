@@ -71,8 +71,8 @@ export const FoodScannerScreen = ({ navigation }) => {
           'Meal Recorded in Database',
           `${meal.name} has been added to your longitudinal nutrition timeline!`,
           [
-            { text: 'View History', onPress: () => navigation.navigate('History') },
-            { text: 'Go to Home', onPress: () => navigation.navigate('Home') },
+            { text: 'View History', onPress: () => navigation.navigate('MainTabs', { screen: 'History' }) },
+            { text: 'Go to Home', onPress: () => navigation.navigate('MainTabs', { screen: 'Home' }) },
           ]
         );
       } else {
@@ -90,7 +90,7 @@ export const FoodScannerScreen = ({ navigation }) => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Home');
+      navigation.navigate('MainTabs', { screen: 'Home' });
     }
   };
 
@@ -215,7 +215,13 @@ export const FoodScannerScreen = ({ navigation }) => {
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('MainTabs', { screen: 'Home' });
+            }
+          }}
           activeOpacity={0.7}
         >
           <ArrowLeft size={20} color="#ffffff" />

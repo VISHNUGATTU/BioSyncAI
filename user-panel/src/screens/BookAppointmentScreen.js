@@ -153,7 +153,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
             onPress={() => {
               setBookingSuccessData(null);
               setSelectedPlanId(null);
-              navigation.navigate('Home');
+              navigation.navigate('MainTabs', { screen: 'Home' });
             }}
             activeOpacity={0.85}
           >

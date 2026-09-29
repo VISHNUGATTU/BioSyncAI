@@ -93,7 +93,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.scanHeaderBtn}
-          onPress={() => navigation.navigate('FoodScanner')}
+          onPress={() => navigation.navigate('Scan')}
           activeOpacity={0.8}
         >
           <Scan size={14} color="#000000" />
@@ -285,7 +285,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.emptyScanBtn}
-              onPress={() => navigation.navigate('FoodScanner')}
+              onPress={() => navigation.navigate('Scan')}
               activeOpacity={0.85}
             >
               <Scan size={16} color="#000000" />

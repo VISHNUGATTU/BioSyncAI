@@ -111,7 +111,7 @@ export const AppointmentsListScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.trackBtn}
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
               activeOpacity={0.8}
             >
               <Text style={styles.trackBtnText}>TRACK VISIT</Text>

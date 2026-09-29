@@ -356,7 +356,7 @@ export const ProfileScreen = ({ navigation }) => {
                 </View>
                 <TouchableOpacity
                   style={styles.viewHomeBtn}
-                  onPress={() => navigation.navigate('Home')}
+                  onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.viewHomeBtnText}>TRACK ON HOME SCREEN</Text>

@@ -497,7 +497,7 @@ export const HomeScreen = ({ navigation }) => {
               </View>
               <TouchableOpacity
                 style={styles.scanQuickBtn}
-                onPress={() => navigation.navigate('FoodScanner')}
+                onPress={() => navigation.navigate('Scan')}
                 activeOpacity={0.8}
               >
                 <Scan size={14} color="#000" />
@@ -511,7 +511,7 @@ export const HomeScreen = ({ navigation }) => {
         <View style={styles.quickLaunchRow}>
           <TouchableOpacity
             style={styles.quickLaunchCard}
-            onPress={() => navigation.navigate('FoodScanner')}
+            onPress={() => navigation.navigate('Scan')}
             activeOpacity={0.8}
           >
             <LinearGradient

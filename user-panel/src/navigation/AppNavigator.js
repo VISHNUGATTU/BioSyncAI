@@ -70,6 +70,12 @@ export default function AppNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen name="Home" component={TabNavigator} />
+          <Stack.Screen name="Scan" component={TabNavigator} />
+          <Stack.Screen name="FoodScanner" component={TabNavigator} />
+          <Stack.Screen name="History" component={TabNavigator} />
+          <Stack.Screen name="Analysis" component={TabNavigator} />
+          <Stack.Screen name="Profile" component={TabNavigator} />
           <Stack.Screen
             name="BookAppointment"
             component={BookAppointmentScreen}
