@@ -246,7 +246,7 @@ export const uploadPdfVitals = asyncHandler(async (req, res) => {
 // @access  Private (User)
 export const getLatestVitals = asyncHandler(async (req, res) => {
   const vitals = await Vitals.findOne({ user: req.user._id })
-    .sort({ recordedAt: -1 })
+    .sort({ recordedAt: -1, createdAt: -1 })
     .lean();
 
   res.status(200).json({
@@ -260,11 +260,11 @@ export const getLatestVitals = asyncHandler(async (req, res) => {
 // @access  Private (User)
 export const getVitalsHistory = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 20;
+  const limit = parseInt(req.query.limit, 10) || 50;
   const startIndex = (page - 1) * limit;
 
   const vitalsList = await Vitals.find({ user: req.user._id })
-    .sort({ recordedAt: -1 })
+    .sort({ recordedAt: -1, createdAt: -1 })
     .skip(startIndex)
     .limit(limit)
     .lean();
@@ -287,7 +287,7 @@ export const getAIFeatureVector = asyncHandler(async (req, res) => {
 
   const [user, latestVitals] = await Promise.all([
     User.findById(targetUserId).select('-password -otp').lean(),
-    Vitals.findOne({ user: targetUserId }).sort({ recordedAt: -1 }).lean()
+    Vitals.findOne({ user: targetUserId }).sort({ recordedAt: -1, createdAt: -1 }).lean()
   ]);
 
   if (!latestVitals) {
@@ -316,6 +316,9 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
 
   let fromDate = new Date();
   switch (range.toUpperCase()) {
+    case '1D':
+      fromDate.setHours(fromDate.getHours() - 24);
+      break;
     case '7D':
       fromDate.setDate(fromDate.getDate() - 7);
       break;
@@ -340,9 +343,13 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
 
   const records = await Vitals.find({
     user: req.user._id,
-    recordedAt: { $gte: fromDate }
+    $or: [
+      { recordedAt: { $gte: fromDate } },
+      { createdAt: { $gte: fromDate } },
+      { recordedAt: { $exists: false } }
+    ]
   })
-  .sort({ recordedAt: 1 })
+  .sort({ recordedAt: 1, createdAt: 1 })
   .lean();
 
   const glucoseSeries = [];
@@ -353,6 +360,7 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
   const lipidSeries = [];
   const hematologySeries = [];
   const inflammationSeries = [];
+  const organFunctionSeries = [];
 
   records.forEach(doc => {
     const timestamp = doc.recordedAt || doc.createdAt;
@@ -365,6 +373,8 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         fasting: doc.metabolicHealth.glucoseFasting || null,
         postPrandial: doc.metabolicHealth.glucosePostPrandial || null,
         hba1c: doc.metabolicHealth.hba1c || null,
+        insulin: doc.metabolicHealth.fastingInsulin || null,
+        homaIR: doc.metabolicHealth.homaIR || null,
         unit: 'mg/dL'
       });
     }
@@ -387,6 +397,7 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         timestamp,
         restingHeartRate: doc.continuousMetrics.restingHeartRate,
         hrv: doc.continuousMetrics.hrv || null,
+        respirationRate: doc.continuousMetrics.respirationRate || null,
         unit: 'BPM'
       });
     }
@@ -397,6 +408,7 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         timestamp,
         weightKg: doc.bodyMetrics.weightKg,
         bmi: doc.bodyMetrics.bmi || null,
+        bodyFatPercentage: doc.bodyMetrics.bodyFatPercentage || null,
         unit: 'kg'
       });
     }
@@ -418,6 +430,7 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         ldl: doc.cardiovascularRisk.ldlCholesterol || null,
         hdl: doc.cardiovascularRisk.hdlCholesterol || null,
         triglycerides: doc.cardiovascularRisk.triglycerides || null,
+        vldl: doc.cardiovascularRisk.vldlCholesterol || null,
         aip: doc.cardiovascularRisk.atherogenicIndexPlasma || null,
         unit: 'mg/dL'
       });
@@ -430,8 +443,25 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
         hemoglobin: doc.hematology.hemoglobin || null,
         wbc: doc.hematology.wbc || null,
         platelets: doc.hematology.platelets || null,
+        rbc: doc.hematology.rbc || null,
+        hematocrit: doc.hematology.hematocrit || null,
         nlr: doc.hematology.nlr || null,
         unit: 'g/dL'
+      });
+    }
+
+    if (doc.organFunction?.creatinine || doc.organFunction?.altSgpt || doc.organFunction?.astSgot) {
+      organFunctionSeries.push({
+        date: dateStr,
+        timestamp,
+        creatinine: doc.organFunction.creatinine || null,
+        egfr: doc.organFunction.egfr || null,
+        bun: doc.organFunction.bun || null,
+        altSgpt: doc.organFunction.altSgpt || null,
+        astSgot: doc.organFunction.astSgot || null,
+        totalBilirubin: doc.organFunction.totalBilirubin || null,
+        uricAcid: doc.organFunction.uricAcid || null,
+        unit: 'Clinical'
       });
     }
 
@@ -457,6 +487,7 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
       spO2: spO2Series,
       lipids: lipidSeries,
       hematology: hematologySeries,
+      organFunction: organFunctionSeries,
       inflammation: inflammationSeries
     }
   });
