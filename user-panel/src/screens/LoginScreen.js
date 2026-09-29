@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,113 +10,34 @@ import {
   Platform,
   ScrollView,
   Modal,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Activity,
-  ShieldCheck,
   ArrowRight,
-  KeyRound,
   Server,
   Lock,
-  RotateCcw,
-  Check,
-  Edit2,
   CircleAlert,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
-import useAuthStore from '../store/authStore';
 import userApi from '../api/userApi';
 import api, { setCustomApiUrl, DEFAULT_BASE_URL } from '../api/axios';
 import GlassCard from '../components/GlassCard';
 
-export const LoginScreen = () => {
+export const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [phoneFocused, setPhoneFocused] = useState(false);
-  const [otpFocused, setOtpFocused] = useState(false);
-
-  // Top-center toast notification state
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastText, setToastText] = useState('OTP sent successfully');
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-  const toastTranslateY = useRef(new Animated.Value(-20)).current;
-  const toastTimeoutRef = useRef(null);
-
-  // Real-time Resend countdown timer
-  const [countdown, setCountdown] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const timerRef = useRef(null);
 
   // Server host configuration modal
   const [serverModalVisible, setServerModalVisible] = useState(false);
   const [customHost, setCustomHost] = useState(api.defaults.baseURL);
 
-  const login = useAuthStore((state) => state.login);
-
-  const triggerTopToast = (message = 'OTP sent successfully') => {
-    setToastText(message);
-    setToastVisible(true);
-
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-
-    Animated.parallel([
-      Animated.timing(toastOpacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(toastTranslateY, {
-        toValue: 0,
-        friction: 6,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    toastTimeoutRef.current = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(toastOpacity, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(toastTranslateY, {
-          toValue: -20,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setToastVisible(false);
-      });
-    }, 3500);
-  };
-
-  useEffect(() => {
-    if (otpSent && countdown > 0) {
-      timerRef.current = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    };
-  }, [otpSent, countdown]);
-
-  const handleRequestOTP = async (numToUse) => {
-    const rawNumber = (numToUse || phoneNumber).trim().replace(/\D/g, '');
+  const handleRequestOTP = async () => {
+    const rawNumber = phoneNumber.trim().replace(/\D/g, '');
     if (!rawNumber || rawNumber.length < 10) {
       setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
@@ -129,13 +50,10 @@ export const LoginScreen = () => {
       setErrorMessage('');
       const res = await userApi.requestOTP(cleanNumber);
       if (res.success) {
-        setOtpSent(true);
-        setOtp('');
-        setCountdown(30);
-        setCanResend(false);
-        triggerTopToast('OTP sent successfully');
+        // Navigate directly to dedicated OTP Screen with the entered mobile number
+        navigation.navigate('OtpScreen', { phoneNumber: cleanNumber });
       } else {
-        setErrorMessage(res.message || 'Unable to dispatch verification OTP. Please try again.');
+        setErrorMessage(res.message || 'Unable to generate verification OTP. Please try again.');
       }
     } catch (err) {
       setErrorMessage(
@@ -146,41 +64,10 @@ export const LoginScreen = () => {
     }
   };
 
-  const handleVerifyOTP = async () => {
-    const cleanOtp = otp.trim();
-    if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMessage('Please enter the complete 6-digit verification code.');
-      return;
-    }
-
-    const cleanNumber = phoneNumber.trim().replace(/\D/g, '').slice(-10);
-
-    try {
-      setLoading(true);
-      setErrorMessage('');
-      const res = await login(cleanNumber, cleanOtp);
-      if (!res.success) {
-        setErrorMessage(res.message || 'Invalid verification code. Please check and re-enter.');
-      }
-    } catch (err) {
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to authenticate session.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetToPhoneStep = () => {
-    setOtpSent(false);
-    setOtp('');
-    setErrorMessage('');
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
-
   const saveCustomHost = async () => {
     try {
       await setCustomApiUrl(customHost);
       setServerModalVisible(false);
-      triggerTopToast('Server Gateway Updated');
     } catch (e) {
       setErrorMessage('Invalid gateway host URL.');
     }
@@ -190,7 +77,6 @@ export const LoginScreen = () => {
     setCustomHost(DEFAULT_BASE_URL);
     await setCustomApiUrl(DEFAULT_BASE_URL);
     setServerModalVisible(false);
-    triggerTopToast('Default Gateway Restored');
   };
 
   return (
@@ -199,26 +85,6 @@ export const LoginScreen = () => {
         colors={['#000000', '#05070a', '#000000']}
         style={StyleSheet.absoluteFillObject}
       />
-
-      {/* FLOATING TOP-CENTER TOAST NOTIFICATION */}
-      {toastVisible && (
-        <Animated.View
-          style={[
-            styles.topToastContainer,
-            {
-              opacity: toastOpacity,
-              transform: [{ translateY: toastTranslateY }],
-            },
-          ]}
-        >
-          <View style={styles.toastPill}>
-            <View style={styles.toastGreenCircle}>
-              <Check size={13} color="#ffffff" strokeWidth={3.5} />
-            </View>
-            <Text style={styles.toastText}>{toastText}</Text>
-          </View>
-        </Animated.View>
-      )}
 
       {/* Top Utility Header */}
       <View style={styles.topUtilityRow}>
@@ -264,204 +130,88 @@ export const LoginScreen = () => {
             </Text>
           </View>
 
-          {/* Interactive Authentication Card */}
+          {/* Interactive Authentication Card: MOBILE NUMBER ENTRY ONLY */}
           <GlassCard style={styles.card}>
-            {!otpSent ? (
-              // STEP 1: MOBILE NUMBER ENTRY
-              <View>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardHeading}>Patient Sign In</Text>
-                  <Text style={styles.cardSub}>
-                    Enter your registered mobile number to access diagnostic records, biomarker trends, and home collection visits.
-                  </Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardHeading}>Patient Sign In</Text>
+              <Text style={styles.cardSub}>
+                Enter your registered mobile number to access diagnostic records, biomarker trends, and home collection visits.
+              </Text>
+            </View>
+
+            {/* Mobile Number Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>REGISTERED MOBILE NUMBER</Text>
+              <View
+                style={[
+                  styles.phoneInputRow,
+                  phoneFocused && styles.inputRowFocused,
+                ]}
+              >
+                <View style={styles.countryCodeBox}>
+                  <Text style={styles.countryCodeText}>+91</Text>
                 </View>
-
-                {/* Mobile Number Input */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>REGISTERED MOBILE NUMBER</Text>
-                  <View
-                    style={[
-                      styles.phoneInputRow,
-                      phoneFocused && styles.inputRowFocused,
-                    ]}
-                  >
-                    <View style={styles.countryCodeBox}>
-                      <Text style={styles.countryCodeText}>+91</Text>
-                    </View>
-                    <TextInput
-                      style={styles.textInput}
-                      value={phoneNumber}
-                      onChangeText={(t) => {
-                        setPhoneNumber(t);
-                        if (errorMessage) setErrorMessage('');
-                      }}
-                      placeholder="Enter 10-digit mobile"
-                      placeholderTextColor={colors.textMuted}
-                      keyboardType="phone-pad"
-                      maxLength={10}
-                      onFocus={() => setPhoneFocused(true)}
-                      onBlur={() => setPhoneFocused(false)}
-                      editable={!loading}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
-                </View>
-
-                {/* Inline Error Banner */}
-                {errorMessage ? (
-                  <View style={styles.errorBanner}>
-                    <CircleAlert size={15} color={colors.roseLight} />
-                    <Text style={styles.errorText}>{errorMessage}</Text>
-                  </View>
-                ) : null}
-
-                {/* Primary CTA: Request OTP */}
-                <TouchableOpacity
-                  style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                  onPress={() => handleRequestOTP(phoneNumber)}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={['#06b6d4', '#0891b2']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.btnGradient}
-                  >
-                    {loading ? (
-                      <View style={styles.btnContentRow}>
-                        <ActivityIndicator size="small" color="#000" />
-                        <Text style={styles.primaryBtnText}>Sending OTP...</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.btnContentRow}>
-                        <Text style={styles.primaryBtnText}>Get Verification Code</Text>
-                        <ArrowRight size={18} color="#000" />
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <View style={styles.realtimeNoticeRow}>
-                  <ShieldCheck size={13} color={colors.textMuted} />
-                  <Text style={styles.realtimeNoticeText}>
-                    A secure 6-digit one-time code will be dispatched in real time.
-                  </Text>
-                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={phoneNumber}
+                  onChangeText={(t) => {
+                    setPhoneNumber(t);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  placeholder="Enter 10-digit mobile"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  onFocus={() => setPhoneFocused(true)}
+                  onBlur={() => setPhoneFocused(false)}
+                  editable={!loading}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
               </View>
-            ) : (
-              // STEP 2: OTP VERIFICATION
-              <View>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardHeading}>Enter Verification Code</Text>
-                  <View style={styles.phoneDisplayRow}>
-                    <Text style={styles.phoneDisplayText}>
-                      Code sent to <Text style={{ color: colors.cyanLight, fontWeight: '800' }}>+91 {phoneNumber}</Text>
-                    </Text>
-                    <TouchableOpacity
-                      onPress={handleResetToPhoneStep}
-                      style={styles.editPhoneBtn}
-                      activeOpacity={0.7}
-                    >
-                      <Edit2 size={11} color={colors.cyanLight} />
-                      <Text style={styles.editPhoneText}>Edit</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+            </View>
 
-                {/* OTP Input */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>6-DIGIT VERIFICATION CODE</Text>
-                  <View
-                    style={[
-                      styles.otpInputRow,
-                      otpFocused && styles.inputRowFocused,
-                    ]}
-                  >
-                    <KeyRound size={18} color={colors.cyanLight} style={{ marginLeft: 14 }} />
-                    <TextInput
-                      style={[styles.textInput, styles.otpTextInput]}
-                      value={otp}
-                      onChangeText={(t) => {
-                        setOtp(t);
-                        if (errorMessage) setErrorMessage('');
-                      }}
-                      placeholder="• • • • • •"
-                      placeholderTextColor={colors.textMuted}
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      onFocus={() => setOtpFocused(true)}
-                      onBlur={() => setOtpFocused(false)}
-                      editable={!loading}
-                      autoFocus
-                    />
-                  </View>
-                </View>
-
-                {/* Inline Error Banner */}
-                {errorMessage ? (
-                  <View style={styles.errorBanner}>
-                    <CircleAlert size={15} color={colors.roseLight} />
-                    <Text style={styles.errorText}>{errorMessage}</Text>
-                  </View>
-                ) : null}
-
-                {/* Primary CTA: Verify OTP */}
-                <TouchableOpacity
-                  style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                  onPress={handleVerifyOTP}
-                  disabled={loading}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={['#10b981', '#059669']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.btnGradient}
-                  >
-                    {loading ? (
-                      <View style={styles.btnContentRow}>
-                        <ActivityIndicator size="small" color="#000" />
-                        <Text style={styles.primaryBtnText}>Authenticating Session...</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.btnContentRow}>
-                        <ShieldCheck size={18} color="#000" />
-                        <Text style={styles.primaryBtnText}>Verify & Open Health Portal</Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Resend Actions */}
-                <View style={styles.resendContainer}>
-                  {!canResend ? (
-                    <Text style={styles.countdownText}>
-                      Resend code in <Text style={{ color: colors.cyanLight, fontWeight: '700' }}>{countdown}s</Text>
-                    </Text>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleRequestOTP(phoneNumber)}
-                      style={styles.resendActionBtn}
-                      activeOpacity={0.7}
-                      disabled={loading}
-                    >
-                      <RotateCcw size={13} color={colors.cyanLight} />
-                      <Text style={styles.resendActionText}>Resend Real-Time Code</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity
-                    onPress={handleResetToPhoneStep}
-                    style={styles.changeNumberBtn}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.changeNumberText}>Use different mobile number</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Inline Error Banner */}
+            {errorMessage ? (
+              <View style={styles.errorBanner}>
+                <CircleAlert size={15} color={colors.roseLight} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
-            )}
+            ) : null}
+
+            {/* Primary Action Button */}
+            <TouchableOpacity
+              style={[styles.primaryBtn, loading && styles.btnDisabled]}
+              onPress={handleRequestOTP}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#06b6d4', '#0891b2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.btnGradient}
+              >
+                {loading ? (
+                  <View style={styles.btnContentRow}>
+                    <ActivityIndicator size="small" color="#000" />
+                    <Text style={styles.primaryBtnText}>Sending OTP...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.btnContentRow}>
+                    <Text style={styles.primaryBtnText}>Get Verification Code</Text>
+                    <ArrowRight size={18} color="#000" />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.realtimeNoticeRow}>
+              <ShieldCheck size={13} color={colors.textMuted} />
+              <Text style={styles.realtimeNoticeText}>
+                A secure 6-digit one-time code will be dispatched in real time.
+              </Text>
+            </View>
           </GlassCard>
 
           {/* Privacy & Regulatory Trust Footer */}
@@ -541,43 +291,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  topToastContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 56 : 30,
-    alignSelf: 'center',
-    zIndex: 99999,
-    elevation: 99999,
-  },
-  toastPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(10, 10, 10, 0.96)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 30,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  toastGreenCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  toastText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.3,
   },
   topUtilityRow: {
     paddingHorizontal: 20,
@@ -686,34 +399,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
-  phoneDisplayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  phoneDisplayText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  editPhoneBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  editPhoneText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.cyanLight,
-  },
   inputContainer: {
     marginBottom: 14,
   },
@@ -752,15 +437,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.cyanLight,
   },
-  otpInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 14,
-    height: 54,
-  },
   textInput: {
     flex: 1,
     paddingHorizontal: 14,
@@ -768,12 +444,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#ffffff',
     fontWeight: '500',
-  },
-  otpTextInput: {
-    letterSpacing: 8,
-    fontWeight: '900',
-    fontSize: 20,
-    color: colors.cyanLight,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -833,34 +503,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     textAlign: 'center',
-  },
-  resendContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-    gap: 10,
-  },
-  countdownText: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  resendActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  resendActionText: {
-    fontSize: 12,
-    color: colors.cyanLight,
-    fontWeight: '800',
-  },
-  changeNumberBtn: {
-    paddingVertical: 4,
-  },
-  changeNumberText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textDecorationLine: 'underline',
   },
   trustFooter: {
     marginTop: 26,

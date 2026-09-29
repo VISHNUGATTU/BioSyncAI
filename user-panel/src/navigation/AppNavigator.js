@@ -7,6 +7,7 @@ import { Activity } from 'lucide-react-native';
 import { colors, gradients } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
 import LoginScreen from '../screens/LoginScreen';
+import OtpScreen from '../screens/OtpScreen';
 import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -60,7 +61,10 @@ export default function AppNavigator() {
       }}
     >
       {!token ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="OtpScreen" component={OtpScreen} />
+        </>
       ) : (
         <Stack.Screen name="MainTabs" component={TabNavigator} />
       )}
