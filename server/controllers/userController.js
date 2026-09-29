@@ -87,7 +87,7 @@ export const verifyOTP = asyncHandler(async (req, res) => {
 
   if (user.otp.code !== otp.trim()) {
     res.status(401);
-    throw new Error('Invalid OTP. Please check the real-time code printed in your server terminal.');
+    throw new Error('Invalid OTP. Please enter the valid 6-digit verification code.');
   }
 
   if (Date.now() > user.otp.expiresAt.getTime()) {

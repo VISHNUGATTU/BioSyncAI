@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   Modal,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -23,8 +23,9 @@ import {
   CircleAlert,
   LockKeyhole,
   CheckCircle2,
-  HelpCircle,
+  Check,
   Stethoscope,
+  Info,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import useAuthStore from '../store/authStore';
@@ -42,9 +43,56 @@ export const LoginScreen = () => {
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  // Top-center toast notification state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastText, setToastText] = useState('Authenticated successfully');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTranslateY = useRef(new Animated.Value(-20)).current;
+  const toastTimeoutRef = useRef(null);
+
+  // Forgot password modal state
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+
   // Server host configuration modal
   const [serverModalVisible, setServerModalVisible] = useState(false);
   const [customHost, setCustomHost] = useState(api.defaults.baseURL);
+
+  const triggerTopToast = (message = 'Authenticated successfully') => {
+    setToastText(message);
+    setToastVisible(true);
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+
+    Animated.parallel([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(toastTranslateY, {
+        toValue: 0,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(toastTranslateY, {
+          toValue: -20,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setToastVisible(false);
+      });
+    }, 3500);
+  };
 
   const handleLogin = async () => {
     if (!phone.trim() || !password.trim()) {
@@ -64,6 +112,8 @@ export const LoginScreen = () => {
       const res = await login(cleanPhone, password);
       if (!res.success) {
         setError(res.message || 'Authentication failed. Please verify your credentials.');
+      } else {
+        triggerTopToast('Signed in successfully');
       }
     } catch (err) {
       setError('Cannot reach diagnostic gateway. Verify server host connectivity.');
@@ -72,21 +122,13 @@ export const LoginScreen = () => {
     }
   };
 
-  const handleForgotPassword = () => {
-    Alert.alert(
-      'Staff Credential Support',
-      'For security and HIPAA compliance, clinical password resets must be authorized by your Central Laboratory Administrator.\n\nContact: admin@biosync.ai\nSupport Desk: +91 40 8822 4000',
-      [{ text: 'Understood', style: 'default' }]
-    );
-  };
-
   const saveCustomHost = async () => {
     try {
       await setApiBaseUrl(customHost);
       setServerModalVisible(false);
-      Alert.alert('Server Endpoint Updated', `Gateway connected to: ${customHost}`);
+      triggerTopToast('Gateway Endpoint Updated');
     } catch (e) {
-      Alert.alert('Configuration Error', 'Invalid API Host URL provided.');
+      setError('Invalid API Host URL provided.');
     }
   };
 
@@ -94,7 +136,7 @@ export const LoginScreen = () => {
     setCustomHost(DEFAULT_BASE_URL);
     await setApiBaseUrl(DEFAULT_BASE_URL);
     setServerModalVisible(false);
-    Alert.alert('Host Reset', `Reverted to default gateway: ${DEFAULT_BASE_URL}`);
+    triggerTopToast('Default Gateway Restored');
   };
 
   return (
@@ -106,6 +148,26 @@ export const LoginScreen = () => {
         colors={['#000000', '#05070a', '#000000']}
         style={StyleSheet.absoluteFillObject}
       />
+
+      {/* FLOATING TOP-CENTER TOAST NOTIFICATION */}
+      {toastVisible && (
+        <Animated.View
+          style={[
+            styles.topToastContainer,
+            {
+              opacity: toastOpacity,
+              transform: [{ translateY: toastTranslateY }],
+            },
+          ]}
+        >
+          <View style={styles.toastPill}>
+            <View style={styles.toastGreenCircle}>
+              <Check size={13} color="#ffffff" strokeWidth={3.5} />
+            </View>
+            <Text style={styles.toastText}>{toastText}</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Top Utility Header */}
       <View style={styles.topUtilityRow}>
@@ -139,7 +201,9 @@ export const LoginScreen = () => {
               <ShieldCheck size={36} color={colors.primaryLight} />
             </LinearGradient>
           </View>
-          <Text style={styles.brandTitle}>BioSync<Text style={{ color: colors.primaryLight }}>AI</Text></Text>
+          <Text style={styles.brandTitle}>
+            BioSync<Text style={{ color: colors.primaryLight }}>AI</Text>
+          </Text>
           <View style={styles.portalTagWrapper}>
             <Stethoscope size={12} color={colors.primaryLight} style={{ marginRight: 5 }} />
             <Text style={styles.portalSubtitle}>CLINICAL & FIELD STAFF PORTAL</Text>
@@ -192,7 +256,7 @@ export const LoginScreen = () => {
           <View style={styles.inputGroup}>
             <View style={styles.passwordLabelRow}>
               <Text style={styles.inputLabel}>SECURITY PASSWORD</Text>
-              <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setSupportModalVisible(true)} activeOpacity={0.7}>
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>
@@ -300,6 +364,38 @@ export const LoginScreen = () => {
         </View>
       </ScrollView>
 
+      {/* Forgot Password / Support Modal */}
+      <Modal
+        visible={supportModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSupportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Info size={20} color={colors.primaryLight} />
+              <Text style={styles.modalTitle}>Staff Credential Support</Text>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              For security and HIPAA compliance, staff password resets must be authorized directly by your Central Laboratory Administrator.
+            </Text>
+            <View style={styles.supportInfoBox}>
+              <Text style={styles.supportLabel}>Central Lab Admin Email:</Text>
+              <Text style={styles.supportValue}>admin@biosync.ai</Text>
+              <Text style={[styles.supportLabel, { marginTop: 8 }]}>Internal Help Desk:</Text>
+              <Text style={styles.supportValue}>+91 40 8822 4000</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalSaveBtn}
+              onPress={() => setSupportModalVisible(false)}
+            >
+              <Text style={styles.modalSaveText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Server URL Config Modal */}
       <Modal
         visible={serverModalVisible}
@@ -361,6 +457,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  topToastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 56 : 30,
+    alignSelf: 'center',
+    zIndex: 99999,
+    elevation: 99999,
+  },
+  toastPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 10, 10, 0.96)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  toastGreenCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  toastText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   topUtilityRow: {
     paddingHorizontal: 20,
@@ -621,6 +754,25 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.35)',
     textAlign: 'center',
     lineHeight: 15,
+  },
+  supportInfoBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 18,
+  },
+  supportLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
+  supportValue: {
+    fontSize: 14,
+    color: colors.primaryLight,
+    fontWeight: '800',
+    marginTop: 2,
   },
   modalOverlay: {
     flex: 1,

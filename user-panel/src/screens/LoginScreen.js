@@ -6,11 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Modal,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,13 +19,12 @@ import {
   ShieldCheck,
   ArrowRight,
   KeyRound,
-  Phone,
   Server,
   Lock,
   RotateCcw,
-  CheckCircle2,
+  Check,
   Edit2,
-  FileText,
+  CircleAlert,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import useAuthStore from '../store/authStore';
@@ -38,8 +37,16 @@ export const LoginScreen = () => {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [otpFocused, setOtpFocused] = useState(false);
+
+  // Top-center toast notification state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastText, setToastText] = useState('OTP sent successfully');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTranslateY = useRef(new Animated.Value(-20)).current;
+  const toastTimeoutRef = useRef(null);
 
   // Real-time Resend countdown timer
   const [countdown, setCountdown] = useState(30);
@@ -51,6 +58,43 @@ export const LoginScreen = () => {
   const [customHost, setCustomHost] = useState(api.defaults.baseURL);
 
   const login = useAuthStore((state) => state.login);
+
+  const triggerTopToast = (message = 'OTP sent successfully') => {
+    setToastText(message);
+    setToastVisible(true);
+
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+
+    Animated.parallel([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(toastTranslateY, {
+        toValue: 0,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(toastTranslateY, {
+          toValue: -20,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setToastVisible(false);
+      });
+    }, 3500);
+  };
 
   useEffect(() => {
     if (otpSent && countdown > 0) {
@@ -67,13 +111,14 @@ export const LoginScreen = () => {
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
   }, [otpSent, countdown]);
 
   const handleRequestOTP = async (numToUse) => {
     const rawNumber = (numToUse || phoneNumber).trim().replace(/\D/g, '');
     if (!rawNumber || rawNumber.length < 10) {
-      Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit mobile number to receive your OTP.');
+      setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
     }
 
@@ -81,23 +126,20 @@ export const LoginScreen = () => {
 
     try {
       setLoading(true);
+      setErrorMessage('');
       const res = await userApi.requestOTP(cleanNumber);
       if (res.success) {
         setOtpSent(true);
         setOtp('');
         setCountdown(30);
         setCanResend(false);
-        Alert.alert(
-          'Security OTP Generated',
-          `A real-time 6-digit verification code was dispatched for +91 ${cleanNumber}.\n\nPlease check your server terminal or SMS to obtain your code.`
-        );
+        triggerTopToast('OTP sent successfully');
       } else {
-        Alert.alert('Authentication Notice', res.message || 'Unable to generate verification OTP. Please try again.');
+        setErrorMessage(res.message || 'Unable to dispatch verification OTP. Please try again.');
       }
     } catch (err) {
-      Alert.alert(
-        'Connection Error',
-        err.response?.data?.message || err.message || 'Unable to connect to the BioSync diagnostic gateway. Please check your network or server host setting.'
+      setErrorMessage(
+        err.response?.data?.message || err.message || 'Diagnostic gateway unreachable. Please verify server connectivity.'
       );
     } finally {
       setLoading(false);
@@ -107,7 +149,7 @@ export const LoginScreen = () => {
   const handleVerifyOTP = async () => {
     const cleanOtp = otp.trim();
     if (!cleanOtp || cleanOtp.length < 6) {
-      Alert.alert('Incomplete Code', 'Please enter the complete 6-digit verification code.');
+      setErrorMessage('Please enter the complete 6-digit verification code.');
       return;
     }
 
@@ -115,12 +157,13 @@ export const LoginScreen = () => {
 
     try {
       setLoading(true);
+      setErrorMessage('');
       const res = await login(cleanNumber, cleanOtp);
       if (!res.success) {
-        Alert.alert('Verification Failed', res.message || 'Invalid or expired OTP. Please re-check the code.');
+        setErrorMessage(res.message || 'Invalid verification code. Please check and re-enter.');
       }
     } catch (err) {
-      Alert.alert('Authentication Error', err.response?.data?.message || err.message || 'Failed to authenticate session.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to authenticate session.');
     } finally {
       setLoading(false);
     }
@@ -129,6 +172,7 @@ export const LoginScreen = () => {
   const handleResetToPhoneStep = () => {
     setOtpSent(false);
     setOtp('');
+    setErrorMessage('');
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
@@ -136,9 +180,9 @@ export const LoginScreen = () => {
     try {
       await setCustomApiUrl(customHost);
       setServerModalVisible(false);
-      Alert.alert('Host Updated', `API endpoint connected to: ${customHost}`);
+      triggerTopToast('Server Gateway Updated');
     } catch (e) {
-      Alert.alert('Configuration Error', 'Invalid API host URL provided.');
+      setErrorMessage('Invalid gateway host URL.');
     }
   };
 
@@ -146,7 +190,7 @@ export const LoginScreen = () => {
     setCustomHost(DEFAULT_BASE_URL);
     await setCustomApiUrl(DEFAULT_BASE_URL);
     setServerModalVisible(false);
-    Alert.alert('Host Reset', `Reverted to default gateway: ${DEFAULT_BASE_URL}`);
+    triggerTopToast('Default Gateway Restored');
   };
 
   return (
@@ -155,6 +199,26 @@ export const LoginScreen = () => {
         colors={['#000000', '#05070a', '#000000']}
         style={StyleSheet.absoluteFillObject}
       />
+
+      {/* FLOATING TOP-CENTER TOAST NOTIFICATION */}
+      {toastVisible && (
+        <Animated.View
+          style={[
+            styles.topToastContainer,
+            {
+              opacity: toastOpacity,
+              transform: [{ translateY: toastTranslateY }],
+            },
+          ]}
+        >
+          <View style={styles.toastPill}>
+            <View style={styles.toastGreenCircle}>
+              <Check size={13} color="#ffffff" strokeWidth={3.5} />
+            </View>
+            <Text style={styles.toastText}>{toastText}</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Top Utility Header */}
       <View style={styles.topUtilityRow}>
@@ -227,7 +291,10 @@ export const LoginScreen = () => {
                     <TextInput
                       style={styles.textInput}
                       value={phoneNumber}
-                      onChangeText={setPhoneNumber}
+                      onChangeText={(t) => {
+                        setPhoneNumber(t);
+                        if (errorMessage) setErrorMessage('');
+                      }}
                       placeholder="Enter 10-digit mobile"
                       placeholderTextColor={colors.textMuted}
                       keyboardType="phone-pad"
@@ -240,6 +307,14 @@ export const LoginScreen = () => {
                     />
                   </View>
                 </View>
+
+                {/* Inline Error Banner */}
+                {errorMessage ? (
+                  <View style={styles.errorBanner}>
+                    <CircleAlert size={15} color={colors.roseLight} />
+                    <Text style={styles.errorText}>{errorMessage}</Text>
+                  </View>
+                ) : null}
 
                 {/* Primary CTA: Request OTP */}
                 <TouchableOpacity
@@ -257,7 +332,7 @@ export const LoginScreen = () => {
                     {loading ? (
                       <View style={styles.btnContentRow}>
                         <ActivityIndicator size="small" color="#000" />
-                        <Text style={styles.primaryBtnText}>Generating Secure OTP...</Text>
+                        <Text style={styles.primaryBtnText}>Sending OTP...</Text>
                       </View>
                     ) : (
                       <View style={styles.btnContentRow}>
@@ -308,7 +383,10 @@ export const LoginScreen = () => {
                     <TextInput
                       style={[styles.textInput, styles.otpTextInput]}
                       value={otp}
-                      onChangeText={setOtp}
+                      onChangeText={(t) => {
+                        setOtp(t);
+                        if (errorMessage) setErrorMessage('');
+                      }}
                       placeholder="• • • • • •"
                       placeholderTextColor={colors.textMuted}
                       keyboardType="number-pad"
@@ -320,6 +398,14 @@ export const LoginScreen = () => {
                     />
                   </View>
                 </View>
+
+                {/* Inline Error Banner */}
+                {errorMessage ? (
+                  <View style={styles.errorBanner}>
+                    <CircleAlert size={15} color={colors.roseLight} />
+                    <Text style={styles.errorText}>{errorMessage}</Text>
+                  </View>
+                ) : null}
 
                 {/* Primary CTA: Verify OTP */}
                 <TouchableOpacity
@@ -455,6 +541,43 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  topToastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 56 : 30,
+    alignSelf: 'center',
+    zIndex: 99999,
+    elevation: 99999,
+  },
+  toastPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 10, 10, 0.96)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  toastGreenCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  toastText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   topUtilityRow: {
     paddingHorizontal: 20,
@@ -592,7 +715,7 @@ const styles = StyleSheet.create({
     color: colors.cyanLight,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   inputLabel: {
     fontSize: 10,
@@ -652,11 +775,28 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: colors.cyanLight,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  errorText: {
+    color: colors.roseLight,
+    fontSize: 12,
+    fontWeight: '500',
+    flex: 1,
+  },
   primaryBtn: {
     height: 52,
     borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 6,
+    marginTop: 4,
     shadowColor: colors.cyan,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
