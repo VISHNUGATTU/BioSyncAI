@@ -4,7 +4,7 @@ import {
   Stethoscope, CalendarDays, BrainCircuit, AlertTriangle,
   CreditCard, Bell, BarChart3, ShieldCheck, ClipboardList,
   Settings, UserRoundCog, Headset, FileCode2, X, ChevronRight,
-  Activity,
+  Activity, ShieldAlert,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
