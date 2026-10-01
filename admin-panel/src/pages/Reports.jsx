@@ -15,9 +15,10 @@ import {
   Calendar,
   User,
   ExternalLink,
+  Stethoscope,
 } from 'lucide-react';
 
-import api from '../api/axios';
+import api, { getCertificateViewUrl, getCertificatePdfUrl } from '../api/axios';
 
 const Reports = () => {
   const [reports, setReports] = useState([]);
@@ -28,6 +29,10 @@ const Reports = () => {
 
   // Report detail modal state
   const [selectedReport, setSelectedReport] = useState(null);
+  const [approving, setApproving] = useState(false);
+  const [doctorRemarksInput, setDoctorRemarksInput] = useState('');
+  const [doctorNameInput, setDoctorNameInput] = useState('Dr. Arvind Sharma, MD');
+  const [approveSuccess, setApproveSuccess] = useState(null);
 
   useEffect(() => {
     fetchReports();
@@ -45,6 +50,48 @@ const Reports = () => {
       console.error('Error fetching reports:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openReportModal = (report) => {
+    setSelectedReport(report);
+    setDoctorRemarksInput(
+      report.doctorRemarks ||
+        'Assays clinically verified within biological reference intervals. Metabolic homeostasis stable.'
+    );
+    setDoctorNameInput(report.verifiedBy || 'Dr. Arvind Sharma, MD');
+    setApproveSuccess(null);
+  };
+
+  const handleApproveReport = async () => {
+    if (!selectedReport) return;
+    try {
+      setApproving(true);
+      const res = await api.post(`/admin/reports/${selectedReport._id}/verify`, {
+        doctorName: doctorNameInput,
+        remarks: doctorRemarksInput,
+        isApproved: true,
+      });
+
+      if (res.data.success) {
+        setApproveSuccess(res.data.message || 'Report approved and verified!');
+        // Update local report
+        const updated = res.data.data;
+        setSelectedReport((prev) => ({
+          ...prev,
+          status: 'Report_Generated',
+          verifiedBy: doctorNameInput,
+          verifiedAt: new Date(),
+          doctorRemarks: doctorRemarksInput,
+        }));
+        setReports((prev) =>
+          prev.map((r) => (r._id === selectedReport._id ? { ...r, ...updated, status: 'Report_Generated' } : r))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to approve report:', err);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -367,7 +414,7 @@ const Reports = () => {
                   return (
                     <tr
                       key={report._id}
-                      onClick={() => setSelectedReport(report)}
+                      onClick={() => openReportModal(report)}
                       className="group cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 dark:border-slate-800/60 dark:hover:bg-slate-800/20"
                     >
                       {/* Barcode & ID */}
@@ -444,13 +491,24 @@ const Reports = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedReport(report);
+                              openReportModal(report);
                             }}
                             title="View report details"
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.07] hover:text-cyan-400"
                           >
                             <Eye size={15} />
                           </button>
+
+                          <a
+                            href={getCertificateViewUrl(report.appointment?._id || report.appointment || report._id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Preview Official NABL Diagnostic Certificate"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-emerald-500 transition-all hover:border-emerald-400/25 hover:bg-emerald-400/[0.08] hover:text-emerald-400"
+                          >
+                            <ExternalLink size={15} />
+                          </a>
 
                           <button
                             type="button"
@@ -594,6 +652,80 @@ const Reports = () => {
                 )}
               </div>
 
+              {/* Pathologist / Doctor Verification & Approval Box */}
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-3 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500 text-white">
+                      <Stethoscope size={14} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                        Pathologist Verification & Authorization
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        CLSI H3-A6 & ISO 15189 Electronic Certification
+                      </p>
+                    </div>
+                  </div>
+                  {selectedReport.verifiedBy ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 size={12} />
+                      Electronically Certified
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                      Pending Review
+                    </span>
+                  )}
+                </div>
+
+                {approveSuccess && (
+                  <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                    <CheckCircle2 size={14} />
+                    <span>{approveSuccess}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                      Certifying Pathologist / Doctor
+                    </label>
+                    <input
+                      type="text"
+                      value={doctorNameInput}
+                      onChange={(e) => setDoctorNameInput(e.target.value)}
+                      disabled={!!selectedReport.verifiedBy}
+                      className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                      Certification Status
+                    </label>
+                    <div className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                      {selectedReport.verifiedAt
+                        ? `Certified: ${new Date(selectedReport.verifiedAt).toLocaleDateString()}`
+                        : 'Ready for electronic sign-off'}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                    Clinical Interpretation & Remarks
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={doctorRemarksInput}
+                    onChange={(e) => setDoctorRemarksInput(e.target.value)}
+                    disabled={!!selectedReport.verifiedBy}
+                    className="w-full px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none resize-none"
+                  />
+                </div>
+              </div>
+
               {/* Evidence image if available */}
               {selectedReport.evidenceImageUrl && (
                 <div className="rounded-xl border border-slate-200/80 bg-white p-4 dark:border-slate-800/80 dark:bg-slate-900/30">
@@ -623,6 +755,29 @@ const Reports = () => {
                 >
                   Close
                 </button>
+
+                {!selectedReport.verifiedBy && (
+                  <button
+                    type="button"
+                    onClick={handleApproveReport}
+                    disabled={approving}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 transition"
+                  >
+                    <CheckCircle2 size={14} className={approving ? 'animate-spin' : ''} />
+                    <span>{approving ? 'Authorizing...' : 'Approve & Sign NABL Report'}</span>
+                  </button>
+                )}
+
+                <a
+                  href={getCertificateViewUrl(selectedReport.appointment?._id || selectedReport.appointment || selectedReport._id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition active:scale-95"
+                >
+                  <ExternalLink size={14} />
+                  <span>Preview Public Certificate ↗</span>
+                </a>
+
                 <button
                   type="button"
                   onClick={() => handleDownload(selectedReport)}

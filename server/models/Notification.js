@@ -10,6 +10,7 @@ const notificationSchema = new mongoose.Schema({
       'Appointments', 
       'Health', 
       'Reports', 
+      'Report',
       'AI', 
       'Payments', 
       'System', 
@@ -17,7 +18,9 @@ const notificationSchema = new mongoose.Schema({
       'Test_Reminder', 
       'System_Alert', 
       'Emergency', 
-      'Report_Ready'
+      'Report_Ready',
+      'Report_Generated',
+      'Dispatch'
     ],
     default: 'System',
     trim: true
@@ -32,9 +35,8 @@ const notificationSchema = new mongoose.Schema({
   targetUserId: { type: mongoose.Schema.Types.ObjectId, index: true }, 
   
   metadata: {
-    screen: { type: String, trim: true },
-    resourceId: { type: String, trim: true },
-    actionUrl: { type: String, trim: true }
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   },
 
   isRead: { type: Boolean, default: false }

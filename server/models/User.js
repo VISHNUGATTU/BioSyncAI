@@ -74,10 +74,14 @@ const userSchema = new mongoose.Schema({
   },
 
   vitalsStatus: { type: String, enum: ['Pending', 'Manual', 'PDF_Scanned', 'Lab_Verified'], default: 'Pending' },
+  needsRecalibration: { type: Boolean, default: false, index: true },
+  lastBloodDrawDate: { type: Date },
+  lastCalibrationDate: { type: Date },
   accountStatus: { type: String, enum: ['Active', 'Suspended', 'Banned'], default: 'Active', index: true },
   suspensionReason: { type: String, trim: true },
   strikeCount: { type: Number, default: 0, min: 0 },
   fcmToken: { type: String, select: false }, // Only needed for backend push logic
+  pushToken: { type: String, select: false }, // Expo Push Token or APNS/FCM
   lastActive: { type: Date, default: Date.now }
 }, { 
   timestamps: true,

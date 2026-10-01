@@ -18,11 +18,18 @@ const sampleSchema = new mongoose.Schema({
       'At_Laboratory', 
       'Processing', 
       'Report_Generated', 
-      'Delivered'
+      'Delivered',
+      'Rejected',
+      'Failed'
     ],
     default: 'Requested',
     trim: true
   },
+  
+  rejectionReason: { type: String, trim: true },
+  rejectionNotes: { type: String, trim: true },
+  rejectionType: { type: String, trim: true },
+  exceptionReportedAt: { type: Date },
   
   collectionTime: { type: Date },
   labProcessingStartTime: { type: Date },

@@ -31,6 +31,7 @@ import Doctors from './pages/Doctors';
 import Appointments from './pages/Appointments';
 import Roles from './pages/Roles';
 import AuditLogs from './pages/AuditLogs';
+import ErrorMonitoring from './pages/ErrorMonitoring';
 
 function App() {
    const initTheme = useThemeStore((state) => state.initTheme);
@@ -92,6 +93,7 @@ function App() {
 
           <Route path="roles" element={<Roles />} />
           <Route path="audit" element={<AuditLogs />} />
+          <Route path="error-monitoring" element={<ErrorMonitoring />} />
           <Route path="logs" element={<SystemLogs />} />
           <Route path="settings" element={<Settings />} />
         </Route>

@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env*.local
 .venv
 __pycache__/
 *.pyc
@@ -12,3 +13,19 @@ coverage/
 .vscode/
 .expo/
 scratch/
+
+# Media & Document Assets Exclusion
+images/
+uploads/
+server/uploads/
+user-panel/assets/
+staff-panel/assets/
+*.docx
+*.doc
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4

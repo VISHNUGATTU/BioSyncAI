@@ -1,10 +1,22 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
-export const GlassCard = ({ children, style, surface = false }) => {
+export const GlassCard = ({ children, style, surface = false, className = '' }) => {
+  const { colors, isDark, shadows } = useTheme();
+
   return (
-    <View style={[styles.card, surface && styles.surface, style]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: surface ? colors.bgCardSurface : colors.bgCardElevated,
+          borderColor: colors.borderSubtle,
+        },
+        !isDark && shadows.sm,
+        style,
+      ]}
+    >
       {children}
     </View>
   );
@@ -12,15 +24,10 @@ export const GlassCard = ({ children, style, surface = false }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.bgCardElevated,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
     overflow: 'hidden',
-  },
-  surface: {
-    backgroundColor: colors.bgCardSurface,
   },
 });
 

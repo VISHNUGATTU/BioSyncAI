@@ -7,7 +7,8 @@ import {
   assignLabAssistantToSample, getTransactions, updateAdminProfile, getRevenueAnalytics,
   getAllReports, getAllDoctors, createDoctor, updateDoctor, getAllAppointments, 
   updateAdminAppointment, getRoles, createRole, updateRole, deleteRole, getAuditLogs,
-  getSystemHealth, getDashboardLocations, updateAlertStatus, autoAssignStaff, getNearbyStaff
+  getSystemHealth, getDashboardLocations, updateAlertStatus, autoAssignStaff, getNearbyStaff,
+  getErrorMonitoringData, retryFailedJob, acknowledgeIncident, verifyAndApproveReport
 } from '../controllers/adminController.js';
 import { updateTicketStatus, replyToTicket } from '../controllers/ticketController.js';
 import { authAdmin } from '../middlewares/authAdmin.js'; 
@@ -38,6 +39,9 @@ adminRouter.put('/profile', updateAdminProfile);
 
 // Monitoring
 adminRouter.get('/logs', authorizeRoles('SuperAdmin'), getSystemLogs);
+adminRouter.get('/error-monitoring', authorizeRoles('SuperAdmin', 'Data_Analyst'), getErrorMonitoringData);
+adminRouter.post('/error-monitoring/:id/retry', authorizeRoles('SuperAdmin'), retryFailedJob);
+adminRouter.put('/error-monitoring/:id/acknowledge', authorizeRoles('SuperAdmin', 'Support_Staff'), acknowledgeIncident);
 adminRouter.get('/audit', authorizeRoles('SuperAdmin'), getAuditLogs);
 adminRouter.get('/tickets', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllTickets);
 adminRouter.put('/tickets/:id/status', authorizeRoles('SuperAdmin', 'Support_Staff'), updateTicketStatus);
@@ -50,6 +54,7 @@ adminRouter.get('/users/:id', authorizeRoles('SuperAdmin', 'Support_Staff'), get
 adminRouter.put('/users/:id/status', authorizeRoles('SuperAdmin'), updateUserStatus);
 adminRouter.get('/transactions', authorizeRoles('SuperAdmin', 'Data_Analyst'), getTransactions);
 adminRouter.get('/reports', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllReports);
+adminRouter.post('/reports/:id/verify', authorizeRoles('SuperAdmin', 'Support_Staff'), verifyAndApproveReport);
 adminRouter.get('/appointments', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllAppointments);
 adminRouter.put('/appointments/:id', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Appointment'), updateAdminAppointment);
 
@@ -66,6 +71,21 @@ adminRouter.put('/samples/:id/assign', authorizeRoles('SuperAdmin', 'Support_Sta
 adminRouter.post('/samples/:id/auto-assign', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Sample'), autoAssignStaff);
 adminRouter.post('/appointments/:id/auto-assign', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Appointment'), autoAssignStaff);
 adminRouter.get('/appointments/:id/nearby-staff', authorizeRoles('SuperAdmin', 'Support_Staff'), getNearbyStaff);
+
+// Baseline Calibration Cron Trigger
+adminRouter.post('/trigger-recalibration-cron', authorizeRoles('SuperAdmin'), async (req, res, next) => {
+  try {
+    const { runBaselineCalibrationCheck } = await import('../services/recalibrationCron.js');
+    const stats = await runBaselineCalibrationCheck();
+    res.status(200).json({
+      success: true,
+      message: 'Automated 30-day baseline recalibration cron executed successfully',
+      stats,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Staff Management (Strictly Audited)
 adminRouter.post('/lab-assistants', authorizeRoles('SuperAdmin'), auditLogger('LabAssistant'), createLabAssistant);

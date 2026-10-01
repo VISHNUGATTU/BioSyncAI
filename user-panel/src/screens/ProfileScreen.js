@@ -29,23 +29,47 @@ import {
   ArrowRight,
   CheckCircle2,
   Zap,
+  Sun,
+  Moon,
+  Smartphone,
+  Check,
+  LifeBuoy,
+  ChevronRight,
+  Bell,
+  FileText,
 } from 'lucide-react-native';
-import { colors } from '../theme/colors';
+import { colors, useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
 import { useUserAppointmentStore } from '../store/userAppointmentStore';
+import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
+import ReportViewerModal from '../components/ReportViewerModal';
+import NotificationModal from '../components/NotificationModal';
+import DataProvenanceBadge, { normalizeProvenance } from '../components/DataProvenanceBadge';
 
 export const ProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { themePreference, setTheme, mode, isDark, colors, shadows } = useTheme();
   const { user, logout, latestVitals, hasVitals, fetchVitals } = useAuthStore();
   const { appointments, activeAppointment, fetchAppointments } =
     useUserAppointmentStore();
 
   const [loadingRefresh, setLoadingRefresh] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [selectedReportAppt, setSelectedReportAppt] = useState(null);
 
   useEffect(() => {
     fetchVitals();
     fetchAppointments();
+    userApi
+      .getNotifications({ unreadOnly: true })
+      .then((res) => {
+        if (res.success && typeof res.unreadCount === 'number') {
+          setUnreadNotifCount(res.unreadCount);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleLogout = () => {
@@ -53,6 +77,14 @@ export const ProfileScreen = ({ navigation }) => {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleThemeChange = async (preference) => {
+    await setTheme(preference);
+    try {
+      const appearanceVal = preference === 'light' ? 'Light' : preference === 'dark' ? 'Dark' : 'System';
+      userApi.updateProfile({ preferences: { appearance: appearanceVal } }).catch(() => {});
+    } catch (e) {}
   };
 
   const vitalsUploaded = hasVitals();
@@ -90,30 +122,43 @@ export const ProfileScreen = ({ navigation }) => {
   // Biomarkers counts
   const totalBiomarkersCount = vitalsUploaded ? 18 : 0;
 
+  const completedWithReport = Array.isArray(appointments)
+    ? appointments.find(
+        (a) =>
+          a.status === 'Completed' ||
+          a.status === 'Report_Generated' ||
+          (a.sample && a.sample.resultsDone)
+      )
+    : null;
+
+  const vitalsProvenance = latestVitals?.source
+    ? normalizeProvenance(latestVitals.source)
+    : (user?.vitalsStatus ? normalizeProvenance(user.vitalsStatus) : 'MEASURED_LAB');
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.bgDark }]}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
         <View>
-          <Text style={styles.headerTitle}>Patient Health Profile</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Patient Health Profile</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
             Verified telemetry, biomarkers & AI calibration cycle
           </Text>
         </View>
       </View>
 
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: colors.bgDark }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* User Identity Card */}
-        <GlassCard style={styles.userCard}>
+        <GlassCard style={[styles.userCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}>
           <View style={styles.userAvatarCircle}>
-            <User size={30} color={colors.cyan} />
+            <User size={30} color={colors.primary} />
           </View>
-          <Text style={styles.userName}>{user?.name || user?.firstName || 'BioSync Patient'}</Text>
-          <Text style={styles.userPhone}>+91 {user?.phoneNumber || user?.phone || '9876543210'}</Text>
+          <Text style={[styles.userName, { color: colors.textPrimary }]}>{user?.name || user?.firstName || 'BioSync Patient'}</Text>
+          <Text style={[styles.userPhone, { color: colors.primary }]}>+91 {user?.phoneNumber || user?.phone || '9876543210'}</Text>
           {user?.bloodGroup ? (
             <View style={styles.bloodGroupPill}>
               <Droplets size={12} color={colors.roseLight} />
@@ -162,14 +207,25 @@ export const ProfileScreen = ({ navigation }) => {
                 BioSync AI requires verified laboratory vitals to calibrate our predictive neural model and unlock personalized meal nutrition scanning.
               </Text>
 
-              <TouchableOpacity
-                style={styles.bookAppointmentBtn}
-                onPress={() => navigation.navigate('BookAppointment')}
-                activeOpacity={0.85}
-              >
-                <CalendarPlus size={16} color="#000000" />
-                <Text style={styles.bookAppointmentBtnText}>BOOK AN APPOINTMENT</Text>
-              </TouchableOpacity>
+              <View style={styles.notUploadedActionsRow}>
+                <TouchableOpacity
+                  style={styles.healthSetupBtn}
+                  onPress={() => navigation.navigate('HealthSetup')}
+                  activeOpacity={0.85}
+                >
+                  <Sparkles size={15} color="#000000" />
+                  <Text style={styles.healthSetupBtnText}>START INITIAL ASSESSMENT (3 CHOICES)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bookAppointmentBtn}
+                  onPress={() => navigation.navigate('BookAppointment')}
+                  activeOpacity={0.85}
+                >
+                  <CalendarPlus size={15} color={colors.cyan} />
+                  <Text style={styles.bookAppointmentBtnText}>BOOK HOME VISIT</Text>
+                </TouchableOpacity>
+              </View>
             </GlassCard>
           ) : (
             /* VITALS TOTAL RECORD CARDS */
@@ -177,17 +233,20 @@ export const ProfileScreen = ({ navigation }) => {
               {/* Vitals Summary Banner */}
               <GlassCard style={styles.vitalsSummaryBanner}>
                 <View style={styles.summaryBannerRow}>
-                  <View>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={styles.summaryBannerTitle}>
                       {totalBiomarkersCount} Biomarkers Calibrated
                     </Text>
                     <Text style={styles.summaryBannerSub}>
-                      Status: {user?.vitalsStatus || 'Lab_Verified'} • Diagnostic Grade
+                      Status: {user?.vitalsStatus === 'Lab_Verified' ? 'NABL Lab Verified' : user?.vitalsStatus === 'PDF_Scanned' ? 'Report OCR Verified' : user?.vitalsStatus === 'Manual' ? 'Manual Baseline' : 'Active'} • Diagnostic Grade
                     </Text>
                   </View>
-                  <View style={styles.verifiedBadge}>
-                    <CheckCircle2 size={13} color={colors.emeraldLight} />
-                    <Text style={styles.verifiedBadgeText}>Verified</Text>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
+                    <View style={styles.verifiedBadge}>
+                      <CheckCircle2 size={13} color={colors.emeraldLight} />
+                      <Text style={styles.verifiedBadgeText}>Verified</Text>
+                    </View>
                   </View>
                 </View>
               </GlassCard>
@@ -458,6 +517,293 @@ export const ProfileScreen = ({ navigation }) => {
           </GlassCard>
         </View>
 
+        {/* ========================================================= */}
+        {/* 5. APPEARANCE & DISPLAY SETTINGS (EXACTLY 3 THEMES)       */}
+        {/* ========================================================= */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>APPEARANCE & DISPLAY</Text>
+          <GlassCard style={[styles.themeCard, { borderColor: colors.borderSubtle }]}>
+            <View style={styles.themeHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.themeCardTitle, { color: colors.textPrimary }]}>
+                  Interface Appearance
+                </Text>
+                <Text style={[styles.themeCardSubtitle, { color: colors.textSecondary }]}>
+                  Personalize the visual theme of BioSync AI
+                </Text>
+              </View>
+              <View style={[styles.currentThemePill, { backgroundColor: colors.borderCyan, borderColor: colors.borderCyanStrong }]}>
+                <Text style={[styles.currentThemePillText, { color: colors.primary }]}>
+                  {themePreference === 'system' ? 'System (Default)' : themePreference === 'dark' ? 'Dark' : 'Light'}
+                </Text>
+              </View>
+            </View>
+
+            {/* 3 Options: Light, Dark, System */}
+            <View style={styles.themeOptionsGrid}>
+              {/* Option 1: Light */}
+              <TouchableOpacity
+                style={[
+                  styles.themeOptionCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
+                    borderColor: colors.borderSubtle,
+                  },
+                  themePreference === 'light' && [
+                    styles.themeOptionCardActive,
+                    {
+                      borderColor: colors.primary,
+                      backgroundColor: isDark ? 'rgba(6, 182, 212, 0.12)' : 'rgba(8, 145, 178, 0.08)',
+                    },
+                  ],
+                ]}
+                onPress={() => handleThemeChange('light')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.themeIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff' }]}>
+                  <Sun size={18} color={themePreference === 'light' ? colors.primary : colors.textSecondary} />
+                </View>
+                <Text style={[styles.themeOptionTitle, { color: themePreference === 'light' ? colors.primary : colors.textPrimary }]}>
+                  Light
+                </Text>
+                <Text style={[styles.themeOptionSubtitle, { color: colors.textMuted }]}>
+                  White Clean
+                </Text>
+                {themePreference === 'light' && (
+                  <View style={[styles.themeCheckBadge, { backgroundColor: colors.primary }]}>
+                    <Check size={10} color="#ffffff" strokeWidth={3} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Option 2: Dark */}
+              <TouchableOpacity
+                style={[
+                  styles.themeOptionCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
+                    borderColor: colors.borderSubtle,
+                  },
+                  themePreference === 'dark' && [
+                    styles.themeOptionCardActive,
+                    {
+                      borderColor: colors.primary,
+                      backgroundColor: isDark ? 'rgba(6, 182, 212, 0.12)' : 'rgba(8, 145, 178, 0.08)',
+                    },
+                  ],
+                ]}
+                onPress={() => handleThemeChange('dark')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.themeIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff' }]}>
+                  <Moon size={18} color={themePreference === 'dark' ? colors.primary : colors.textSecondary} />
+                </View>
+                <Text style={[styles.themeOptionTitle, { color: themePreference === 'dark' ? colors.primary : colors.textPrimary }]}>
+                  Dark
+                </Text>
+                <Text style={[styles.themeOptionSubtitle, { color: colors.textMuted }]}>
+                  Black Slate
+                </Text>
+                {themePreference === 'dark' && (
+                  <View style={[styles.themeCheckBadge, { backgroundColor: colors.primary }]}>
+                    <Check size={10} color="#ffffff" strokeWidth={3} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Option 3: System */}
+              <TouchableOpacity
+                style={[
+                  styles.themeOptionCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
+                    borderColor: colors.borderSubtle,
+                  },
+                  themePreference === 'system' && [
+                    styles.themeOptionCardActive,
+                    {
+                      borderColor: colors.primary,
+                      backgroundColor: isDark ? 'rgba(6, 182, 212, 0.12)' : 'rgba(8, 145, 178, 0.08)',
+                    },
+                  ],
+                ]}
+                onPress={() => handleThemeChange('system')}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.themeIconCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff' }]}>
+                  <Smartphone size={18} color={themePreference === 'system' ? colors.primary : colors.textSecondary} />
+                </View>
+                <Text style={[styles.themeOptionTitle, { color: themePreference === 'system' ? colors.primary : colors.textPrimary }]}>
+                  System
+                </Text>
+                <Text style={[styles.themeOptionSubtitle, { color: colors.textMuted }]}>
+                  Auto-Follow
+                </Text>
+                {themePreference === 'system' && (
+                  <View style={[styles.themeCheckBadge, { backgroundColor: colors.primary }]}>
+                    <Check size={10} color="#ffffff" strokeWidth={3} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.themeExplanationText, { color: colors.textMuted }]}>
+              {themePreference === 'system'
+                ? `System default is active. The interface automatically adapts when your device changes between light and dark modes (Currently: ${mode === 'dark' ? 'Dark Mode' : 'Light Mode'}).`
+                : `Manually locked to ${themePreference === 'dark' ? 'Dark Mode' : 'Light Mode'}. Select 'System' to follow your phone settings automatically.`}
+            </Text>
+          </GlassCard>
+        </View>
+
+        {/* ========================================================= */}
+        {/* 6. PATIENT HEALTH SERVICES & RECORDS HUB                  */}
+        {/* ========================================================= */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            PATIENT HEALTH SERVICES & RECORDS
+          </Text>
+
+          {/* Action Card: Longitudinal Health Timeline (Phase 4) */}
+          <TouchableOpacity
+            style={[
+              styles.navHubCard,
+              {
+                backgroundColor: isDark ? 'rgba(6, 182, 212, 0.08)' : 'rgba(8, 145, 178, 0.06)',
+                borderColor: colors.borderCyan,
+              },
+            ]}
+            onPress={() => navigation.navigate('HealthTimeline')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.navHubIconBox, { backgroundColor: colors.cyanGlow }]}>
+              <Activity size={22} color={colors.primary} />
+            </View>
+            <View style={styles.navHubContent}>
+              <View style={styles.navHubHeaderRow}>
+                <Text style={[styles.navHubTitle, { color: colors.textPrimary }]}>
+                  Longitudinal Health Timeline
+                </Text>
+                <View style={[styles.navHubBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.35)' }]}>
+                  <Text style={[styles.navHubBadgeText, { color: '#10b981' }]}>PROVENANCE AUDIT</Text>
+                </View>
+              </View>
+              <Text style={[styles.navHubSubtitle, { color: colors.textMuted }]}>
+                Full chronological history of vitals, lab reports & food telemetry
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Action Card 1: Help & Support / Tickets */}
+          <TouchableOpacity
+            style={[
+              styles.navHubCard,
+              {
+                backgroundColor: isDark ? 'rgba(6, 182, 212, 0.08)' : 'rgba(8, 145, 178, 0.06)',
+                borderColor: colors.borderCyan,
+              },
+            ]}
+            onPress={() => navigation.navigate('Support')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.navHubIconBox, { backgroundColor: colors.cyanGlow }]}>
+              <LifeBuoy size={22} color={colors.primary} />
+            </View>
+            <View style={styles.navHubContent}>
+              <View style={styles.navHubHeaderRow}>
+                <Text style={[styles.navHubTitle, { color: colors.textPrimary }]}>
+                  Help & Support / Tickets
+                </Text>
+                <View style={[styles.navHubBadge, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderColor: 'rgba(6, 182, 212, 0.3)' }]}>
+                  <Text style={[styles.navHubBadgeText, { color: colors.primary }]}>24/7 HELPDESK</Text>
+                </View>
+              </View>
+              <Text style={[styles.navHubSubtitle, { color: colors.textMuted }]}>
+                Submit inquiries, dispute delays & view ticket replies
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Action Card 2: Notifications Inbox */}
+          <TouchableOpacity
+            style={[
+              styles.navHubCard,
+              {
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.06)',
+                borderColor: 'rgba(245, 158, 11, 0.3)',
+              },
+            ]}
+            onPress={() => setShowNotificationsModal(true)}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.navHubIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <Bell size={22} color={colors.amberLight || '#f59e0b'} />
+            </View>
+            <View style={styles.navHubContent}>
+              <View style={styles.navHubHeaderRow}>
+                <Text style={[styles.navHubTitle, { color: colors.textPrimary }]}>
+                  Notifications Inbox
+                </Text>
+                {unreadNotifCount > 0 ? (
+                  <View style={[styles.navHubBadge, { backgroundColor: 'rgba(244, 63, 94, 0.15)', borderColor: 'rgba(244, 63, 94, 0.4)' }]}>
+                    <Text style={[styles.navHubBadgeText, { color: colors.roseLight || '#f43f5e' }]}>
+                      {unreadNotifCount} NEW
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={[styles.navHubBadge, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
+                    <Text style={[styles.navHubBadgeText, { color: colors.amberLight || '#f59e0b' }]}>INBOX</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.navHubSubtitle, { color: colors.textMuted }]}>
+                Direct alerts, stage updates & clinical announcements
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Action Card 3: My Medical Lab Reports */}
+          <TouchableOpacity
+            style={[
+              styles.navHubCard,
+              {
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.06)',
+                borderColor: 'rgba(16, 185, 129, 0.3)',
+              },
+            ]}
+            onPress={() => {
+              if (completedWithReport) {
+                setSelectedReportAppt(completedWithReport);
+              } else {
+                navigation.navigate('AppointmentsList');
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.navHubIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <FileText size={22} color={colors.emeraldLight || '#10b981'} />
+            </View>
+            <View style={styles.navHubContent}>
+              <View style={styles.navHubHeaderRow}>
+                <Text style={[styles.navHubTitle, { color: colors.textPrimary }]}>
+                  My Medical Lab Reports
+                </Text>
+                <View style={[styles.navHubBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+                  <Text style={[styles.navHubBadgeText, { color: colors.emeraldLight || '#10b981' }]}>
+                    {completedWithReport ? 'REPORT READY' : 'ALL VISITS'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.navHubSubtitle, { color: colors.textMuted }]}>
+                NABL accredited reports, signature verifications & downloads
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Clinical Disclaimer */}
         <View style={styles.disclaimerBox}>
           <FileCheck2 size={16} color={colors.textMuted} />
@@ -476,6 +822,25 @@ export const ProfileScreen = ({ navigation }) => {
           <Text style={styles.logoutBtnText}>SIGN OUT</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Notifications Modal */}
+      <NotificationModal
+        visible={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        role="user"
+        onUnreadCountChange={setUnreadNotifCount}
+        onNotificationCountChange={setUnreadNotifCount}
+        navigation={navigation}
+      />
+
+      {/* Official Diagnostic Report Viewer Modal */}
+      {selectedReportAppt && (
+        <ReportViewerModal
+          visible={!!selectedReportAppt}
+          onClose={() => setSelectedReportAppt(null)}
+          appointment={selectedReportAppt}
+        />
+      )}
     </View>
   );
 };
@@ -619,7 +984,10 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginBottom: 14,
   },
-  bookAppointmentBtn: {
+  notUploadedActionsRow: {
+    gap: 8,
+  },
+  healthSetupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -628,10 +996,27 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  bookAppointmentBtnText: {
+  healthSetupBtnText: {
     fontSize: 11,
     fontWeight: '900',
     color: '#000000',
+    letterSpacing: 0.5,
+  },
+  bookAppointmentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  bookAppointmentBtnText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: colors.cyan,
     letterSpacing: 0.5,
   },
   vitalsRecordContainer: {
@@ -961,6 +1346,163 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: colors.roseLight,
     letterSpacing: 1,
+  },
+  themeCard: {
+    padding: 16,
+    marginBottom: 8,
+  },
+  themeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 10,
+  },
+  themeCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  themeCardSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  currentThemePill: {
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  currentThemePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  themeOptionsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  themeOptionCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    position: 'relative',
+  },
+  themeOptionCardActive: {
+    borderWidth: 2,
+  },
+  themeIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  themeOptionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  themeOptionSubtitle: {
+    fontSize: 9.5,
+    fontWeight: '600',
+  },
+  themeCheckBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeExplanationText: {
+    fontSize: 10.5,
+    lineHeight: 15,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  supportTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  supportIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supportTileTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  supportTileSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  navHubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  navHubIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navHubContent: {
+    flex: 1,
+    marginLeft: 12,
+    paddingRight: 6,
+  },
+  navHubHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+    flexWrap: 'wrap',
+  },
+  navHubTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  navHubSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  navHubBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  navHubBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
 

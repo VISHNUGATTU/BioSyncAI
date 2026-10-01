@@ -10,7 +10,8 @@ import {
   saveDraft,
   deleteDraft,
   logoutUser, 
-  deleteAccount 
+  deleteAccount,
+  getHealthTimeline,
 } from '../controllers/userController.js';
 import { authUser } from '../middlewares/authUser.js';
 
@@ -24,7 +25,11 @@ userRouter.post('/logout', logoutUser);
 userRouter.get('/profile', authUser, getUserProfile);
 userRouter.put('/profile', authUser, updateUserProfile);
 userRouter.put('/fcm-token', authUser, updateFCMToken);
+userRouter.put('/push-token', authUser, updateFCMToken);
 userRouter.get('/reports', authUser, getUserReports);
+
+// Unified Longitudinal Health Timeline (Phase 4)
+userRouter.get('/health-timeline', authUser, getHealthTimeline);
 
 // User workflow draft persistence routes
 userRouter.get('/drafts/:draftType', authUser, getDraft);

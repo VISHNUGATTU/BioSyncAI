@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:6446/api',
   withCredentials: true,
 });
 
@@ -23,5 +23,15 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+export const getCertificateViewUrl = (id) => {
+  const base = (import.meta.env.VITE_API_URL || 'http://localhost:6446/api').replace(/\/api\/?$/, '');
+  return `${base}/api/appointments/${id}/report/view`;
+};
+
+export const getCertificatePdfUrl = (id) => {
+  const base = (import.meta.env.VITE_API_URL || 'http://localhost:6446/api').replace(/\/api\/?$/, '');
+  return `${base}/api/appointments/${id}/report/pdf`;
+};
 
 export default api;

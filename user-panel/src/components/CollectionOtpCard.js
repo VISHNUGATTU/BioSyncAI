@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { KeyRound, ShieldCheck, CheckCircle2, Clock, Sparkles, Copy } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
+import { KeyRound, ShieldCheck, CheckCircle2, Clock, Sparkles } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import GlassCard from './GlassCard';
 
@@ -20,84 +20,92 @@ export const CollectionOtpCard = ({ appointment }) => {
   };
 
   return (
-    <GlassCard style={[styles.card, isArrived && styles.cardArrivedGlow]}>
+    <GlassCard className={`mb-4 border ${isArrived ? 'bg-[#06130b] border-emerald-500' : 'bg-[#0a0a0a] border-white/10'}`}>
       {/* Top Banner */}
-      <View style={styles.headerRow}>
-        <View style={[styles.iconCircle, isArrived ? styles.iconCircleActive : styles.iconCircleDefault]}>
+      <View className="flex-row items-center gap-3 mb-3.5">
+        <View className={`w-10 h-10 rounded-xl items-center justify-center border ${isArrived ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-cyan-500/10 border-cyan-500/30'}`}>
           <KeyRound size={20} color={isArrived ? colors.emeraldLight : colors.cyan} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Home Collection Authorization</Text>
-          <Text style={styles.subtitle}>Secure handshake code for phlebotomist</Text>
+        <View className="flex-1">
+          <Text className="text-sm font-extrabold text-white">Home Collection Authorization</Text>
+          <Text className="text-[11px] text-neutral-400 mt-0.5">Secure handshake code for phlebotomist</Text>
         </View>
         {isCollected ? (
-          <View style={styles.verifiedBadge}>
+          <View className="flex-row items-center gap-1 bg-emerald-500/15 border border-emerald-500/40 px-2 py-1 rounded-lg">
             <CheckCircle2 size={13} color={colors.emeraldLight} />
-            <Text style={styles.verifiedBadgeText}>VERIFIED</Text>
+            <Text className="text-[10px] font-black text-emerald-400 tracking-wider">VERIFIED</Text>
           </View>
         ) : isCollecting ? (
-          <View style={styles.collectingBadge}>
+          <View className="flex-row items-center gap-1 bg-cyan-500/15 border border-cyan-500/40 px-2 py-1 rounded-lg">
             <Sparkles size={13} color={colors.cyan} />
-            <Text style={styles.collectingBadgeText}>COLLECTING</Text>
+            <Text className="text-[10px] font-black text-cyan-400 tracking-wider">COLLECTING</Text>
           </View>
         ) : isArrived ? (
-          <View style={styles.arrivedBadge}>
-            <Text style={styles.arrivedBadgeText}>SHOW NOW</Text>
+          <View className="bg-emerald-500 px-2.5 py-1 rounded-lg">
+            <Text className="text-[10px] font-black text-black tracking-wider">SHOW NOW</Text>
           </View>
         ) : null}
       </View>
 
       {/* The Giant OTP Display Box */}
       <TouchableOpacity 
-        style={[styles.otpBox, isArrived && styles.otpBoxArrived]} 
+        className={`border rounded-2xl py-3.5 px-4 items-center mb-3 active:opacity-80 ${isArrived ? 'bg-[#0a1e12] border-emerald-500/40' : 'bg-[#121212] border-white/10'}`} 
         onPress={handleCopyOtp}
         activeOpacity={0.8}
       >
-        <Text style={styles.otpLabel}>PATIENT VERIFICATION OTP</Text>
-        <View style={styles.otpDigitsContainer}>
+        <Text className="text-[10px] font-black tracking-widest text-neutral-400 mb-2">PATIENT VERIFICATION OTP</Text>
+        <View className="flex-row justify-center gap-2.5">
           {otp.split('').map((digit, idx) => (
-            <View key={idx} style={[styles.digitCell, isArrived && styles.digitCellArrived]}>
-              <Text style={[styles.digitText, isArrived && styles.digitTextArrived]}>{digit}</Text>
+            <View 
+              key={idx} 
+              className={`w-11 h-13 py-2 rounded-xl border items-center justify-center ${isArrived ? 'bg-[#12331f] border-emerald-400' : 'bg-[#181818] border-white/15'}`}
+            >
+              <Text 
+                className={`text-2xl font-black ${isArrived ? 'text-white' : 'text-cyan-400'}`}
+                style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
+              >
+                {digit}
+              </Text>
             </View>
           ))}
         </View>
-        <Text style={styles.otpHint}>Tap to view details</Text>
+        <Text className="text-[10px] text-neutral-400 mt-2">Tap to view details</Text>
       </TouchableOpacity>
 
       {/* Dynamic Handshake Instructions */}
-      <View style={styles.instructionBox}>
+      <View className="bg-white/5 rounded-xl p-2.5">
         {isCollected ? (
-          <View style={styles.statusMsgRow}>
+          <View className="flex-row items-center gap-2">
             <CheckCircle2 size={16} color={colors.emeraldLight} />
-            <Text style={styles.statusMsgText}>
+            <Text className="flex-1 text-[11px] text-neutral-300 leading-4">
               OTP verified successfully. Specimens are sealed in 4°C cold storage and dispatched.
             </Text>
           </View>
         ) : isCollecting ? (
-          <View style={styles.statusMsgRow}>
+          <View className="flex-row items-center gap-2">
             <Sparkles size={16} color={colors.cyan} />
-            <Text style={styles.statusMsgText}>
+            <Text className="flex-1 text-[11px] text-neutral-300 leading-4">
               Handshake complete. Phlebotomist is drawing blood & recording vital markers.
             </Text>
           </View>
         ) : isArrived ? (
-          <View style={styles.statusMsgRow}>
+          <View className="flex-row items-center gap-2">
             <ShieldCheck size={16} color={colors.emeraldLight} />
-            <Text style={[styles.statusMsgText, { color: colors.emeraldLight, fontWeight: '700' }]}>
+            <Text className="flex-1 text-[11px] text-emerald-400 font-bold leading-4">
               Phlebotomist is at your door! Read this 4-digit code to authorize sample collection.
             </Text>
           </View>
         ) : isEnRoute ? (
-          <View style={styles.statusMsgRow}>
+          <View className="flex-row items-center gap-2">
             <Clock size={16} color={colors.amberLight} />
-            <Text style={styles.statusMsgText}>
+            <Text className="flex-1 text-[11px] text-neutral-300 leading-4">
               Phlebotomist is traveling to your location. Keep this code ready for when they arrive.
             </Text>
           </View>
         ) : (
-          <View style={styles.statusMsgRow}>
+          <View className="flex-row items-center gap-2">
             <ShieldCheck size={16} color={colors.textMuted} />
-            <Text style={styles.statusMsgText}>
+            <Text className="flex-1 text-[11px] text-neutral-300 leading-4">
               Assigned phlebotomist will ask for this code before taking any biological samples.
             </Text>
           </View>
@@ -106,165 +114,5 @@ export const CollectionOtpCard = ({ appointment }) => {
     </GlassCard>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    marginBottom: 16,
-  },
-  cardArrivedGlow: {
-    borderColor: colors.emerald,
-    backgroundColor: '#06130b',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  iconCircleDefault: {
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-  },
-  iconCircleActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  subtitle: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.emeraldLight,
-    letterSpacing: 0.5,
-  },
-  collectingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.4)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  collectingBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.cyan,
-    letterSpacing: 0.5,
-  },
-  arrivedBadge: {
-    backgroundColor: colors.emerald,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  arrivedBadgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 0.5,
-  },
-  otpBox: {
-    backgroundColor: '#121212',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  otpBoxArrived: {
-    backgroundColor: '#0a1e12',
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  otpLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  otpDigitsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  digitCell: {
-    width: 44,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: '#181818',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  digitCellArrived: {
-    backgroundColor: '#12331f',
-    borderColor: colors.emeraldLight,
-  },
-  digitText: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: colors.cyan,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  digitTextArrived: {
-    color: '#ffffff',
-  },
-  otpHint: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 8,
-  },
-  instructionBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    padding: 10,
-  },
-  statusMsgRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusMsgText: {
-    flex: 1,
-    fontSize: 11,
-    color: colors.textSecondary,
-    lineHeight: 16,
-  },
-});
 
 export default CollectionOtpCard;

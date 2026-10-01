@@ -14,6 +14,7 @@ const ACTIVE_STATUSES = [
   'Sample_Collected',
   'At_Laboratory',
   'Processing',
+  'Report_Generated',
 ];
 
 export const useUserAppointmentStore = create((set, get) => ({

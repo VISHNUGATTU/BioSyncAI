@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { UserCheck, Phone, Navigation, Bike, Car, Shield } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import GlassCard from './GlassCard';
@@ -17,40 +17,44 @@ export const AssignedStaffCard = ({ appointment }) => {
   };
 
   return (
-    <GlassCard style={styles.card}>
-      <View style={styles.headerRow}>
-        <View style={styles.avatarCircle}>
+    <GlassCard className="bg-[#0a0a0a] border border-white/10 mb-4">
+      <View className="flex-row items-center gap-3 mb-3">
+        <View className="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 items-center justify-center">
           <UserCheck size={20} color={colors.cyan} />
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={styles.nameRow}>
-            <Text style={styles.staffName}>{staff.name || 'Certified Phlebotomist'}</Text>
-            <View style={styles.verifiedBadge}>
+        <View className="flex-1">
+          <View className="flex-row items-center gap-1.5 flex-wrap">
+            <Text className="text-sm font-extrabold text-white">{staff.name || 'Certified Phlebotomist'}</Text>
+            <View className="flex-row items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/30">
               <Shield size={10} color={colors.emeraldLight} />
-              <Text style={styles.verifiedText}>NABL Verified</Text>
+              <Text className="text-[9px] font-extrabold text-emerald-400">NABL Verified</Text>
             </View>
           </View>
-          <Text style={styles.vehicleText}>
+          <Text className="text-[11px] text-neutral-400 mt-0.5">
             {staff.vehicleType || 'Medical Courier Motorbike'} • BioSync Field Ops
           </Text>
         </View>
         
         {staff.phone ? (
-          <TouchableOpacity style={styles.callBtn} onPress={handleCall} activeOpacity={0.8}>
-            <Phone size={16} color="#000000" />
-            <Text style={styles.callBtnText}>CALL</Text>
+          <TouchableOpacity 
+            className="flex-row items-center gap-1.5 bg-cyan-400 px-3 py-2 rounded-xl active:opacity-80" 
+            onPress={handleCall} 
+            activeOpacity={0.8}
+          >
+            <Phone size={14} color="#000000" />
+            <Text className="text-[11px] font-black text-black tracking-wider">CALL</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
-      <View style={styles.telemetryRow}>
-        <View style={styles.telemetryItem}>
-          <Text style={styles.telemetryLabel}>ASSIGNED FIELD PHLEBOTOMIST</Text>
-          <Text style={styles.telemetryVal}>{staff.phone || 'Available via Support'}</Text>
+      <View className="flex-row justify-between pt-2.5 border-t border-white/5">
+        <View className="flex-1">
+          <Text className="text-[9px] font-extrabold text-neutral-400 tracking-wider">ASSIGNED FIELD PHLEBOTOMIST</Text>
+          <Text className="text-xs font-bold text-neutral-300 mt-0.5">{staff.phone || 'Available via Support'}</Text>
         </View>
-        <View style={styles.telemetryItemRight}>
-          <Text style={styles.telemetryLabel}>DISPATCH STATUS</Text>
-          <Text style={[styles.telemetryVal, { color: colors.cyan }]}>
+        <View className="items-end">
+          <Text className="text-[9px] font-extrabold text-neutral-400 tracking-wider">DISPATCH STATUS</Text>
+          <Text className="text-xs font-bold text-cyan-400 mt-0.5">
             {status.replace(/_/g, ' ')}
           </Text>
         </View>
@@ -58,101 +62,5 @@ export const AssignedStaffCard = ({ appointment }) => {
     </GlassCard>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  staffName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  verifiedText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.emeraldLight,
-  },
-  vehicleText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  callBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.cyan,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  callBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 0.5,
-  },
-  telemetryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  telemetryItem: {
-    flex: 1,
-  },
-  telemetryItemRight: {
-    alignItems: 'flex-end',
-  },
-  telemetryLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
-  telemetryVal: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-});
 
 export default AssignedStaffCard;

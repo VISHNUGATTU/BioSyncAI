@@ -1,88 +1,180 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
-// Default Wi-Fi IP of the host development machine, fallback for emulators
-const DEFAULT_HOST_IP = '192.168.137.216';
-export const DEFAULT_BASE_URL = Platform.select({
-  android: `http://${DEFAULT_HOST_IP}:6446/api`,
-  ios: `http://${DEFAULT_HOST_IP}:6446/api`,
-  default: `http://localhost:6446/api`,
-});
+// ============================================================
+// API CONFIGURATION
+// ============================================================
 
-const api = axios.create({
+// Android Emulator:
+// 10.0.2.2 points to your computer's localhost.
+//
+// Physical phone:
+// Replace this with your computer's LAN IP, for example:
+// http://192.168.1.100:5000/api
+//
+// If your backend is running on port 6446, use:
+// http://10.0.2.2:6446/api
+
+export const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:6446/api';
+
+let currentBaseUrl = DEFAULT_BASE_URL;
+
+// ============================================================
+// AXIOS INSTANCE
+// ============================================================
+
+export const api = axios.create({
   baseURL: DEFAULT_BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
+    Accept: 'application/json',
     'Content-Type': 'application/json',
   },
 });
 
-// Initialize base URL from AsyncStorage if user customized it
-export const initializeApiBaseUrl = async () => {
-  try {
-    const savedUrl = await AsyncStorage.getItem('@staff_api_base_url');
-    if (savedUrl) {
-      api.defaults.baseURL = savedUrl;
-      return savedUrl;
-    }
-  } catch (e) {
-    console.warn('Failed to load custom API base URL:', e);
+// ============================================================
+// SET BASE URL
+// ============================================================
+
+export const setApiBaseUrl = (baseUrl) => {
+  if (!baseUrl || typeof baseUrl !== 'string') {
+    console.warn('[Axios] Invalid base URL');
+    return;
   }
-  return api.defaults.baseURL;
-};
 
-export const setApiBaseUrl = async (url) => {
-  try {
-    const cleanUrl = url.trim().replace(/\/+$/, '');
-    const finalUrl = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-    api.defaults.baseURL = finalUrl;
-    await AsyncStorage.setItem('@staff_api_base_url', finalUrl);
-    return finalUrl;
-  } catch (e) {
-    console.error('Failed to save API base URL:', e);
-    throw e;
+  let normalizedUrl = baseUrl.trim();
+
+  // Remove trailing slashes.
+  normalizedUrl = normalizedUrl.replace(/\/+$/, '');
+
+  // Add /api if it is not already present.
+  if (!normalizedUrl.endsWith('/api')) {
+    normalizedUrl = `${normalizedUrl}/api`;
   }
+
+  currentBaseUrl = normalizedUrl;
+
+  api.defaults.baseURL = normalizedUrl;
+
+  console.log(
+    '[Axios] Base URL:',
+    normalizedUrl
+  );
 };
 
-export const getStoredBaseUrl = async () => {
-  return await initializeApiBaseUrl();
+// ============================================================
+// GET CURRENT BASE URL
+// ============================================================
+
+export const getApiBaseUrl = () => {
+  return currentBaseUrl;
 };
 
-export const saveStoredBaseUrl = async (url) => {
-  return await setApiBaseUrl(url);
-};
+// ============================================================
+// REQUEST INTERCEPTOR
+// ============================================================
 
-// Request interceptor to attach Lab Assistant JWT token
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('@staff_token');
+      const token = await AsyncStorage.getItem(
+        '@staff_token'
+      );
+
+      config.headers = config.headers || {};
+
+      // Always attach the JWT when available.
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // Prevent an old Authorization header from being reused.
+        delete config.headers.Authorization;
       }
-    } catch (e) {
-      console.warn('Error reading token from storage:', e);
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
-// Response interceptor for logging & unauthorized handling
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      console.warn('Staff token expired or invalid, clearing local session');
-      try {
-        await AsyncStorage.multiRemove(['@staff_token', '@staff_profile']);
-      } catch (e) {
-        // ignore
+      // Do not force application/json for multipart uploads.
+      // Axios needs to generate the multipart boundary itself.
+      const contentType =
+        config.headers['Content-Type'] ||
+        config.headers['content-type'];
+
+      if (
+        contentType &&
+        contentType.includes('multipart/form-data')
+      ) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
       }
+
+      console.log(
+        `[Axios] ${(
+          config.method || 'GET'
+        ).toUpperCase()} ${config.baseURL}${config.url}`,
+        token
+          ? '[TOKEN ATTACHED]'
+          : '[NO TOKEN]'
+      );
+
+      return config;
+    } catch (error) {
+      console.warn(
+        '[Axios] Token attachment failed:',
+        error?.message || error
+      );
+
+      return config;
     }
+  },
+  (error) => {
     return Promise.reject(error);
   }
 );
+
+// ============================================================
+// RESPONSE INTERCEPTOR
+// ============================================================
+
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+
+  async (error) => {
+    const status = error?.response?.status;
+
+    const url =
+      error?.config?.url ||
+      'Unknown endpoint';
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Request failed';
+
+    if (status === 401) {
+      console.warn(
+        `[Axios] 401 Unauthorized: ${url}`
+      );
+
+      console.warn(
+        '[Axios] Server rejected the authentication token.'
+      );
+    } else if (status === 403) {
+      console.warn(
+        `[Axios] 403 Forbidden: ${url}`
+      );
+    } else {
+      console.warn(
+        `[Axios] ${status || 'NETWORK'} error: ${url}`,
+        message
+      );
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
 
 export default api;

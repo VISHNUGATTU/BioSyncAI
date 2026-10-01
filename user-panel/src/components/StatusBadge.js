@@ -16,9 +16,13 @@ const STATUS_CONFIGS = {
   Report_Generated: { bg: 'rgba(16, 185, 129, 0.2)', text: colors.emeraldLight, label: 'REPORT READY' },
   Completed: { bg: 'rgba(16, 185, 129, 0.15)', text: colors.emeraldLight, label: 'COMPLETED' },
   Cancelled: { bg: 'rgba(244, 63, 94, 0.15)', text: colors.roseLight, label: 'CANCELLED' },
+  Failed: { bg: 'rgba(239, 68, 68, 0.18)', text: '#f87171', label: 'COLLECTION FAILED' },
+  No_Show: { bg: 'rgba(245, 158, 11, 0.18)', text: '#fbbf24', label: 'PATIENT ABSENT' },
+  Rejected: { bg: 'rgba(239, 68, 68, 0.18)', text: '#f87171', label: 'DRAW EXCEPTION' },
+  Sample_Rejected: { bg: 'rgba(239, 68, 68, 0.18)', text: '#f87171', label: 'SPECIMEN REJECTED' },
 };
 
-export const StatusBadge = ({ status }) => {
+export const StatusBadge = ({ status, className = '', style }) => {
   const config = STATUS_CONFIGS[status] || {
     bg: 'rgba(255, 255, 255, 0.1)',
     text: colors.textSecondary,
@@ -26,24 +30,18 @@ export const StatusBadge = ({ status }) => {
   };
 
   return (
-    <View style={[styles.badge, { backgroundColor: config.bg }]}>
-      <Text style={[styles.badgeText, { color: config.text }]}>{config.label}</Text>
+    <View 
+      className={`px-2 py-1 rounded-lg self-start ${className}`} 
+      style={[{ backgroundColor: config.bg }, style]}
+    >
+      <Text 
+        className="text-[10px] font-black tracking-wider" 
+        style={{ color: config.text }}
+      >
+        {config.label}
+      </Text>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
-});
 
 export default StatusBadge;

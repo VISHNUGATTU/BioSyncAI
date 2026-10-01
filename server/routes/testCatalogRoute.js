@@ -7,8 +7,8 @@ import { auditLogger } from '../middlewares/auditMiddleware.js';
 
 const testCatalogRouter = express.Router();
 
-// Users can view available tests to book them
-testCatalogRouter.get('/', authUser, getTests);
+// Available tests catalog (public read for patients and booking)
+testCatalogRouter.get('/', getTests);
 // Only SuperAdmins can view all tests (including inactive ones) via admin route
 testCatalogRouter.get('/admin', authAdmin, authorizeRoles('SuperAdmin'), getAdminTests);
 

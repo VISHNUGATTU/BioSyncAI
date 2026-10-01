@@ -7,12 +7,28 @@
     "userInterfaceStyle": "dark",
     "scheme": "biosync-user",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.biosync.patient",
+      "infoPlist": {
+        "NSCameraUsageDescription": "BioSyncAI requires camera access to scan packaged food barcodes and meal nutrition.",
+        "NSLocationWhenInUseUsageDescription": "BioSyncAI uses your location to recommend home phlebotomy dispatch availability."
+      }
     },
     "android": {
+      "package": "com.biosync.patient",
       "adaptiveIcon": {
         "backgroundColor": "#000000"
-      }
-    }
+      },
+      "permissions": [
+        "CAMERA",
+        "NOTIFICATIONS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-notifications"
+    ]
   }
 }

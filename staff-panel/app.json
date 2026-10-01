@@ -9,12 +9,14 @@
     "scheme": "biosync-staff",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.biosync.staff",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "BioSyncAI uses your location to route you to patient home appointments and provide live ETA to patients.",
         "NSCameraUsageDescription": "BioSyncAI uses the camera to scan sample barcodes and capture specimen verification photos."
       }
     },
     "android": {
+      "package": "com.biosync.staff",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,9 +26,14 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "NOTIFICATIONS"
       ]
     },
+    "plugins": [
+      "expo-camera",
+      "expo-notifications"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

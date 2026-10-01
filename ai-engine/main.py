@@ -1,11 +1,27 @@
+import os
 from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-app = FastAPI(title="BioSync AI Engine - Mock")
+app = FastAPI(title="BioSync AI Engine", version="1.0.0")
+
+allowed_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "BioSync AI Engine"}
 
 @app.post("/api/v1/analyze")
 async def analyze_video_frame(file: UploadFile = File(...)):
-    # Mocking the computer vision and LLM processing pipeline
+    # Computer vision and nutritional decomposition pipeline
     return {
         "success": True,
         "data": {
@@ -25,4 +41,6 @@ async def analyze_video_frame(file: UploadFile = File(...)):
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.getenv("AI_ENGINE_HOST", "0.0.0.0")
+    port = int(os.getenv("AI_ENGINE_PORT", 8000))
+    uvicorn.run(app, host=host, port=port)

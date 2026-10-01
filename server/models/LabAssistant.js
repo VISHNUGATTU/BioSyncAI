@@ -51,7 +51,9 @@ const labAssistantSchema = new mongoose.Schema({
       comment: String,
       date: { type: Date, default: Date.now }
     }]
-  }
+  },
+  fcmToken: { type: String, select: false }, // Direct field for push delivery
+  pushToken: { type: String, select: false }
 }, { 
   timestamps: true,
   toJSON: { transform: (doc, ret) => { delete ret.__v; delete ret.password; return ret; } }

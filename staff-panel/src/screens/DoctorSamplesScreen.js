@@ -34,7 +34,7 @@ import {
   MapPin,
   CheckCircle2,
 } from 'lucide-react-native';
-import { colors, gradients } from '../theme/colors';
+import { colors, gradients, useTheme } from '../theme/colors';
 import GlassCard from '../components/GlassCard';
 import StatusBadge from '../components/StatusBadge';
 import VitalsFormSection from '../components/VitalsFormSection';
@@ -42,6 +42,7 @@ import { useAuthStore } from '../store/authStore';
 import staffApi from '../api/staffApi';
 
 export default function DoctorSamplesScreen({ navigation }) {
+  const { isDark } = useTheme();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
@@ -578,7 +579,7 @@ export default function DoctorSamplesScreen({ navigation }) {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bgDark }]} edges={['top']}>
       {/* Doctor Header */}
       <View style={styles.header}>
         <View style={styles.headerProfileRow}>

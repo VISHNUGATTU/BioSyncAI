@@ -1,0 +1,40 @@
+services:
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: biosync-ai-engine
+    restart: always
+    ports:
+      - "8000:8000"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: biosync-server
+    restart: always
+    ports:
+      - "6446:6446"
+    env_file:
+      - ./server/.env
+    volumes:
+      - biosync_uploads:/app/uploads
+    depends_on:
+      - ai-engine
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:6446/api
+    container_name: biosync-admin-panel
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  biosync_uploads:

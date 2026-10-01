@@ -2,6 +2,7 @@ import LabAssistant from '../models/LabAssistant.js';
 import Doctor from '../models/Doctor.js';
 import Appointment from '../models/Appointment.js';
 import Sample from '../models/Sample.js';
+import { notifyStaffAssigned } from '../services/notificationService.js';
 
 /**
  * Calculates the great-circle distance between two geographical points using the Haversine formula.
@@ -203,6 +204,11 @@ export const autoAssignNearestStaff = async (appointmentId) => {
   });
 
   await appointment.save();
+
+  // Notify patient and assigned phlebotomist of auto-assignment
+  if (nearestLA) {
+    notifyStaffAssigned(appointment, nearestLA);
+  }
 
   // Also update corresponding Sample if already created
   let sample = await Sample.findOne({ appointment: appointment._id });

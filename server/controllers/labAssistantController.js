@@ -12,6 +12,14 @@ import bcrypt from 'bcryptjs';
 import { uploadToCloudinary } from '../configs/cloudinary.js';
 import { findNearestDoctor } from '../utils/distanceAssignment.js';
 import { calculateDerivedVitals } from '../utils/aiFeatureExtractor.js';
+import {
+  createNotification,
+  notifyPhlebotomistEnRoute,
+  notifyPhlebotomistArrived,
+  notifySampleCollected,
+  notifySampleAtLab,
+  notifyCollectionException,
+} from '../services/notificationService.js';
 
 const generateLATokenAndCookie = (res, laId, role = 'lab_assistant') => {
   const token = jwt.sign(
@@ -303,6 +311,9 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Trigger automated notification: Sample collected, labeled, and sealed in 4°C container
+    notifySampleCollected(appointment, finalBarcode);
+
     res.status(200).json({ success: true, message: 'Sample collected, vitals recorded, and payment cleared.', sample });
   } catch (error) {
     await session.abortTransaction();
@@ -312,60 +323,85 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
 });
 
 export const rejectSample = asyncHandler(async (req, res) => {
-  const { reason, notes } = req.body;
-  const appointmentId = req.params.appointmentId;
+  const { reason, notes, exceptionType } = req.body;
+  const appointmentId = req.params.appointmentId || req.params.id;
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const isNoShow = 
+    exceptionType === 'Unreachable_Patient' || 
+    exceptionType === 'Patient_No_Show' || 
+    (reason && (reason.toLowerCase().includes('unreachable') || reason.toLowerCase().includes('no show') || reason.toLowerCase().includes('absent')));
 
-  try {
-    // 1. Update Sample
-    let sample = await Sample.findOneAndUpdate(
-      { appointment: appointmentId },
-      { $set: { status: 'Rejected', rejectionReason: reason, rejectionNotes: notes } },
-      { session, new: true }
-    );
+  const targetStatus = isNoShow ? 'No_Show' : 'Failed';
+  const resolvedExceptionType = exceptionType || (isNoShow ? 'Unreachable_Patient' : 'Other');
 
-    if (!sample) {
-      const appointment = await Appointment.findById(appointmentId);
-      if (!appointment) {
-        throw new Error('Appointment not found');
-      }
-      const mongoose = await import('mongoose');
-      const TestCatalog = mongoose.model('TestCatalog');
-      const test = await TestCatalog.findOne();
-
-      sample = new Sample({
-        user: appointment.user,
-        appointment: appointment._id,
-        testCatalog: test ? test._id : null,
-        status: 'Rejected',
-        rejectionReason: reason,
-        rejectionNotes: notes,
-        labAssistant: req.labAssistant._id
-      });
-      await sample.save({ session });
-    }
-
-    // 2. Update Appointment to Failed or similar
-    await Appointment.findByIdAndUpdate(
-      appointmentId,
-      { 
-        $set: { status: 'Failed' },
-        $push: { trackingLogs: { status: 'Failed', timestamp: new Date() } }
-      },
-      { session }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
-
-    res.status(200).json({ success: true, message: 'Sample rejected successfully.' });
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw new Error(`Rejection failed: ${error.message}`);
+  const appointment = await Appointment.findById(appointmentId);
+  if (!appointment) {
+    res.status(404);
+    throw new Error('Appointment not found');
   }
+
+  // 1. Update or create Sample record
+  let sample = await Sample.findOneAndUpdate(
+    { appointment: appointmentId },
+    { 
+      $set: { 
+        status: 'Rejected', 
+        rejectionReason: reason, 
+        rejectionNotes: notes,
+        rejectionType: resolvedExceptionType,
+        exceptionReportedAt: new Date(),
+      } 
+    },
+    { new: true }
+  );
+
+  if (!sample) {
+    sample = new Sample({
+      user: appointment.user,
+      appointment: appointment._id,
+      testCatalog: appointment.testCatalog || null,
+      status: 'Rejected',
+      rejectionReason: reason,
+      rejectionNotes: notes,
+      rejectionType: resolvedExceptionType,
+      exceptionReportedAt: new Date(),
+      labAssistant: req.labAssistant?._id || appointment.labAssistant || req.user?.id || req.user?._id,
+    });
+    await sample.save();
+  }
+
+  // 2. Update Appointment to Failed or No_Show with complete provenance
+  appointment.status = targetStatus;
+  appointment.failureReason = reason;
+  appointment.failureNotes = notes;
+  appointment.exceptionType = resolvedExceptionType;
+  if (!appointment.trackingLogs) {
+    appointment.trackingLogs = [];
+  }
+  appointment.trackingLogs.push({
+    status: targetStatus,
+    timestamp: new Date(),
+    notes: `Field Exception [${resolvedExceptionType}]: ${reason}${notes ? ` - ${notes}` : ''}`,
+  });
+  await appointment.save();
+
+  // 3. Notify patient regarding collection exception with deep link to reschedule
+  try {
+    await notifyCollectionException(appointment, reason, notes, resolvedExceptionType);
+  } catch (notifErr) {
+    console.warn('[rejectSample] Notification dispatch warning:', notifErr.message);
+  }
+
+  res.status(200).json({ 
+    success: true, 
+    message: 'Field collection exception logged successfully.',
+    data: {
+      appointmentId: appointment._id,
+      status: targetStatus,
+      exceptionType: resolvedExceptionType,
+      failureReason: reason,
+    }
+  });
 });
 
 export const bulkLaboratoryDropoff = asyncHandler(async (req, res) => {
@@ -658,6 +694,17 @@ export const updateAppointmentStatus = asyncHandler(async (req, res) => {
     $set: { status },
     $push: { trackingLogs: { status, timestamp: new Date() } }
   });
+
+  // Automated notification dispatch on stage transitions
+  if (status === 'On_The_Way' || status === 'On_Route') {
+    notifyPhlebotomistEnRoute(appointment, req.labAssistant);
+  } else if (status === 'Arrived') {
+    notifyPhlebotomistArrived(appointment, req.labAssistant);
+  } else if (status === 'Sample_Collected') {
+    notifySampleCollected(appointment);
+  } else if (status === 'At_Laboratory') {
+    notifySampleAtLab(appointment);
+  }
 
   res.status(200).json({ success: true, message: 'Status updated successfully' });
 });
@@ -1102,5 +1149,26 @@ export const generateUniqueBarcode = asyncHandler(async (req, res) => {
       stool: `${uniqueBarcode}-STL`
     },
     message: `Unique barcode "${uniqueBarcode}-BLD" generated and pre-verified against database.`
+  });
+});
+
+export const updatePushToken = asyncHandler(async (req, res) => {
+  const token = req.body.pushToken || req.body.fcmToken || req.body.token;
+
+  if (!token) {
+    res.status(400);
+    throw new Error('Push token is required');
+  }
+
+  await LabAssistant.findByIdAndUpdate(req.labAssistant._id, {
+    $set: {
+      fcmToken: token,
+      pushToken: token,
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Staff push notification token registered successfully',
   });
 });

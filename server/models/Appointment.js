@@ -51,6 +51,23 @@ const appointmentSchema = new mongoose.Schema({
   }],
   
   cancellationReason: { type: String, trim: true },
+  failureReason: { type: String, trim: true },
+  failureNotes: { type: String, trim: true },
+  exceptionType: {
+    type: String,
+    enum: [
+      'None',
+      'Unreachable_Patient',
+      'Patient_Refusal',
+      'Vein_Collapse_Difficult_Draw',
+      'Sample_Compromised_Hemolyzed',
+      'Patient_Not_Fasting',
+      'Address_Untraceable',
+      'Other'
+    ],
+    default: 'None',
+    trim: true
+  },
   transactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
   
   address: {

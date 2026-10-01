@@ -3,12 +3,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 // Default Wi-Fi IP of the host development machine, fallback for emulators
-const DEFAULT_HOST_IP = '192.168.137.216';
-export const DEFAULT_BASE_URL = Platform.select({
-  android: `http://${DEFAULT_HOST_IP}:6446/api`,
-  ios: `http://${DEFAULT_HOST_IP}:6446/api`,
-  default: 'http://localhost:6446/api',
-});
+const DEFAULT_HOST_IP = process.env.EXPO_PUBLIC_HOST_IP || '192.168.137.1';
+export const DEFAULT_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  Platform.select({
+    android: `http://${DEFAULT_HOST_IP}:6446/api`,
+    ios: `http://${DEFAULT_HOST_IP}:6446/api`,
+    default: 'http://localhost:6446/api',
+  });
+
+/**
+ * Helper to construct dynamic web report URL resolving to current server baseURL
+ */
+export const getReportViewUrl = (appointmentId) => {
+  const base = (api?.defaults?.baseURL || DEFAULT_BASE_URL).replace(/\/api\/?$/, '');
+  return `${base}/api/appointments/${appointmentId}/report/view`;
+};
+
+/**
+ * Helper to construct dynamic PDF binary download URL
+ */
+export const getReportPdfUrl = (appointmentId) => {
+  const base = (api?.defaults?.baseURL || DEFAULT_BASE_URL).replace(/\/api\/?$/, '');
+  return `${base}/api/appointments/${appointmentId}/report/pdf`;
+};
 
 const api = axios.create({
   baseURL: DEFAULT_BASE_URL,
@@ -52,6 +70,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let onUnauthorizedCallback = null;
+
+export const setOnUnauthorizedCallback = (callback) => {
+  onUnauthorizedCallback = callback;
+};
+
 // Response Interceptor: Handle 401 Unauthorized
 api.interceptors.response.use(
   (response) => response,
@@ -60,6 +84,9 @@ api.interceptors.response.use(
       try {
         await AsyncStorage.removeItem('biosync_user_token');
         await AsyncStorage.removeItem('biosync_user_profile');
+        if (typeof onUnauthorizedCallback === 'function') {
+          onUnauthorizedCallback();
+        }
       } catch (e) {}
     }
     return Promise.reject(error);

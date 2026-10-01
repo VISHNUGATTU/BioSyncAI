@@ -1,280 +1,455 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import {
+  View,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
+import {
+  MapPin,
   Phone,
   Navigation,
-  Clock,
-  MapPin,
+  Clock3,
+  User,
   ChevronRight,
-  FlaskConical,
-  KeyRound,
 } from 'lucide-react-native';
-import { colors, shadows } from '../theme/colors';
-import GlassCard from './GlassCard';
-import StatusBadge from './StatusBadge';
 
-export const AppointmentCard = ({ appointment, onPress, onNavigate }) => {
-  if (!appointment) return null;
+import { colors, useTheme } from '../theme/colors';
 
-  const user = appointment.user || {};
-  const patientName = user.firstName
-    ? `${user.firstName} ${user.lastName || ''}`.trim()
-    : 'Patient';
+const AppointmentCard = ({
+  appointment,
+  onPress,
+  onCall,
+  onMap,
+  showActions = true,
+  className = '',
+}) => {
+  const { isDark } = useTheme();
+  if (!appointment) {
+    return null;
+  }
 
-  const address = appointment.address || user.address || {};
-  const addressText = typeof address === 'string'
-    ? address
-    : [
-        address.houseNumber,
-        address.street,
-        address.landmark,
-        address.city,
-        address.pincode || address.postalCode,
-      ].filter(Boolean).join(', ') || 'Address on file';
+  const patient =
+    appointment.patient ||
+    appointment.user ||
+    {};
 
-  const rawTests = appointment.tests || (appointment.testCatalog ? [appointment.testCatalog] : []);
-  const tests = Array.isArray(rawTests) ? rawTests.filter(Boolean) : [];
-  const testNames = tests.map((t) => (t && typeof t === 'object' ? (t.testName || t.name || 'Lab Panel') : 'Lab Panel')).filter(Boolean);
+  const patientName =
+    patient.name ||
+    patient.fullName ||
+    appointment.patientName ||
+    appointment.userName ||
+    'Patient';
 
-  const formattedDate = appointment.scheduledDate
-    ? new Date(appointment.scheduledDate).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-      })
-    : 'Today';
+  const phone =
+    patient.phone ||
+    patient.mobile ||
+    appointment.phone ||
+    appointment.patientPhone ||
+    '';
 
-  const handleCall = (e) => {
-    e?.stopPropagation?.();
-    const phone = user.phoneNumber || user.phone;
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
+  const rawAddress =
+    appointment.address ||
+    patient.address ||
+    appointment.collectionAddress ||
+    appointment.location?.address ||
+    'Address not available';
+
+  const address =
+    typeof rawAddress === 'string'
+      ? rawAddress
+      : typeof rawAddress === 'object' && rawAddress !== null
+      ? [
+          rawAddress.houseNumber,
+          rawAddress.street,
+          rawAddress.landmark,
+          rawAddress.city,
+          rawAddress.state,
+          rawAddress.pincode || rawAddress.postalCode,
+        ]
+          .filter(Boolean)
+          .join(', ') || 'Address on file'
+      : 'Address not available';
+
+  const appointmentTime =
+    appointment.time ||
+    appointment.appointmentTime ||
+    appointment.scheduledTime ||
+    appointment.slot ||
+    '--';
+
+  const status =
+    appointment.status ||
+    'Pending';
+
+  const appointmentType =
+    appointment.type ||
+    appointment.appointmentType ||
+    'Home Collection';
+
+  const appointmentId =
+    appointment.appointmentId ||
+    appointment._id ||
+    appointment.id;
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'On_The_Way':
+      case 'On_Route':
+        return colors.blue;
+
+      case 'Arrived':
+        return colors.amber;
+
+      case 'Collecting':
+        return colors.primary;
+
+      case 'Completed':
+        return colors.success;
+
+      case 'Rejected':
+      case 'Cancelled':
+        return colors.danger;
+
+      default:
+        return colors.textSecondary;
     }
   };
 
-  const handleOpenMaps = (e) => {
-    e?.stopPropagation?.();
-    if (onNavigate) {
-      onNavigate(appointment);
-    } else {
-      const query = encodeURIComponent(addressText);
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+  const getStatusLabel = () => {
+    return status
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (letter) =>
+        letter.toUpperCase()
+      );
+  };
+
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress(appointment);
+    }
+  };
+
+  const handleCall = () => {
+    if (onCall && phone) {
+      onCall(phone, appointment);
+    }
+  };
+
+  const handleMap = () => {
+    if (onMap) {
+      onMap(appointment);
     }
   };
 
   return (
-    <TouchableOpacity activeOpacity={0.88} onPress={() => onPress && onPress(appointment)}>
-      <GlassCard style={styles.card}>
-        {/* Top Header */}
-        <View style={styles.headerRow}>
-          <View style={styles.patientInfo}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(user.firstName?.[0] || 'P').toUpperCase()}
+    <View
+      style={[
+        {
+          width: '100%',
+          backgroundColor: colors.bgCard,
+          borderColor: colors.borderSubtle,
+          borderWidth: 1,
+          borderRadius: 20,
+          padding: 16,
+          marginBottom: 12,
+          overflow: 'hidden',
+          shadowColor: isDark ? 'transparent' : '#000000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0 : 0.05,
+          shadowRadius: 8,
+          elevation: isDark ? 0 : 2,
+        },
+      ]}
+    >
+      {/* Clickable Card Body (Header + ID + Details) */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={handleCardPress}
+        disabled={!onPress}
+        style={{ width: '100%' }}
+      >
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 16,
+                backgroundColor: colors.alphaCyan10,
+                borderWidth: 1,
+                borderColor: colors.borderCyan,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <User
+                size={20}
+                color={colors.primary}
+                strokeWidth={2.2}
+              />
+            </View>
+
+            <View style={{ flex: 1, justifyContent: 'center', minWidth: 0 }}>
+              <Text
+                style={{ fontSize: 14, fontWeight: '800', color: colors.textPrimary }}
+                numberOfLines={1}
+              >
+                {patientName}
+              </Text>
+
+              <Text
+                style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}
+                numberOfLines={1}
+              >
+                {appointmentType}
               </Text>
             </View>
-            <View>
-              <Text style={styles.patientName}>{patientName}</Text>
-              <View style={styles.timeSlotRow}>
-                <Clock size={11} color={colors.textSecondary} />
-                <Text style={styles.timeSlot}>
-                  {formattedDate} • {appointment.timeSlot || '09:00 - 10:00 AM'}
-                </Text>
-              </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 9999,
+              borderWidth: 1,
+              borderColor: getStatusColor(),
+              backgroundColor: `${getStatusColor()}15`,
+            }}
+          >
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                marginRight: 6,
+                backgroundColor: getStatusColor(),
+              }}
+            />
+
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '900',
+                letterSpacing: 0.5,
+                color: getStatusColor(),
+              }}
+            >
+              {getStatusLabel()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Appointment ID */}
+        {appointmentId ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+              borderWidth: 1,
+              borderColor: colors.borderSubtle,
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Appointment ID
+            </Text>
+
+            <Text
+              style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, maxWidth: '65%' }}
+              numberOfLines={1}
+            >
+              {String(appointmentId)}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Details */}
+        <View
+          style={{
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+            borderWidth: 1,
+            borderColor: colors.borderSubtle,
+            borderRadius: 16,
+            padding: 12,
+            gap: 10,
+            marginBottom: showActions ? 14 : 0,
+          }}
+        >
+          {/* Time */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                backgroundColor: colors.alphaCyan10,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Clock3
+                size={17}
+                color={colors.primary}
+                strokeWidth={2}
+              />
+            </View>
+
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Scheduled Time
+              </Text>
+
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 2 }}>
+                {appointmentTime}
+              </Text>
             </View>
           </View>
 
-          <StatusBadge status={appointment.status} size="small" />
-        </View>
+          {/* Address */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                backgroundColor: colors.alphaCyan10,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MapPin
+                size={17}
+                color={colors.primary}
+                strokeWidth={2}
+              />
+            </View>
 
-        {/* Address */}
-        <View style={styles.addressRow}>
-          <MapPin size={13} color={colors.primaryLight} style={styles.addressIcon} />
-          <Text style={styles.addressText} numberOfLines={2}>
-            {addressText}
-          </Text>
-        </View>
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Collection Address
+              </Text>
 
-        {/* Tests Badges */}
-        {testNames.length > 0 && (
-          <View style={styles.testsContainer}>
-            {testNames.slice(0, 3).map((test, index) => (
-              <View key={index} style={styles.testBadge}>
-                <FlaskConical size={10} color={colors.textCyan} />
-                <Text style={styles.testBadgeText} numberOfLines={1}>
-                  {test}
-                </Text>
-              </View>
-            ))}
-            {testNames.length > 3 && (
-              <View style={styles.testBadgeMore}>
-                <Text style={styles.testBadgeMoreText}>+{testNames.length - 3}</Text>
-              </View>
-            )}
+              <Text
+                style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 2 }}
+                numberOfLines={2}
+              >
+                {address}
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
+      </TouchableOpacity>
 
-        {/* Actions Bar */}
-        <View style={styles.actionsBar}>
-          <View style={styles.leftActions}>
-            <TouchableOpacity style={styles.iconBtn} onPress={handleCall} activeOpacity={0.7}>
-              <Phone size={14} color={colors.emeraldLight} />
-              <Text style={styles.iconBtnText}>Call</Text>
+      {/* Actions (Clean Sibling Row - ZERO nested touchables) */}
+      {showActions && (
+        <View
+          style={{
+            width: '100%',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingTop: 10,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderSubtle,
+          }}
+        >
+          {onCall && phone ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleCall}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 40,
+                gap: 6,
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                borderWidth: 1,
+                borderColor: colors.borderSubtle,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <Phone
+                size={16}
+                color={colors.primary}
+                strokeWidth={2.2}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryLight }}>
+                Call
+              </Text>
             </TouchableOpacity>
+          ) : null}
 
-            <TouchableOpacity style={styles.iconBtn} onPress={handleOpenMaps} activeOpacity={0.7}>
-              <Navigation size={14} color={colors.primaryLight} />
-              <Text style={styles.iconBtnText}>Map</Text>
+          {onMap ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleMap}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 40,
+                gap: 6,
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                borderWidth: 1,
+                borderColor: colors.borderSubtle,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <Navigation
+                size={16}
+                color={colors.primary}
+                strokeWidth={2.2}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryLight }}>
+                Map
+              </Text>
             </TouchableOpacity>
-          </View>
+          ) : null}
 
-          <View style={styles.rightAction}>
-            <Text style={styles.viewDetailsText}>Servicing Flow</Text>
-            <ChevronRight size={14} color={colors.primaryLight} />
-          </View>
+          {onPress ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleCardPress}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 40,
+                gap: 4,
+                backgroundColor: colors.primary,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 }}>
+                View
+              </Text>
+
+              <ChevronRight
+                size={17}
+                color="#FFFFFF"
+                strokeWidth={2.5}
+              />
+            </TouchableOpacity>
+          ) : null}
         </View>
-      </GlassCard>
-    </TouchableOpacity>
+      )}
+    </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 14,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  patientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primaryLight,
-  },
-  patientName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  timeSlotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  timeSlot: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: 12,
-  },
-  addressIcon: {
-    marginTop: 2,
-    marginRight: 6,
-  },
-  addressText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 17,
-    flex: 1,
-  },
-  testsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 14,
-  },
-  testBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
-    borderColor: 'rgba(6, 182, 212, 0.2)',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  testBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textCyan,
-  },
-  testBadgeMore: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  testBadgeMoreText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  actionsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  leftActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  iconBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  iconBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  rightAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  viewDetailsText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primaryLight,
-  },
-});
 
 export default AppointmentCard;

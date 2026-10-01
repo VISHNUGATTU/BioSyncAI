@@ -32,7 +32,7 @@ import {
   ShieldCheck,
   Lock,
 } from 'lucide-react-native';
-import { colors } from '../theme/colors';
+import { colors, useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import { useAuthStore } from '../store/authStore';
 import staffApi from '../api/staffApi';
@@ -41,6 +41,7 @@ import StatusBadge from '../components/StatusBadge';
 import VitalsFormSection from '../components/VitalsFormSection';
 
 export const SamplesScreen = ({ route, navigation }) => {
+  const { isDark } = useTheme();
   const role = useAuthStore((state) => state.role || state.user?.role || 'lab_assistant');
   const isDoctor = role === 'doctor';
 
@@ -592,8 +593,8 @@ export const SamplesScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bgDark }]} edges={['top']}>
+      <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Samples</Text>
@@ -606,8 +607,11 @@ export const SamplesScreen = ({ route, navigation }) => {
             onPress={() => setActiveTab('transit')}
             activeOpacity={0.7}
           >
-            <Layers size={14} color={activeTab === 'transit' ? colors.primaryLight : colors.textMuted} />
-            <Text style={[styles.segmentText, activeTab === 'transit' && styles.segmentTextActive]}>
+            <Layers size={14} color={activeTab === 'transit' ? colors.primaryLight : colors.textSecondary} />
+            <Text
+              numberOfLines={1}
+              style={[styles.segmentText, activeTab === 'transit' && styles.segmentTextActive]}
+            >
               In Transit ({collectedSamples.length})
             </Text>
           </TouchableOpacity>
@@ -617,8 +621,11 @@ export const SamplesScreen = ({ route, navigation }) => {
             onPress={() => setActiveTab('queue')}
             activeOpacity={0.7}
           >
-            <Building size={14} color={activeTab === 'queue' ? colors.primaryLight : colors.textMuted} />
-            <Text style={[styles.segmentText, activeTab === 'queue' && styles.segmentTextActive]}>
+            <Building size={14} color={activeTab === 'queue' ? colors.primaryLight : colors.textSecondary} />
+            <Text
+              numberOfLines={1}
+              style={[styles.segmentText, activeTab === 'queue' && styles.segmentTextActive]}
+            >
               Lab Queue ({labQueue.length})
             </Text>
           </TouchableOpacity>
@@ -628,8 +635,11 @@ export const SamplesScreen = ({ route, navigation }) => {
             onPress={() => setActiveTab('all')}
             activeOpacity={0.7}
           >
-            <TestTube size={14} color={activeTab === 'all' ? colors.primaryLight : colors.textMuted} />
-            <Text style={[styles.segmentText, activeTab === 'all' && styles.segmentTextActive]}>
+            <TestTube size={14} color={activeTab === 'all' ? colors.primaryLight : colors.textSecondary} />
+            <Text
+              numberOfLines={1}
+              style={[styles.segmentText, activeTab === 'all' && styles.segmentTextActive]}
+            >
               All Tests ({allAssistantSamples.length})
             </Text>
           </TouchableOpacity>
@@ -893,14 +903,25 @@ export const SamplesScreen = ({ route, navigation }) => {
               />
             }
             renderItem={({ item }) => {
-              const user = item.appointment?.user || {};
-              const test = item.testCatalog || {};
+              const user = item.appointment?.user || item.user || {};
+              const test = item.testCatalog || item.appointment?.testCatalog || {};
               const isAtLab = item.status === 'At_Laboratory';
               const isProcessing = item.status === 'Processing';
               const isResultsDone = item.resultsDone === true || item.resultsStatus === 'Results Ready';
               const isResultsEntered =
                 item.resultsStatus === 'Results Entered' ||
                 ['Report_Generated', 'Completed'].includes(item.status);
+
+              const patientName =
+                (user.firstName || user.lastName)
+                  ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                  : 'Patient';
+
+              const testName =
+                test?.testName ||
+                item.testName ||
+                (Array.isArray(item.tests) && item.tests[0]?.testName) ||
+                'Diagnostic Panel';
 
               return (
                 <GlassCard style={styles.queueCard}>
@@ -922,9 +943,9 @@ export const SamplesScreen = ({ route, navigation }) => {
                     />
                   </View>
 
-                  <Text style={styles.queueTestName}>{test?.testName || 'Test'}</Text>
+                  <Text style={styles.queueTestName}>{testName}</Text>
                   <Text style={styles.queuePatientName}>
-                    {user.firstName || 'Patient'} {user.lastName || ''} •{' '}
+                    {patientName} •{' '}
                     {item.collectionTime
                       ? new Date(item.collectionTime).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -958,7 +979,7 @@ export const SamplesScreen = ({ route, navigation }) => {
 
                       {!isDoctor && (
                         <View style={styles.doctorRestrictedNotice}>
-                          <Lock size={12} color={colors.textMuted} />
+                          <Lock size={12} color={colors.textSecondary} />
                           <Text style={styles.doctorRestrictedNoticeText}>
                             Doctor access only
                           </Text>
@@ -1040,11 +1061,22 @@ export const SamplesScreen = ({ route, navigation }) => {
               );
             }}
             ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <TestTube size={36} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>No Tests</Text>
-                <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
-              </View>
+              loading ? (
+                <View style={styles.emptyContainer}>
+                  <ActivityIndicator size="large" color={colors.primaryLight} />
+                  <Text style={[styles.emptySubtitle, { color: colors.textSecondary, marginTop: 10 }]}>
+                    Loading tests...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <TestTube size={36} color={colors.primaryLight} />
+                  <Text style={styles.emptyTitle}>No Tests Found</Text>
+                  <Text style={styles.emptySubtitle}>
+                    All collected samples will appear here with live lifecycle progress.
+                  </Text>
+                </View>
+              )
             }
           />
         )}
@@ -1123,12 +1155,12 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 20,
-    backgroundColor: 'rgba(12, 12, 12, 0.6)',
+    backgroundColor: colors.bgCardElevated,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 4,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   segmentBtn: {
     flex: 1,
@@ -1136,22 +1168,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 10,
   },
   segmentBtnActive: {
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    backgroundColor: colors.alphaCyan10,
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
+    borderColor: colors.borderCyan,
   },
   segmentText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: colors.textMuted,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
   segmentTextActive: {
     color: colors.primaryLight,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   bulkBar: {
     flexDirection: 'row',
@@ -1189,16 +1221,18 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   sampleCard: {
-    backgroundColor: 'rgba(12, 12, 12, 0.65)',
+    width: '100%',
+    backgroundColor: colors.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
     marginBottom: 10,
+    overflow: 'hidden',
   },
   sampleCardSelected: {
     borderColor: colors.primaryLight,
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+    backgroundColor: colors.alphaCyan10,
   },
   sampleRow: {
     flexDirection: 'row',
@@ -1227,7 +1261,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   queueCard: {
+    width: '100%',
     marginBottom: 12,
+    overflow: 'hidden',
   },
   queueTestName: {
     fontSize: 14,
@@ -1246,17 +1282,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   lifecycleStatusBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.alphaCyan10,
     borderRadius: 8,
     padding: 8,
-    marginTop: 4,
+    marginTop: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: colors.borderCyan,
   },
   lifecycleStatusText: {
     fontSize: 11,
-    color: colors.textCyan,
-    fontWeight: '600',
+    color: colors.primaryLight,
+    fontWeight: '700',
   },
   processBtn: {
     flex: 1,
@@ -1291,33 +1327,33 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 50,
     paddingHorizontal: 30,
   },
   emptyTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
     marginTop: 14,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: colors.bgCardElevated,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: colors.borderSubtle,
     padding: 18,
   },
   modalHeader: {
@@ -1491,7 +1527,7 @@ const styles = StyleSheet.create({
   },
   doctorRestrictedNoticeText: {
     fontSize: 10,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     lineHeight: 14,
     flex: 1,
   },

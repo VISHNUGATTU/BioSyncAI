@@ -4,7 +4,10 @@ import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
 import Vitals from '../models/Vitals.js';
 import Doctor from '../models/Doctor.js';
+import Notification from '../models/Notification.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
+import { notifyReportReady } from '../services/notificationService.js';
+import { generatePdfReport } from '../services/pdfReportGenerator.js';
 
 // @desc    Get Doctor's Tri-State Samples Dashboard:
 //          1. What they got (At_Laboratory)
@@ -224,6 +227,24 @@ export const doctorVerifyReport = asyncHandler(async (req, res) => {
           { upsert: true, new: true }
         );
       }
+
+      // Generate and persist certified NABL ISO 15189:2022 PDF binary
+      try {
+        const userDoc = await User.findById(targetUserId).lean();
+        const { relativeUrl } = await generatePdfReport({
+          appointment: sample.appointment,
+          sample,
+          user: userDoc,
+          doctor: req.doctor || { name: doctorName, licenseNumber: license },
+        });
+        sample.resultPdfUrl = relativeUrl;
+        await sample.save();
+      } catch (pdfErr) {
+        console.warn('[DoctorController] PDF generation warning:', pdfErr.message);
+      }
+
+      // Notify the patient immediately with certified report release
+      notifyReportReady(sample.appointment, sample, doctorName);
     }
   }
 

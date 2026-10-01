@@ -42,9 +42,11 @@ import {
   ArrowUpRight,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { useAuthStore } from '../store/authStore';
 import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
+import DataProvenanceBadge, { normalizeProvenance } from '../components/DataProvenanceBadge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - 40;
@@ -554,7 +556,12 @@ const TIMELINE_OPTIONS = [
 
 export const VitalsAnalysisScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { latestVitals, fetchVitals } = useAuthStore();
+
+  const vitalsProvenance = latestVitals?.source
+    ? normalizeProvenance(latestVitals.source)
+    : 'MEASURED_LAB';
 
   // Filter States: Which Vital & Which Timeline
   const [selectedBiomarkerId, setSelectedBiomarkerId] = useState('glucosePostPrandial');
@@ -633,6 +640,17 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
   const activeBiomarker = useMemo(() => {
     return CLINICAL_BIOMARKERS.find((b) => b.id === selectedBiomarkerId) || CLINICAL_BIOMARKERS[0];
   }, [selectedBiomarkerId]);
+
+  const activeProvenance = useMemo(() => {
+    if (
+      activeBiomarker.id.toLowerCase().includes('homa') ||
+      activeBiomarker.id.toLowerCase().includes('risk') ||
+      activeBiomarker.id.toLowerCase().includes('meanarterial')
+    ) {
+      return 'AI_ESTIMATE';
+    }
+    return vitalsProvenance;
+  }, [activeBiomarker, vitalsProvenance]);
 
   // --------------------------------------------------------------------------
   // CALCULATE STABLE AVERAGE VITAL & CRITICAL VERSIONS FROM DB
@@ -826,14 +844,17 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
   const modalCategories = ['All', 'Heart & BP', 'Sugar & Metabolism', 'Cholesterol & Fats', 'Lungs & Oxygen', 'Blood Count (CBC)', 'Kidney & Liver', 'Inflammation & Body'];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.bgDark }]}>
       {/* ========================================================= */}
       {/* 1. TOP HEADER & FILTER CONTROLS (VITAL & TIMELINE)        */}
       {/* ========================================================= */}
       <View style={styles.topHeader}>
-        <View>
-          <Text style={styles.pageTitle}>Biometric Analysis</Text>
-          <Text style={styles.pageSubtitle}>Select vital & timeline to view instant trends</Text>
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={[styles.pageTitle, { color: colors.textPrimary }]}>Biometric Analysis</Text>
+            <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
+          </View>
+          <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>Select vital & timeline to view instant trends</Text>
         </View>
 
         <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh} activeOpacity={0.7}>
@@ -845,7 +866,13 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
       <View style={styles.filterSection}>
         {/* Vital Selector Trigger */}
         <TouchableOpacity
-          style={styles.vitalSelectorTrigger}
+          style={[
+            styles.vitalSelectorTrigger,
+            {
+              backgroundColor: isDark ? '#0d1316' : '#f0fdfa',
+              borderColor: isDark ? 'rgba(6, 182, 212, 0.25)' : 'rgba(8, 145, 178, 0.35)',
+            },
+          ]}
           onPress={() => setIsVitalModalVisible(true)}
           activeOpacity={0.8}
         >
@@ -855,7 +882,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.filterSmallLabel}>SELECTED VITAL</Text>
-              <Text style={styles.vitalTriggerName} numberOfLines={1}>
+              <Text style={[styles.vitalTriggerName, { color: colors.textPrimary }]} numberOfLines={1}>
                 {activeBiomarker.name}
               </Text>
             </View>
@@ -873,7 +900,14 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
             return (
               <TouchableOpacity
                 key={item.key}
-                style={[styles.timelinePill, isSelected && styles.timelinePillActive]}
+                style={[
+                  styles.timelinePill,
+                  {
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#cbd5e1',
+                  },
+                  isSelected && styles.timelinePillActive,
+                ]}
                 onPress={() => setSelectedTimeline(item.key)}
                 activeOpacity={0.8}
               >
@@ -884,7 +918,13 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                     style={{ marginRight: 3 }}
                   />
                 )}
-                <Text style={[styles.timelinePillText, isSelected && styles.timelinePillTextActive]}>
+                <Text
+                  style={[
+                    styles.timelinePillText,
+                    { color: isSelected ? '#000000' : colors.textSecondary },
+                    isSelected && styles.timelinePillTextActive,
+                  ]}
+                >
                   {item.key === 'DATE' && selectedCustomDate
                     ? availableDates.find((d) => d.isoStr === selectedCustomDate)?.displayLabel || 'Date'
                     : item.label}
@@ -906,7 +946,14 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
               return (
                 <TouchableOpacity
                   key={item.isoStr}
-                  style={[styles.dateChip, isDateSelected && styles.dateChipActive]}
+                  style={[
+                    styles.dateChip,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f1f5f9',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                    },
+                    isDateSelected && styles.dateChipActive,
+                  ]}
                   onPress={() => setSelectedCustomDate(item.isoStr)}
                   activeOpacity={0.8}
                 >
@@ -941,9 +988,17 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
         {/* ========================================================= */}
         <GlassCard style={styles.mainVitalCard}>
           <View style={styles.mainVitalTop}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={styles.vitalCategorySub}>{activeBiomarker.category.toUpperCase()}</Text>
-              <Text style={styles.vitalHeadlineName}>{activeBiomarker.name}</Text>
+              <Text style={[styles.vitalHeadlineName, { color: colors.textPrimary }]}>{activeBiomarker.name}</Text>
+              <DataProvenanceBadge
+                type={activeProvenance}
+                size="xs"
+                showLabel={true}
+                showDisclaimer={activeProvenance === 'AI_ESTIMATE'}
+                customDisclaimer="Sec 1 & 47: Neural network algorithmic projection; not a certified lab measurement"
+                style={{ marginTop: 4 }}
+              />
             </View>
 
             <View
@@ -970,12 +1025,12 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
 
           {/* Current Reading */}
           <View style={styles.bigReadingRow}>
-            <Text style={styles.bigNumber}>{latestValue}</Text>
+            <Text style={[styles.bigNumber, { color: colors.textPrimary }]}>{latestValue}</Text>
             <Text style={styles.bigUnit}>{activeBiomarker.unit}</Text>
           </View>
 
           {/* Simple Benchmarks: Stable Average & Normal Range */}
-          <View style={styles.benchmarkBox}>
+          <View style={[styles.benchmarkBox, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f1f5f9', borderColor: colors.borderSubtle }]}>
             <View style={styles.benchmarkCol}>
               <Text style={styles.benchmarkLabel}>YOUR STABLE AVERAGE</Text>
               <Text style={styles.benchmarkValueCyan}>
@@ -988,7 +1043,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
 
             <View style={styles.benchmarkCol}>
               <Text style={styles.benchmarkLabel}>DOCTOR NORMAL RANGE</Text>
-              <Text style={styles.benchmarkValue}>
+              <Text style={[styles.benchmarkValue, { color: colors.textPrimary }]}>
                 {activeBiomarker.minNormal} - {activeBiomarker.maxNormal}{' '}
                 <Text style={styles.benchmarkUnit}>{activeBiomarker.unit}</Text>
               </Text>
@@ -1003,7 +1058,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
               isCurrentCritical ? styles.adviceCardCritical : styles.adviceCardStable,
             ]}
           >
-            <Text style={styles.adviceText}>
+            <Text style={[styles.adviceText, { color: colors.textPrimary }]}>
               {isCurrentCritical ? (
                 <>
                   <Text style={{ fontWeight: '900', color: colors.roseLight }}>Attention: </Text>
@@ -1027,7 +1082,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
           <View style={styles.chartHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View style={[styles.chartDot, { backgroundColor: activeBiomarker.color }]} />
-              <Text style={styles.chartTitle}>
+              <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
                 Trend ({selectedTimeline === 'DATE' ? 'Selected Date' : selectedTimeline})
               </Text>
             </View>
@@ -1041,7 +1096,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
               <Defs>
                 <SvgLinearGradient id="simpleGrad" x1="0" y1="0" x2="0" y2="1">
                   <Stop offset="0%" stopColor={activeBiomarker.color} stopOpacity="0.35" />
-                  <Stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
+                  <Stop offset="100%" stopColor={isDark ? "#000000" : "#ffffff"} stopOpacity="0.0" />
                 </SvgLinearGradient>
               </Defs>
 
@@ -1051,7 +1106,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                 y1="24"
                 x2={CHART_WIDTH - 10}
                 y2="24"
-                stroke="rgba(255, 255, 255, 0.05)"
+                stroke={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.06)"}
                 strokeDasharray="4 4"
               />
               <Line
@@ -1059,7 +1114,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                 y1={CHART_HEIGHT - 24}
                 x2={CHART_WIDTH - 10}
                 y2={CHART_HEIGHT - 24}
-                stroke="rgba(255, 255, 255, 0.05)"
+                stroke={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.06)"}
                 strokeDasharray="4 4"
               />
 
@@ -1182,6 +1237,10 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                 key={crit.id}
                 style={[
                   styles.criticalItemCard,
+                  {
+                    backgroundColor: isDark ? '#16080a' : '#fff1f2',
+                    borderColor: isDark ? 'rgba(244, 63, 94, 0.35)' : 'rgba(244, 63, 94, 0.3)',
+                  },
                   selectedBiomarkerId === crit.id && styles.criticalItemCardActive,
                 ]}
                 onPress={() => setSelectedBiomarkerId(crit.id)}
@@ -1191,7 +1250,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                   <View style={styles.critBadge}>
                     <Text style={styles.critBadgeText}>{crit.statusLabel.toUpperCase()}</Text>
                   </View>
-                  <Text style={styles.critName}>{crit.name}</Text>
+                  <Text style={[styles.critName, { color: colors.textPrimary }]}>{crit.name}</Text>
                   <Text style={styles.critTip}>{crit.simpleTip}</Text>
                 </View>
 
@@ -1213,7 +1272,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
         {/* ========================================================= */}
         <View style={styles.allVitalsSection}>
           <View style={styles.allVitalsHeaderRow}>
-            <Text style={styles.allVitalsTitle}>All Important Vitals</Text>
+            <Text style={[styles.allVitalsTitle, { color: colors.textPrimary }]}>All Important Vitals</Text>
             <Text style={styles.allVitalsSub}>Tap any vital to see its trend</Text>
           </View>
 
@@ -1235,7 +1294,14 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                   key={bio.id}
                   style={[
                     styles.vitalRowCard,
-                    isSelected && { borderColor: colors.cyan, backgroundColor: '#07181f' },
+                    {
+                      backgroundColor: colors.bgCardElevated,
+                      borderColor: colors.borderSubtle,
+                    },
+                    isSelected && {
+                      borderColor: colors.cyan,
+                      backgroundColor: isDark ? '#07181f' : '#ecfeff',
+                    },
                   ]}
                   onPress={() => setSelectedBiomarkerId(bio.id)}
                   activeOpacity={0.7}
@@ -1245,14 +1311,14 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                       <bio.icon size={15} color={bio.color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.vitalRowName} numberOfLines={1}>{bio.name}</Text>
+                      <Text style={[styles.vitalRowName, { color: colors.textPrimary }]} numberOfLines={1}>{bio.name}</Text>
                       <Text style={styles.vitalRowCategory}>{bio.category}</Text>
                     </View>
                   </View>
 
                   <View style={styles.vitalRowRight}>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.vitalRowVal}>
+                      <Text style={[styles.vitalRowVal, { color: colors.textPrimary }]}>
                         {val} <Text style={styles.vitalRowUnit}>{bio.unit}</Text>
                       </Text>
                       <Text style={styles.vitalRowAvg}>
@@ -1284,26 +1350,26 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
         onRequestClose={() => setIsVitalModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#0d0d0d' : '#ffffff', borderColor: colors.borderSubtle }]}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Select a Vital</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Select a Vital</Text>
                 <Text style={styles.modalSub}>Pick which biomarker you want to analyze</Text>
               </View>
               <TouchableOpacity
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }]}
                 onPress={() => setIsVitalModalVisible(false)}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
-            <View style={styles.modalSearchBox}>
+            <View style={[styles.modalSearchBox, { backgroundColor: isDark ? '#161616' : '#f1f5f9', borderColor: colors.borderSubtle }]}>
               <Search size={15} color={colors.textMuted} />
               <TextInput
-                style={styles.modalSearchInput}
+                style={[styles.modalSearchInput, { color: colors.textPrimary }]}
                 placeholder="Search vitals (e.g. Sugar, BP, Pulse)..."
                 placeholderTextColor={colors.textMuted}
                 value={modalSearchText}
@@ -1327,12 +1393,17 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                 return (
                   <TouchableOpacity
                     key={cat}
-                    style={[styles.modalCatChip, isCatActive && styles.modalCatChipActive]}
+                    style={[
+                      styles.modalCatChip,
+                      { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0' },
+                      isCatActive && styles.modalCatChipActive,
+                    ]}
                     onPress={() => setSelectedModalCategory(cat)}
                   >
                     <Text
                       style={[
                         styles.modalCatChipText,
+                        { color: isCatActive ? '#000000' : colors.textSecondary },
                         isCatActive && styles.modalCatChipTextActive,
                       ]}
                     >
@@ -1353,7 +1424,11 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                 return (
                   <TouchableOpacity
                     key={bio.id}
-                    style={[styles.modalItem, isSelected && styles.modalItemActive]}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#e2e8f0' },
+                      isSelected && (isDark ? styles.modalItemActive : { backgroundColor: 'rgba(6, 182, 212, 0.12)' }),
+                    ]}
                     onPress={() => {
                       setSelectedBiomarkerId(bio.id);
                       setIsVitalModalVisible(false);
@@ -1365,12 +1440,12 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
                     </View>
 
                     <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={styles.modalItemName}>{bio.name}</Text>
+                      <Text style={[styles.modalItemName, { color: colors.textPrimary }]}>{bio.name}</Text>
                       <Text style={styles.modalItemCategory}>{bio.category}</Text>
                     </View>
 
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.modalItemVal}>
+                      <Text style={[styles.modalItemVal, { color: colors.textPrimary }]}>
                         {val} {bio.unit}
                       </Text>
                       <Text

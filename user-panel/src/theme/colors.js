@@ -1,131 +1,58 @@
-// BioSyncAI Unified Patient Mobile Theme Tokens
-export const colors = {
-  // Pure Black Base
-  bgDark: '#000000',
-  navyDark: '#000000',
-  bgSurface: '#0a0a0a',
-  bgCard: 'rgba(12, 12, 12, 0.85)',
-  navyCard: 'rgba(12, 12, 12, 0.85)',
-  bgCardElevated: 'rgba(22, 22, 22, 0.85)',
-  navyElevated: 'rgba(22, 22, 22, 0.85)',
-  bgGlass: 'rgba(255, 255, 255, 0.03)',
+// BioSyncAI User Panel — Centralized Theme Gateway & Reactive Tokens
+import { darkColors, darkGradients, darkShadows } from './darkTheme';
+import { lightColors, lightGradients, lightShadows } from './lightTheme';
+import {
+  ThemeProvider,
+  useTheme,
+  ThemeContext,
+  THEME_STORAGE_KEY,
+  getActiveColors,
+  getActiveGradients,
+  getActiveShadows,
+  setGlobalThemeMode,
+} from './ThemeContext';
 
-  // Primary Clinical Accents
-  primary: '#06b6d4',
-  primaryLight: '#22d3ee',
-  primaryDark: '#0891b2',
-  primaryGlow: 'rgba(6, 182, 212, 0.25)',
-  cyan: '#06b6d4',
-  cyanLight: '#22d3ee',
-  cyanGlow: 'rgba(6, 182, 212, 0.25)',
-
-  // Emerald / Success / Health
-  emerald: '#10b981',
-  emeraldLight: '#34d399',
-  emeraldGlow: 'rgba(16, 185, 129, 0.2)',
-
-  // Amber / En Route / In Progress
-  amber: '#f59e0b',
-  amberLight: '#fbbf24',
-  amberGlow: 'rgba(245, 158, 11, 0.2)',
-
-  // Rose / Alert / Critical
-  rose: '#f43f5e',
-  roseLight: '#fb7185',
-  roseGlow: 'rgba(244, 63, 94, 0.2)',
-
-  // Violet / Pathologist / AI
-  violet: '#8b5cf6',
-  violetLight: '#a78bfa',
-  violetGlow: 'rgba(139, 92, 246, 0.2)',
-
-  // Text Hierarchy
-  textPrimary: '#ffffff',
-  textSecondary: '#a1a1aa',
-  textMuted: '#71717a',
-  textCyan: '#22d3ee',
-
-  // Borders
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderSubtle: 'rgba(255, 255, 255, 0.08)',
-  borderMedium: 'rgba(255, 255, 255, 0.15)',
-  borderLight: 'rgba(255, 255, 255, 0.14)',
-  borderActive: 'rgba(6, 182, 212, 0.4)',
-
-  // Neutral shorthand
-  neutral: {
-    textPrimary: '#ffffff',
-    textSecondary: '#a1a1aa',
-    textMuted: '#71717a',
-    border: 'rgba(255, 255, 255, 0.08)',
-    borderLight: 'rgba(255, 255, 255, 0.14)',
-    bg: '#000000',
+// Dynamic Proxy for backward compatibility with static imports `import { colors } from '../theme/colors'`
+export const colors = new Proxy(darkColors, {
+  get(target, prop) {
+    const active = getActiveColors();
+    return active[prop] !== undefined ? active[prop] : target[prop];
   },
+  set(target, prop, value) {
+    const active = getActiveColors();
+    active[prop] = value;
+    target[prop] = value;
+    return true;
+  },
+});
 
-  // Status mapping
-  status: {
-    collected: '#10b981',
-    inTransit: '#06b6d4',
-    failed: '#ef4444',
-    pending: '#f59e0b',
+export const gradients = new Proxy(darkGradients, {
+  get(target, prop) {
+    const active = getActiveGradients();
+    return active[prop] !== undefined ? active[prop] : target[prop];
   },
+});
 
-  accent: {
-    amber: '#f59e0b',
-    cyan: '#06b6d4',
-    emerald: '#10b981',
-    rose: '#f43f5e',
-    violet: '#8b5cf6',
+export const shadows = new Proxy(darkShadows, {
+  get(target, prop) {
+    const active = getActiveShadows();
+    return active[prop] !== undefined ? active[prop] : target[prop];
   },
+});
 
-  // Gradients for linear-gradient — true black base
-  cardGradient: ['rgba(14, 14, 14, 0.95)', 'rgba(8, 8, 8, 0.9)'],
-  cardGradientCyan: ['rgba(6, 182, 212, 0.12)', 'rgba(8, 8, 8, 0.95)'],
-  cardGradientEmerald: ['rgba(16, 185, 129, 0.12)', 'rgba(8, 8, 8, 0.95)'],
-  cardGradientAmber: ['rgba(245, 158, 11, 0.12)', 'rgba(8, 8, 8, 0.95)'],
-  cardGradientViolet: ['rgba(139, 92, 246, 0.12)', 'rgba(8, 8, 8, 0.95)'],
-  headerGradient: ['#000000', '#0a0a0a'],
-  accentButtonGradient: ['#06b6d4', '#0891b2'],
-  emeraldButtonGradient: ['#10b981', '#059669'],
-};
-
-export const gradients = {
-  cyanBlue: ['#06b6d4', '#3b82f6'],
-  emeraldTeal: ['#10b981', '#06b6d4'],
-  amberOrange: ['#f59e0b', '#f97316'],
-  cardDark: ['rgba(14, 14, 14, 0.95)', 'rgba(8, 8, 8, 0.9)'],
-  headerDark: ['#000000', '#0a0a0a'],
-};
-
-export const shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  glowCyan: {
-    shadowColor: '#06b6d4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  glowEmerald: {
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 6,
-  },
+// Re-export Theme Hooks & Context
+export {
+  ThemeProvider,
+  useTheme,
+  ThemeContext,
+  THEME_STORAGE_KEY,
+  darkColors,
+  lightColors,
+  darkGradients,
+  lightGradients,
+  darkShadows,
+  lightShadows,
+  setGlobalThemeMode,
 };
 
 export default colors;

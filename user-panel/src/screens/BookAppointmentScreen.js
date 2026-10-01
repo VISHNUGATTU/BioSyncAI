@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -24,11 +25,17 @@ import {
   Zap,
   Banknote,
   CreditCard,
+  Edit3,
+  Save,
+  RotateCcw,
+  FileText,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import { useAuthStore } from '../store/authStore';
 import { useUserAppointmentStore } from '../store/userAppointmentStore';
 import GlassCard from '../components/GlassCard';
+import draftService from '../services/draftService';
 
 const MORNING_SLOTS = [
   '06:30 - 07:30 AM',
@@ -44,6 +51,7 @@ const REGULAR_SLOTS = [
 
 export const BookAppointmentScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { user } = useAuthStore();
   const { testCatalog, fetchTestCatalog, bookAppointment, isLoading } =
     useUserAppointmentStore();
@@ -56,6 +64,18 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
   const [paymentMode, setPaymentMode] = useState('COD'); // 'COD' | 'Online'
   const [prepAcknowledged, setPrepAcknowledged] = useState(false);
   const [bookingSuccessData, setBookingSuccessData] = useState(null);
+
+  // Address and Special Notes
+  const [street, setStreet] = useState(user?.address?.street || '');
+  const [city, setCity] = useState(user?.address?.city || '');
+  const [pincode, setPincode] = useState(user?.address?.pincode || '');
+  const [notes, setNotes] = useState('');
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+
+  // Draft recovery state
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [isDraftLoading, setIsDraftLoading] = useState(true);
+  const hasInitializedRef = useRef(false);
 
   // Generate next 5 available booking dates
   const availableDates = Array.from({ length: 5 }, (_, i) => {
@@ -75,11 +95,113 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
     }
   }, []);
 
+  // 1. Load Draft on Screen Mount ("Never Lose User Progress")
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const draft = await draftService.loadDraft('appointment_booking');
+        if (draft && draft.data && isMounted) {
+          const d = draft.data;
+          let restored = false;
+
+          // If navigation didn't force a preselected ID, restore draft plan
+          if (!route?.params?.preselectedTestId && d.selectedPlanId) {
+            setSelectedPlanId(d.selectedPlanId);
+            restored = true;
+          }
+          if (typeof d.selectedDateIdx === 'number') {
+            setSelectedDateIdx(d.selectedDateIdx);
+            restored = true;
+          }
+          if (d.selectedSlot) {
+            setSelectedSlot(d.selectedSlot);
+            restored = true;
+          }
+          if (d.paymentMode) {
+            setPaymentMode(d.paymentMode);
+          }
+          if (typeof d.prepAcknowledged === 'boolean') {
+            setPrepAcknowledged(d.prepAcknowledged);
+          }
+          if (d.street) setStreet(d.street);
+          if (d.city) setCity(d.city);
+          if (d.pincode) setPincode(d.pincode);
+          if (d.notes) setNotes(d.notes);
+
+          if (restored) {
+            setHasRestoredDraft(true);
+          }
+        }
+      } catch (err) {
+        console.warn('Draft load warning:', err.message);
+      } finally {
+        if (isMounted) {
+          setIsDraftLoading(false);
+          hasInitializedRef.current = true;
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync preselected test if route param updates
   useEffect(() => {
     if (route?.params?.preselectedTestId) {
       setSelectedPlanId(route.params.preselectedTestId);
     }
   }, [route?.params?.preselectedTestId]);
+
+  // 2. Auto-save Draft on state changes
+  useEffect(() => {
+    if (!hasInitializedRef.current) return;
+
+    if (selectedPlanId || street || notes || selectedDateIdx > 0) {
+      draftService.saveDraft('appointment_booking', {
+        step: selectedPlanId ? 2 : 1,
+        totalSteps: 2,
+        data: {
+          selectedPlanId,
+          selectedDateIdx,
+          selectedSlot,
+          paymentMode,
+          prepAcknowledged,
+          street,
+          city,
+          pincode,
+          notes,
+        },
+      });
+    }
+  }, [
+    selectedPlanId,
+    selectedDateIdx,
+    selectedSlot,
+    paymentMode,
+    prepAcknowledged,
+    street,
+    city,
+    pincode,
+    notes,
+  ]);
+
+  const handleDiscardDraft = async () => {
+    await draftService.clearDraft('appointment_booking');
+    setSelectedPlanId(null);
+    setSelectedDateIdx(0);
+    setSelectedSlot(MORNING_SLOTS[1]);
+    setPaymentMode('COD');
+    setPrepAcknowledged(false);
+    setStreet(user?.address?.street || '');
+    setCity(user?.address?.city || '');
+    setPincode(user?.address?.pincode || '');
+    setNotes('');
+    setHasRestoredDraft(false);
+    Alert.alert('Draft Discarded', 'Your booking form has been reset to starting state.');
+  };
 
   const selectedPlan = testCatalog?.find((t) => t._id === selectedPlanId) || null;
 
@@ -96,23 +218,39 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
       return;
     }
 
+    const effectiveStreet = street.trim() || user?.address?.street;
+    const effectiveCity = city.trim() || user?.address?.city;
+    const effectivePincode = pincode.trim() || user?.address?.pincode;
+
+    if (!effectiveStreet || !effectiveCity) {
+      setIsEditingAddress(true);
+      Alert.alert(
+        'Address Required',
+        'Please enter your collection street address and city so our phlebotomist can reach you.'
+      );
+      return;
+    }
+
     const payload = {
       testId: selectedPlan._id,
       scheduledDate: availableDates[selectedDateIdx].isoString,
       timeSlot: selectedSlot,
       paymentMode,
       preparationAcknowledged: true,
-      address: user?.address || {
-        street: 'Flat 402, Cyber Heights',
-        city: 'Hyderabad',
-        pincode: '500081',
-        coordinates: { lat: 17.4485, lng: 78.3768 },
+      address: {
+        street: effectiveStreet,
+        city: effectiveCity,
+        pincode: effectivePincode || '500081',
+        notes: notes.trim(),
       },
     };
 
     const res = await bookAppointment(payload);
 
     if (res.success) {
+      // Clear draft on successful appointment booking
+      await draftService.clearDraft('appointment_booking');
+      setHasRestoredDraft(false);
       setBookingSuccessData(res.appointment);
     } else {
       Alert.alert('Booking Notice', res.message || 'Unable to book appointment');
@@ -168,11 +306,11 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
   // MAIN BOOKING WORKFLOW
   // -------------------------------------------------------------
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.bgDark }]}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Diagnostic Home Visits</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Diagnostic Home Visits</Text>
           <Text style={styles.headerSubtitle}>
             {selectedPlan
               ? 'Complete timing & collection details'
@@ -195,6 +333,26 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* DRAFT RECOVERY BANNER */}
+        {hasRestoredDraft ? (
+          <View style={styles.draftRecoveryBanner}>
+            <View style={styles.draftRecoveryLeft}>
+              <RotateCcw size={15} color={colors.emeraldLight} style={styles.draftRecoveryIcon} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.draftRecoveryTitle}>Booking Draft Restored</Text>
+                <Text style={styles.draftRecoverySub}>Resumed your selected slot & address</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.draftDiscardBtn} 
+              onPress={handleDiscardDraft}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.draftDiscardText}>Discard</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* STEP 1: OPTIONS NEATLY PRESENTED */}
         {!selectedPlan ? (
           <View style={styles.plansSection}>
@@ -213,7 +371,13 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                 return (
                   <TouchableOpacity
                     key={plan._id}
-                    style={styles.planCard}
+                    style={[
+                      styles.planCard,
+                      {
+                        backgroundColor: colors.bgCardElevated,
+                        borderColor: colors.borderSubtle,
+                      },
+                    ]}
                     onPress={() => setSelectedPlanId(plan._id)}
                     activeOpacity={0.85}
                   >
@@ -231,11 +395,11 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                             </View>
                           ) : null}
                         </View>
-                        <Text style={styles.planName}>{plan.testName}</Text>
+                        <Text style={[styles.planName, { color: colors.textPrimary }]}>{plan.testName}</Text>
                       </View>
                       <View style={styles.priceContainer}>
                         <Text style={styles.priceCurrency}>₹</Text>
-                        <Text style={styles.priceValue}>
+                        <Text style={[styles.priceValue, { color: colors.textPrimary }]}>
                           {plan.pricing?.basePrice || 499}
                         </Text>
                       </View>
@@ -243,7 +407,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
 
                     {/* Middle: Clinical Highlights & Fasting Info */}
                     <View style={styles.planMetaRow}>
-                      <View style={styles.metaPill}>
+                      <View style={[styles.metaPill, { backgroundColor: isDark ? '#121212' : '#f1f5f9' }]}>
                         <FlaskConical size={12} color={colors.cyan} />
                         <Text style={styles.metaPillText}>
                           {plan.sampleTypes?.join(', ') || 'Blood & Urine Samples'}
@@ -252,6 +416,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                       <View
                         style={[
                           styles.metaPill,
+                          { backgroundColor: isDark ? '#121212' : '#f1f5f9' },
                           fastingRequired ? styles.fastingPill : styles.regularPill,
                         ]}
                       >
@@ -294,14 +459,14 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
           /* STEP 2: "AFTER CLICKING THE PLAN THEN IT SHOULD [SHOW] TIMINGS AND ALL THE DETAILS" */
           <View style={styles.detailsWorkflowSection}>
             {/* Selected Plan Spotlight Banner */}
-            <GlassCard style={styles.selectedPlanBanner}>
+            <GlassCard style={[styles.selectedPlanBanner, { backgroundColor: isDark ? '#07181f' : '#ecfeff', borderColor: colors.cyan }]}>
               <View style={styles.selectedPlanHeader}>
                 <View style={{ flex: 1 }}>
                   <View style={styles.selectedTag}>
                     <Check size={11} color={colors.emeraldLight} />
                     <Text style={styles.selectedTagText}>SELECTED PLAN</Text>
                   </View>
-                  <Text style={styles.selectedPlanTitle}>{selectedPlan.testName}</Text>
+                  <Text style={[styles.selectedPlanTitle, { color: colors.textPrimary }]}>{selectedPlan.testName}</Text>
                   <Text style={styles.selectedPlanPrice}>
                     ₹{selectedPlan.pricing?.basePrice || 499} • {selectedPlan.category || 'Clinical Panel'}
                   </Text>
@@ -332,14 +497,21 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   return (
                     <TouchableOpacity
                       key={idx}
-                      style={[styles.dateChip, isSelected && styles.dateChipSelected]}
+                      style={[
+                        styles.dateChip,
+                        {
+                          backgroundColor: isDark ? '#0d0d0d' : '#f1f5f9',
+                          borderColor: colors.borderSubtle,
+                        },
+                        isSelected && styles.dateChipSelected,
+                      ]}
                       onPress={() => setSelectedDateIdx(idx)}
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.dateChipDay, isSelected && styles.dateChipDaySelected]}>
                         {d.day}
                       </Text>
-                      <Text style={[styles.dateChipVal, isSelected && styles.dateChipValSelected]}>
+                      <Text style={[styles.dateChipVal, { color: isSelected ? '#000000' : colors.textPrimary }, isSelected && styles.dateChipValSelected]}>
                         {d.dateStr}
                       </Text>
                     </TouchableOpacity>
@@ -365,12 +537,19 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   return (
                     <TouchableOpacity
                       key={slot}
-                      style={[styles.slotCard, isSelected && styles.slotCardSelected]}
+                      style={[
+                        styles.slotCard,
+                        {
+                          backgroundColor: isDark ? '#0d0d0d' : '#f1f5f9',
+                          borderColor: colors.borderSubtle,
+                        },
+                        isSelected && styles.slotCardSelected,
+                      ]}
                       onPress={() => setSelectedSlot(slot)}
                       activeOpacity={0.8}
                     >
                       <Clock size={12} color={isSelected ? '#000000' : colors.cyan} />
-                      <Text style={[styles.slotCardText, isSelected && styles.slotCardTextSelected]}>
+                      <Text style={[styles.slotCardText, { color: isSelected ? '#000000' : colors.textSecondary }, isSelected && styles.slotCardTextSelected]}>
                         {slot}
                       </Text>
                     </TouchableOpacity>
@@ -388,12 +567,19 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   return (
                     <TouchableOpacity
                       key={slot}
-                      style={[styles.slotCard, isSelected && styles.slotCardSelected]}
+                      style={[
+                        styles.slotCard,
+                        {
+                          backgroundColor: isDark ? '#0d0d0d' : '#f1f5f9',
+                          borderColor: colors.borderSubtle,
+                        },
+                        isSelected && styles.slotCardSelected,
+                      ]}
                       onPress={() => setSelectedSlot(slot)}
                       activeOpacity={0.8}
                     >
                       <Clock size={12} color={isSelected ? '#000000' : colors.textMuted} />
-                      <Text style={[styles.slotCardText, isSelected && styles.slotCardTextSelected]}>
+                      <Text style={[styles.slotCardText, { color: isSelected ? '#000000' : colors.textSecondary }, isSelected && styles.slotCardTextSelected]}>
                         {slot}
                       </Text>
                     </TouchableOpacity>
@@ -410,22 +596,100 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               </View>
               <GlassCard style={styles.addressCard}>
                 <View style={styles.addressHeaderRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.addressMain}>
-                      {user?.address?.street || 'Flat 402, Cyber Heights'}
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={[styles.addressMain, { color: colors.textPrimary }]}>
+                      {street || user?.address?.street || 'Enter house / street address'}
                     </Text>
                     <Text style={styles.addressCity}>
-                      {user?.address?.city || 'Hyderabad'}, {user?.address?.pincode || '500081'}
+                      {city || user?.address?.city || 'Hyderabad'}, {pincode || user?.address?.pincode || '500081'}
                     </Text>
                   </View>
-                  <View style={styles.distanceBadge}>
-                    <Zap size={11} color={colors.cyan} />
-                    <Text style={styles.distanceBadgeText}>Nearest Staff</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={[styles.editAddressBtn, isEditingAddress && { backgroundColor: colors.cyan }]}
+                    onPress={() => setIsEditingAddress(!isEditingAddress)}
+                    activeOpacity={0.7}
+                  >
+                    {isEditingAddress ? (
+                      <>
+                        <Save size={12} color="#000000" />
+                        <Text style={[styles.editAddressBtnText, { color: '#000000' }]}>DONE</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 size={12} color={colors.cyan} />
+                        <Text style={[styles.editAddressBtnText, { color: colors.cyan }]}>EDIT</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.dispatchNote}>
-                  BioSync distance routing will automatically assign the nearest available phlebotomist.
-                </Text>
+
+                {isEditingAddress ? (
+                  <View style={styles.addressEditForm}>
+                    <View style={styles.addressInputGroup}>
+                      <Text style={styles.addressInputLabel}>STREET / FLAT / APARTMENT</Text>
+                      <TextInput
+                        style={[styles.addressInputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
+                        value={street}
+                        onChangeText={setStreet}
+                        placeholder="e.g. Flat 402, Cyber Heights, Road No. 12"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+
+                    <View style={styles.addressRow}>
+                      <View style={[styles.addressInputGroup, { flex: 1, marginRight: 8 }]}>
+                        <Text style={styles.addressInputLabel}>CITY</Text>
+                        <TextInput
+                          style={[styles.addressInputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
+                          value={city}
+                          onChangeText={setCity}
+                          placeholder="e.g. Hyderabad"
+                          placeholderTextColor={colors.textMuted}
+                        />
+                      </View>
+                      <View style={[styles.addressInputGroup, { flex: 1 }]}>
+                        <Text style={styles.addressInputLabel}>PINCODE</Text>
+                        <TextInput
+                          style={[styles.addressInputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
+                          value={pincode}
+                          onChangeText={setPincode}
+                          placeholder="e.g. 500081"
+                          placeholderTextColor={colors.textMuted}
+                          keyboardType="number-pad"
+                          maxLength={6}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.addressInputGroup}>
+                      <Text style={styles.addressInputLabel}>SPECIAL INSTRUCTIONS / LANDMARK</Text>
+                      <TextInput
+                        style={[styles.addressInputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder="e.g. Opposite Metro Pillar 42, ring doorbell"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    {notes ? (
+                      <View style={styles.addressNotesPreview}>
+                        <FileText size={12} color={colors.textMuted} />
+                        <Text style={styles.addressNotesText} numberOfLines={2}>
+                          Note: {notes}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.dispatchNoteRow}>
+                      <Zap size={11} color={colors.cyan} />
+                      <Text style={styles.dispatchNote}>
+                        BioSync distance routing will automatically assign the nearest available phlebotomist.
+                      </Text>
+                    </View>
+                  </>
+                )}
               </GlassCard>
             </View>
 
@@ -441,7 +705,11 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={[
                     styles.paymentCard,
-                    paymentMode === 'COD' && styles.paymentCardSelected,
+                    {
+                      backgroundColor: colors.bgCardElevated,
+                      borderColor: colors.borderSubtle,
+                    },
+                    paymentMode === 'COD' && [styles.paymentCardSelected, { backgroundColor: isDark ? '#07181f' : '#ecfeff' }],
                   ]}
                   onPress={() => setPaymentMode('COD')}
                   activeOpacity={0.8}
@@ -457,7 +725,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                       </View>
                     ) : null}
                   </View>
-                  <Text style={styles.paymentTitle}>Cash on Delivery</Text>
+                  <Text style={[styles.paymentTitle, { color: colors.textPrimary }]}>Cash on Delivery</Text>
                   <Text style={styles.paymentDesc}>
                     Pay in cash or UPI to the certified phlebotomist at your doorstep upon sample collection.
                   </Text>
@@ -467,7 +735,11 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={[
                     styles.paymentCard,
-                    paymentMode === 'Online' && styles.paymentCardSelected,
+                    {
+                      backgroundColor: colors.bgCardElevated,
+                      borderColor: colors.borderSubtle,
+                    },
+                    paymentMode === 'Online' && [styles.paymentCardSelected, { backgroundColor: isDark ? '#07181f' : '#ecfeff' }],
                   ]}
                   onPress={() => setPaymentMode('Online')}
                   activeOpacity={0.8}
@@ -483,7 +755,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                       </View>
                     ) : null}
                   </View>
-                  <Text style={styles.paymentTitle}>Online Payment</Text>
+                  <Text style={[styles.paymentTitle, { color: colors.textPrimary }]}>Online Payment</Text>
                   <Text style={styles.paymentDesc}>
                     Instant settlement via UPI / Debit / Credit Card with automated digital tax invoice.
                   </Text>
@@ -1089,6 +1361,119 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#000000',
     letterSpacing: 1,
+  },
+  // Draft Recovery Banner
+  draftRecoveryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  draftRecoveryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingRight: 10,
+  },
+  draftRecoveryIcon: {
+    marginRight: 12,
+  },
+  draftRecoveryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.emeraldLight,
+    letterSpacing: 0.3,
+  },
+  draftRecoverySub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  draftDiscardBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  draftDiscardText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.crimson,
+    letterSpacing: 0.5,
+  },
+  // Address Edit
+  editAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  editAddressBtnText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  addressEditForm: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 10,
+  },
+  addressRow: {
+    flexDirection: 'row',
+  },
+  addressInputGroup: {
+    marginBottom: 4,
+  },
+  addressInputLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  addressInputField: {
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 12,
+  },
+  addressNotesPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  addressNotesText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  dispatchNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
   },
 });
 

@@ -10,7 +10,11 @@ import LoginScreen from '../screens/LoginScreen';
 import OtpScreen from '../screens/OtpScreen';
 import BookAppointmentScreen from '../screens/BookAppointmentScreen';
 import AppointmentsListScreen from '../screens/AppointmentsListScreen';
+import HealthSetupScreen from '../screens/HealthSetupScreen';
+import SupportScreen from '../screens/SupportScreen';
+import HealthTimelineScreen from '../screens/HealthTimelineScreen';
 import TabNavigator from './TabNavigator';
+import pushNotificationService from '../services/pushNotificationService';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +35,19 @@ export default function AppNavigator() {
     };
     init();
   }, []);
+
+  // Register Hardware Push Notifications on authentication
+  useEffect(() => {
+    if (token) {
+      pushNotificationService.registerForPushNotifications().catch((err) => {
+        console.warn('[AppNavigator] Push registration note:', err?.message || err);
+      });
+      const cleanupListeners = pushNotificationService.attachNotificationListeners();
+      return () => {
+        if (typeof cleanupListeners === 'function') cleanupListeners();
+      };
+    }
+  }, [token]);
 
   if (initializing) {
     return (
@@ -84,6 +101,19 @@ export default function AppNavigator() {
           <Stack.Screen
             name="AppointmentsList"
             component={AppointmentsListScreen}
+          />
+          <Stack.Screen
+            name="HealthSetup"
+            component={HealthSetupScreen}
+            options={{ animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="Support"
+            component={SupportScreen}
+          />
+          <Stack.Screen
+            name="HealthTimeline"
+            component={HealthTimelineScreen}
           />
         </>
       )}

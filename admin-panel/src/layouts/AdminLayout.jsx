@@ -8,35 +8,16 @@ const AdminLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const toggleSidebar = () => {
-    setMobileOpen((current) => !current);
-  };
-
-  const closeSidebar = () => {
-    setMobileOpen(false);
-  };
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[#f4f7fc] text-slate-900">
-      
-      {/* Ambient Background Glows */}
+    <div className="relative flex h-screen w-full overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+
+      {/* Ambient glow orbs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[-10%] top-[-10%] h-[50vh] w-[50vw] rounded-full bg-cyan-200/50 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-5%] h-[50vh] w-[50vw] rounded-full bg-blue-200/40 blur-[120px]" />
-        
-        {/* Subtle grid texture */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(15, 23, 42, 1) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 1) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
-        />
+        <div className="absolute -left-[15%] -top-[15%] h-[55vh] w-[55vw] rounded-full bg-cyan-200/30 blur-[140px]" />
+        <div className="absolute -bottom-[15%] -right-[10%] h-[45vh] w-[45vw] rounded-full bg-blue-200/25 blur-[120px]" />
+        <div className="absolute left-[30%] top-[40%] h-[30vh] w-[30vw] rounded-full bg-violet-100/20 blur-[100px]" />
       </div>
 
       {/* Mobile overlay */}
@@ -44,23 +25,20 @@ const AdminLayout = () => {
         <button
           type="button"
           aria-label="Close navigation"
-          onClick={closeSidebar}
-          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/15 backdrop-blur-sm md:hidden"
         />
       )}
 
       {/* Sidebar */}
-      <Sidebar isOpen={mobileOpen} onClose={closeSidebar} />
+      <Sidebar isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      {/* Main application area */}
+      {/* Main area */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
-        
-        {/* Header */}
-        <Header onMenuClick={toggleSidebar} />
+        <Header onMenuClick={() => setMobileOpen((v) => !v)} />
 
-        {/* Page content */}
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </div>
         </main>

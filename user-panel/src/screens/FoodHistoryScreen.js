@@ -21,15 +21,21 @@ import {
   AlertTriangle,
   ChevronRight,
   Calendar,
+  Activity,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
+import DataProvenanceBadge from '../components/DataProvenanceBadge';
+import HealthTimelineScreen from './HealthTimelineScreen';
 
 const MEAL_FILTERS = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export const FoodHistoryScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+  const [activeSegment, setActiveSegment] = useState('timeline');
   const [foodLogs, setFoodLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,39 +87,115 @@ export const FoodHistoryScreen = ({ navigation }) => {
     : 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.bgDark }]}>
       {/* Top App Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.borderSubtle }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Food Intelligence History</Text>
-          <Text style={styles.headerSubtitle}>
-            Longitudinal food intake, portion telemetry & glycemic impact
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            {activeSegment === 'timeline' ? 'Longitudinal Health Records' : 'Food Intelligence History'}
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            {activeSegment === 'timeline'
+              ? 'Unified clinical timeline across vitals, labs & nutrition'
+              : 'Longitudinal food intake, portion telemetry & glycemic impact'}
           </Text>
         </View>
 
+        {activeSegment === 'food' && (
+          <TouchableOpacity
+            style={styles.scanHeaderBtn}
+            onPress={() => navigation.navigate('Scan')}
+            activeOpacity={0.8}
+          >
+            <Scan size={14} color="#000000" />
+            <Text style={styles.scanHeaderBtnText}>SCAN MEAL</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Segment Switcher */}
+      <View
+        style={[
+          styles.segmentContainer,
+          {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+            borderColor: colors.borderSubtle,
+          },
+        ]}
+      >
         <TouchableOpacity
-          style={styles.scanHeaderBtn}
-          onPress={() => navigation.navigate('Scan')}
+          style={[
+            styles.segmentBtn,
+            activeSegment === 'timeline' && [
+              styles.segmentBtnActive,
+              { backgroundColor: colors.primary },
+            ],
+          ]}
+          onPress={() => setActiveSegment('timeline')}
           activeOpacity={0.8}
         >
-          <Scan size={14} color="#000000" />
-          <Text style={styles.scanHeaderBtnText}>SCAN MEAL</Text>
+          <Activity
+            size={14}
+            color={activeSegment === 'timeline' ? '#000000' : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.segmentBtnText,
+              {
+                color: activeSegment === 'timeline' ? '#000000' : colors.textSecondary,
+                fontWeight: activeSegment === 'timeline' ? '800' : '600',
+              },
+            ]}
+          >
+            Unified Health Timeline
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.segmentBtn,
+            activeSegment === 'food' && [
+              styles.segmentBtnActive,
+              { backgroundColor: colors.primary },
+            ],
+          ]}
+          onPress={() => setActiveSegment('food')}
+          activeOpacity={0.8}
+        >
+          <Utensils
+            size={14}
+            color={activeSegment === 'food' ? '#000000' : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.segmentBtnText,
+              {
+                color: activeSegment === 'food' ? '#000000' : colors.textSecondary,
+                fontWeight: activeSegment === 'food' ? '800' : '600',
+              },
+            ]}
+          >
+            Food Intelligence
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.cyan}
-            colors={[colors.cyan]}
-          />
-        }
-      >
+      {activeSegment === 'timeline' ? (
+        <HealthTimelineScreen navigation={navigation} embedded={true} />
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.cyan}
+              colors={[colors.cyan]}
+            />
+          }
+        >
         {/* Metric Summary Strip */}
         <View style={styles.statsStrip}>
           <GlassCard style={styles.statCard}>
@@ -121,7 +203,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
               <Flame size={14} color="#f97316" />
               <Text style={styles.statLabel}>CALORIES</Text>
             </View>
-            <Text style={styles.statValue}>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>
               {Math.round(totalCalories)}
               <Text style={styles.statUnit}> kcal</Text>
             </Text>
@@ -133,7 +215,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
               <Utensils size={14} color={colors.cyan} />
               <Text style={styles.statLabel}>MEALS LOGGED</Text>
             </View>
-            <Text style={styles.statValue}>{totalMeals}</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{totalMeals}</Text>
             <Text style={styles.statSub}>Confirmed items</Text>
           </GlassCard>
 
@@ -142,7 +224,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
               <TrendingUp size={14} color={colors.amberLight} />
               <Text style={styles.statLabel}>AVG GLUCOSE SURGE</Text>
             </View>
-            <Text style={styles.statValue}>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>
               +{avgSpike}
               <Text style={styles.statUnit}> mg/dL</Text>
             </Text>
@@ -162,13 +244,21 @@ export const FoodHistoryScreen = ({ navigation }) => {
               return (
                 <TouchableOpacity
                   key={filter}
-                  style={[styles.filterChip, isSelected && styles.filterChipSelected]}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isDark ? '#0d0d0d' : '#f1f5f9',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+                    },
+                    isSelected && styles.filterChipSelected,
+                  ]}
                   onPress={() => setSelectedFilter(filter)}
                   activeOpacity={0.8}
                 >
                   <Text
                     style={[
                       styles.filterChipText,
+                      { color: isSelected ? '#000000' : colors.textSecondary },
                       isSelected && styles.filterChipTextSelected,
                     ]}
                   >
@@ -216,11 +306,12 @@ export const FoodHistoryScreen = ({ navigation }) => {
                             {item.mealType || 'Meal'}
                           </Text>
                         </View>
+                        <DataProvenanceBadge type="USER_REPORTED" size="xs" showLabel={true} />
                         <Text style={styles.mealTimestamp}>
                           {formattedDate} • {formattedTime}
                         </Text>
                       </View>
-                      <Text style={styles.mealTitle}>
+                      <Text style={[styles.mealTitle, { color: colors.textPrimary }]}>
                         {item.recognizedItemName || item.foodItem || 'Recorded Nutrition Item'}
                       </Text>
                       <Text style={styles.mealQuantity}>
@@ -237,34 +328,43 @@ export const FoodHistoryScreen = ({ navigation }) => {
                   </View>
 
                   {/* Macronutrient Distribution Bar */}
-                  <View style={styles.macrosContainer}>
+                  <View style={[styles.macrosContainer, { backgroundColor: isDark ? '#121212' : '#f8fafc' }]}>
                     <View style={styles.macroCol}>
                       <Text style={styles.macroColLabel}>CARBS</Text>
-                      <Text style={styles.macroColVal}>{carbs.toFixed(1)}g</Text>
+                      <Text style={[styles.macroColVal, { color: colors.textPrimary }]}>{carbs.toFixed(1)}g</Text>
                     </View>
                     <View style={styles.macroCol}>
                       <Text style={styles.macroColLabel}>PROTEIN</Text>
-                      <Text style={styles.macroColVal}>{protein.toFixed(1)}g</Text>
+                      <Text style={[styles.macroColVal, { color: colors.textPrimary }]}>{protein.toFixed(1)}g</Text>
                     </View>
                     <View style={styles.macroCol}>
                       <Text style={styles.macroColLabel}>FAT</Text>
-                      <Text style={styles.macroColVal}>{fat.toFixed(1)}g</Text>
+                      <Text style={[styles.macroColVal, { color: colors.textPrimary }]}>{fat.toFixed(1)}g</Text>
                     </View>
                     <View style={styles.macroCol}>
                       <Text style={styles.macroColLabel}>FIBER</Text>
-                      <Text style={styles.macroColVal}>{fiber.toFixed(1)}g</Text>
+                      <Text style={[styles.macroColVal, { color: colors.textPrimary }]}>{fiber.toFixed(1)}g</Text>
                     </View>
                   </View>
 
                   {/* Glycemic Spike Telemetry */}
-                  <View style={styles.glycemicFootprintRow}>
-                    <View style={styles.spikePill}>
-                      <TrendingUp size={11} color={colors.amberLight} />
-                      <Text style={styles.spikePillText}>
-                        Spike: +{spike} mg/dL
-                      </Text>
+                  <View style={[styles.glycemicFootprintRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <View style={styles.spikePill}>
+                        <TrendingUp size={11} color={colors.amberLight} />
+                        <Text style={styles.spikePillText}>
+                          Spike: +{spike} mg/dL
+                        </Text>
+                      </View>
+                      <DataProvenanceBadge
+                        type="AI_ESTIMATE"
+                        size="xs"
+                        showLabel={true}
+                        showDisclaimer={true}
+                        customDisclaimer="Sec 1 & 47: Neural network projection calibrated from baseline vitals"
+                      />
                     </View>
-                    <Text style={styles.glycemicNote} numberOfLines={1}>
+                    <Text style={styles.glycemicNote}>
                       {item.predictedImpact?.aiWarningMessage ||
                         'Metabolic response calibrated with resting baseline'}
                     </Text>
@@ -278,7 +378,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
             <View style={styles.emptyIconCircle}>
               <Utensils size={32} color={colors.textMuted} />
             </View>
-            <Text style={styles.emptyTitle}>No Meal History Found</Text>
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Meal History Found</Text>
             <Text style={styles.emptySubtitle}>
               You haven't recorded any food scans under this filter. Point the camera at your meal to calculate glycemic impact and calibrate your nutrition.
             </Text>
@@ -294,6 +394,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
           </GlassCard>
         )}
       </ScrollView>
+      )}
     </View>
   );
 };
@@ -336,6 +437,34 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#000000',
     letterSpacing: 0.5,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 6,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  segmentBtnText: {
+    fontSize: 12,
   },
   scrollView: {
     flex: 1,

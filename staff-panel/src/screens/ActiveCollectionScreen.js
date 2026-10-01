@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Platform,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,17 +43,30 @@ import {
   FileCheck,
   TestTube,
   X,
+  RotateCcw,
+  Navigation,
+  Phone,
+  MapPin,
+  AlertOctagon,
+  Scan,
 } from 'lucide-react-native';
-import { colors } from '../theme/colors';
+import { colors, useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import useAuthStore from '../store/authStore';
 import staffApi from '../api/staffApi';
 import GlassCard from '../components/GlassCard';
 import PatientBaselineModal from '../components/PatientBaselineModal';
 import OpsHelplineModal from '../components/OpsHelplineModal';
+import ClinicalExceptionModal from '../components/ClinicalExceptionModal';
 import VitalsFormSection from '../components/VitalsFormSection';
+import collectionDraftService from '../services/collectionDraftService';
+import mapNavigationService from '../services/mapNavigationService';
+import BarcodeScannerModal from '../components/BarcodeScannerModal';
+import offlineSyncQueueService from '../services/offlineSyncQueueService';
+import { OfflineSyncBanner } from '../components/OfflineSyncBanner';
 
 export const ActiveCollectionScreen = ({ route, navigation }) => {
+  const { isDark } = useTheme();
   const { appointment } = route.params || {};
   const { collectSampleAndCOD, dropoffSamplesToLab } = useAppointmentStore();
   const role = useAuthStore((state) => state.role || state.user?.role || 'lab_assistant');
@@ -60,6 +74,42 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
 
   const user = appointment?.user || {};
   const patientName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Patient';
+
+  const address = appointment?.address || appointment?.location || {};
+  const formattedAddress =
+    typeof address === 'string'
+      ? address
+      : [address.street, address.area, address.city, address.pincode]
+          .filter(Boolean)
+          .join(', ') || 'Address on file';
+
+  const handleOpenMaps = () => {
+    const coords =
+      address.coordinates ||
+      appointment?.location?.coordinates ||
+      (appointment?.latitude && appointment?.longitude
+        ? { latitude: appointment.latitude, longitude: appointment.longitude }
+        : null);
+    mapNavigationService.openNavigation(address, coords, patientName);
+  };
+
+  const handleCallPatient = () => {
+    const phone =
+      user.phoneNumber ||
+      user.phone ||
+      address.phone ||
+      appointment?.phone;
+    if (!phone) {
+      Alert.alert(
+        'Phone Unavailable',
+        'No phone number is available for this patient.'
+      );
+      return;
+    }
+    Linking.openURL(`tel:${phone}`).catch(() => {
+      Alert.alert('Call Error', 'Could not open phone dialer.');
+    });
+  };
 
   // Wizard Step State (1: OTP -> 2: Questions & Vitals -> 3: Specimens -> 4: Payment -> 5: Sealed/Lab)
   const isAlreadyCollecting = appointment?.status === 'Collecting';
@@ -138,6 +188,8 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
     barcode: '',
   });
   const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [targetSpecimenForScan, setTargetSpecimenForScan] = useState('blood');
 
   // STEP 4: Payment State
   const billAmount = appointment?.totalPrice || appointment?.billingAmount || 499;
@@ -247,6 +299,180 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
       firmicutesToBacteroidetesRatio: '1.2',
     },
   });
+
+  const appointmentId = appointment?._id;
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [isDraftLoading, setIsDraftLoading] = useState(true);
+  const hasInitializedRef = useRef(false);
+
+  // 1. Load active collection draft on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      if (!appointmentId) {
+        setIsDraftLoading(false);
+        hasInitializedRef.current = true;
+        return;
+      }
+      try {
+        const draft = await collectionDraftService.loadDraft(appointmentId);
+        if (draft && isMounted) {
+          let restored = false;
+          if (draft.currentStep && draft.currentStep >= 1 && draft.currentStep <= 5) {
+            setCurrentStep(draft.currentStep);
+            restored = true;
+          }
+          if (draft.otpCode) {
+            setOtpCode(draft.otpCode);
+          }
+          if (typeof draft.otpVerified === 'boolean') {
+            setOtpVerified(draft.otpVerified);
+          }
+          if (draft.intakeVitals) {
+            setIntakeVitals((prev) => ({ ...prev, ...draft.intakeVitals }));
+            restored = true;
+          }
+          if (draft.medicalHistory) {
+            setMedicalHistory((prev) => ({ ...prev, ...draft.medicalHistory }));
+            restored = true;
+          }
+          if (draft.lifestyle) {
+            setLifestyle((prev) => ({ ...prev, ...draft.lifestyle }));
+            restored = true;
+          }
+          if (draft.specimens) {
+            setSpecimens((prev) => ({ ...prev, ...draft.specimens }));
+            restored = true;
+          }
+          if (draft.barcodeStatus) {
+            setBarcodeStatus((prev) => ({ ...prev, ...draft.barcodeStatus }));
+          }
+          if (draft.paymentMode) {
+            setPaymentMode(draft.paymentMode);
+          }
+          if (typeof draft.isPaymentConfirmed === 'boolean') {
+            setIsPaymentConfirmed(draft.isPaymentConfirmed);
+          }
+          if (draft.createdSampleId) {
+            setCreatedSampleId(draft.createdSampleId);
+          }
+          if (restored) {
+            setHasRestoredDraft(true);
+          }
+        }
+      } catch (err) {
+        console.warn('[ActiveCollection] Draft load warning:', err.message);
+      } finally {
+        if (isMounted) {
+          setIsDraftLoading(false);
+          hasInitializedRef.current = true;
+        }
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [appointmentId]);
+
+  // 2. Debounced auto-save draft whenever inputs or step change
+  useEffect(() => {
+    if (!hasInitializedRef.current || !appointmentId) return;
+    if (isDroppedAtLab || vitalsSubmitted) return;
+
+    collectionDraftService.saveDraft(appointmentId, {
+      currentStep,
+      otpCode,
+      otpVerified,
+      intakeVitals,
+      medicalHistory,
+      lifestyle,
+      specimens,
+      barcodeStatus,
+      paymentMode,
+      isPaymentConfirmed,
+      createdSampleId,
+    });
+  }, [
+    appointmentId,
+    currentStep,
+    otpCode,
+    otpVerified,
+    intakeVitals,
+    medicalHistory,
+    lifestyle,
+    specimens,
+    barcodeStatus,
+    paymentMode,
+    isPaymentConfirmed,
+    createdSampleId,
+    isDroppedAtLab,
+    vitalsSubmitted,
+  ]);
+
+  // 3. User action to discard restored draft and reset to default
+  const handleDiscardDraft = () => {
+    Alert.alert(
+      'Reset Collection Form?',
+      'This will clear previously restored progress for this patient visit and reset the form to the default state.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Form',
+          style: 'destructive',
+          onPress: async () => {
+            if (appointmentId) {
+              await collectionDraftService.clearDraft(appointmentId);
+            }
+            setHasRestoredDraft(false);
+            setCurrentStep(isAlreadyCollecting ? 2 : 1);
+            setOtpCode(appointment?.collectionOTP || '');
+            setOtpVerified(isAlreadyCollecting);
+            setIntakeVitals({
+              systolic: '120',
+              diastolic: '80',
+              pulse: '72',
+              spO2: '98',
+              temperatureF: '98.4',
+              heightCm: '172',
+              weightKg: '68',
+              bmi: '23.0',
+              waistCm: '82',
+            });
+            setMedicalHistory({
+              chronicConditions: ['None'],
+              currentMedications: 'None',
+              knownAllergies: 'None',
+              familyHistory: ['None'],
+            });
+            setLifestyle({
+              fastingObserved: true,
+              fastingDurationHours: '10',
+              dietPreference: 'Non-Veg',
+              smokingHabit: 'Non-smoker',
+              alcoholConsumption: 'None',
+              sleepHours: '7.5',
+              activityLevel: 'Light Activity',
+              stressLevel: 'Low',
+              bleedingDisorderHistory: false,
+              faintingHistory: false,
+              activeSymptoms: 'Asymptomatic / None',
+              phlebotomistNotes: '',
+            });
+            setSpecimens({
+              blood: { collected: false, barcode: '', photoUri: null, manualMode: false, tubesFilled: false },
+              urine: { collected: false, barcode: '', photoUri: null, manualMode: false },
+              stool: { collected: false, barcode: '', photoUri: null, manualMode: false },
+              coldStorageConfirmed: false,
+            });
+            setBarcodeStatus({ checking: false, verified: false, error: null, barcode: '' });
+            setPaymentMode('Cash');
+            setIsPaymentConfirmed(true);
+            Alert.alert('Reset Complete', 'Collection wizard has been reset to defaults.');
+          },
+        },
+      ]
+    );
+  };
 
   const updateModalMetric = (category, field, value, subField = null) => {
     setModalVitals((prev) => {
@@ -366,6 +592,46 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
   const [baselineLoading, setBaselineLoading] = useState(false);
   const [baselineData, setBaselineData] = useState(null);
   const [helplineModalVisible, setHelplineModalVisible] = useState(false);
+  const [exceptionModalVisible, setExceptionModalVisible] = useState(false);
+  const [exceptionLoading, setExceptionLoading] = useState(false);
+
+  // Field Clinical Exception Submission Handler
+  const handleReportClinicalException = async ({ reason, notes, exceptionType }) => {
+    try {
+      setExceptionLoading(true);
+      await staffApi.rejectSample(
+        appointmentId,
+        reason,
+        notes,
+        exceptionType
+      );
+      if (appointmentId) {
+        await collectionDraftService.clearDraft(appointmentId);
+      }
+      setExceptionModalVisible(false);
+      Alert.alert(
+        'Exception Recorded',
+        `Collection exception (${reason}) has been logged. Patient and operations dispatch have been notified.`,
+        [
+          {
+            text: 'Return to Schedule',
+            onPress: () => {
+              if (isDoctor) {
+                navigation.navigate('DoctorTabs', { screen: 'DoctorAppointments' });
+              } else {
+                navigation.navigate('MainTabs', { screen: 'Visits' });
+              }
+            },
+          },
+        ]
+      );
+    } catch (err) {
+      console.error('[ActiveCollection] Exception submission failed:', err);
+      Alert.alert('Exception Error', err?.response?.data?.message || err?.message || 'Failed to submit clinical exception.');
+    } finally {
+      setExceptionLoading(false);
+    }
+  };
 
   // Helper: Auto-Compute BMI
   const handleVitalChange = (field, value) => {
@@ -572,6 +838,26 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
     }
   };
 
+  // Step 3: Hardware Barcode Camera Viewfinder Scanner Handlers
+  const openBarcodeScanner = (specimenKey = 'blood') => {
+    setTargetSpecimenForScan(specimenKey);
+    setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = (scannedCode) => {
+    if (!scannedCode) return;
+    const trimmed = scannedCode.trim();
+    setSpecimens((p) => ({
+      ...p,
+      [targetSpecimenForScan]: {
+        ...p[targetSpecimenForScan],
+        barcode: trimmed,
+        collected: true,
+      },
+    }));
+    verifyBarcodeUniqueness(trimmed);
+  };
+
   // Step 3: Specimen Camera Photo Capture (Photo First)
   const handleCaptureSpecimenPhoto = async (specimenType) => {
     try {
@@ -776,6 +1062,22 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
         paymentDetails,
       };
 
+      // Check if device is currently offline (dead-zone safeguard)
+      if (!offlineSyncQueueService.isOnline()) {
+        await offlineSyncQueueService.enqueueAction('COLLECT_SAMPLE', {
+          appointmentId: appointment._id,
+          payload,
+          photoUri: specimens.blood.photoUri || null,
+        });
+        setCurrentStep(5);
+        Alert.alert(
+          'Offline Mode: Collection Saved 🛡️',
+          'You are currently in an offline area or basement dead-zone. Sample collection data has been secured in offline memory and will automatically synchronize when network connectivity is re-established.',
+          [{ text: 'Continue to Seal & Drop-off' }]
+        );
+        return;
+      }
+
       const res = await collectSampleAndCOD(appointment._id, payload);
 
       if (res.success) {
@@ -797,6 +1099,58 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
         Alert.alert('Collection Error', res.message || 'Failed to complete sample collection.');
       }
     } catch (err) {
+      const isNetErr = !err.response || err.code === 'ECONNABORTED' || err.message?.includes('Network Error');
+      if (isNetErr) {
+        try {
+          const specimenBarcodes = {
+            blood: specimens.blood.barcode,
+            urine: specimens.urine.barcode,
+            stool: specimens.stool.barcode,
+          };
+          const clinicalIntake = {
+            vitals: intakeVitals,
+            medicalHistory,
+            lifestyle,
+            preScreening: {
+              fastingObserved: lifestyle.fastingObserved,
+              fastingDurationHours: Number(lifestyle.fastingDurationHours) || 10,
+              morningMedicationsTaken: lifestyle.morningMedicationsTaken || 'None',
+              bleedingDisorderHistory: lifestyle.bleedingDisorderHistory,
+              faintingHistory: lifestyle.faintingHistory,
+              activeSymptoms: lifestyle.activeSymptoms,
+              phlebotomistObservations: lifestyle.phlebotomistNotes,
+            },
+          };
+          const paymentDetails = {
+            isPaid: isPaymentConfirmed,
+            amount: Number(billAmount) || 499,
+            method: paymentMode,
+          };
+          const payload = {
+            barcode: specimens.blood.barcode,
+            specimenBarcodes,
+            clinicalIntake,
+            questionnaire: clinicalIntake.preScreening,
+            vitals: intakeVitals,
+            paymentDetails,
+          };
+
+          await offlineSyncQueueService.enqueueAction('COLLECT_SAMPLE', {
+            appointmentId: appointment._id,
+            payload,
+            photoUri: specimens.blood.photoUri || null,
+          });
+          setCurrentStep(5);
+          Alert.alert(
+            'Connection Lost: Queue Active 📡',
+            'Network connection was lost during submission. Sample data has been safely queued in offline memory and will sync automatically once LTE/Wi-Fi is reconnected.',
+            [{ text: 'Continue to Seal & Drop-off' }]
+          );
+          return;
+        } catch (queueErr) {
+          console.error('Offline enqueue failed:', queueErr);
+        }
+      }
       Alert.alert('Collection Error', err.response?.data?.message || err.message || 'Failed to complete sample collection.');
     } finally {
       setLoading(false);
@@ -808,19 +1162,57 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       const sampleIdToDrop = createdSampleId || appointment?._id;
+
+      if (!offlineSyncQueueService.isOnline()) {
+        if (sampleIdToDrop) {
+          await offlineSyncQueueService.enqueueAction('DROP_OFF_SAMPLE', {
+            sampleId: sampleIdToDrop,
+            appointmentId: appointment?._id,
+          });
+        }
+        setIsDroppedAtLab(true);
+        setResultsDoneOption('no');
+        if (appointmentId) {
+          collectionDraftService.clearDraft(appointmentId);
+        }
+        Alert.alert(
+          'Offline Mode: Handover Queued 🏢',
+          'Specimen handover queued for laboratory intake sync once back online.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
       if (sampleIdToDrop) {
         await dropoffSamplesToLab([sampleIdToDrop]);
       }
       setIsDroppedAtLab(true);
       setResultsDoneOption('no');
+      if (appointmentId) {
+        collectionDraftService.clearDraft(appointmentId);
+      }
       Alert.alert(
         'Handover Completed',
         'Specimens officially logged at Central Laboratory intake.\n\nPlease declare below whether analyzer results are done or yet to be obtained.',
         [{ text: 'OK' }]
       );
     } catch (err) {
+      const isNetErr = !err.response || err.code === 'ECONNABORTED' || err.message?.includes('Network Error');
+      if (isNetErr) {
+        const sampleIdToDrop = createdSampleId || appointment?._id;
+        if (sampleIdToDrop) {
+          try {
+            await offlineSyncQueueService.enqueueAction('DROP_OFF_SAMPLE', {
+              sampleId: sampleIdToDrop,
+              appointmentId: appointment?._id,
+            });
+          } catch (e) {
+            console.error('Failed to enqueue dropoff:', e);
+          }
+        }
+      }
       setIsDroppedAtLab(true);
-      Alert.alert('Notice', 'Sample recorded as dropped at laboratory.');
+      Alert.alert('Notice', 'Sample recorded as dropped at laboratory (sync queued).');
     } finally {
       setLoading(false);
     }
@@ -944,6 +1336,9 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
 
       const res = await staffApi.submitTestResults(targetSampleId, [], cleanedVitals);
       if (res.success) {
+        if (appointmentId) {
+          collectionDraftService.clearDraft(appointmentId);
+        }
         setVitalsModalVisible(false);
         setVitalsSubmitted(true);
         Alert.alert(
@@ -961,9 +1356,9 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bgDark }]} edges={['top']}>
       {/* Top Navbar */}
-      <View style={styles.navbar}>
+      <View style={[styles.navbar, { backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => {
@@ -988,12 +1383,32 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
           <Text style={styles.navTitle}>Field Collection Wizard</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.helplineBtn}
-          onPress={() => setHelplineModalVisible(true)}
-        >
-          <Headset size={18} color={colors.roseLight} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.navIconBtn}
+            onPress={handleOpenMaps}
+            activeOpacity={0.7}
+          >
+            <Navigation size={17} color={colors.cyan} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.helplineBtn}
+            onPress={() => setHelplineModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Headset size={18} color={colors.roseLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navExceptionBtn}
+            onPress={() => setExceptionModalVisible(true)}
+            activeOpacity={0.7}
+            accessibilityLabel="Report Collection Exception"
+          >
+            <AlertOctagon size={17} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stacked Step Progress Indicator Bar */}
@@ -1010,7 +1425,30 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
         ))}
       </View>
 
+      {/* Dead-Zone & Background Network Offline Sync Status Banner */}
+      <OfflineSyncBanner />
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* DRAFT RECOVERY BANNER */}
+        {hasRestoredDraft ? (
+          <View style={styles.draftRecoveryBanner}>
+            <View style={styles.draftRecoveryLeft}>
+              <RotateCcw size={15} color="#10b981" style={styles.draftRecoveryIcon} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.draftRecoveryTitle}>Collection Session Restored</Text>
+                <Text style={styles.draftRecoverySub}>Progress restored from offline memory</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.draftDiscardBtn} 
+              onPress={handleDiscardDraft}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.draftDiscardText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* ============================================================== */}
         {/* STEP 1: PATIENT OTP VERIFICATION                               */}
         {/* ============================================================== */}
@@ -1027,6 +1465,33 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
                   <Text style={styles.phoneText}>{user.phoneNumber || user.phone || 'Phone on file'}</Text>
                   <Text style={styles.timeSlotText}>Scheduled Slot: {appointment?.timeSlot || '09:00 AM'}</Text>
                 </View>
+              </View>
+
+              <View style={styles.addressRow}>
+                <MapPin size={14} color={colors.primaryLight} style={{ marginTop: 2 }} />
+                <Text style={styles.addressText} numberOfLines={2}>
+                  {formattedAddress}
+                </Text>
+              </View>
+
+              <View style={styles.patientActionRow}>
+                <TouchableOpacity
+                  style={styles.patientMapBtn}
+                  onPress={handleOpenMaps}
+                  activeOpacity={0.8}
+                >
+                  <Navigation size={13} color="#ffffff" />
+                  <Text style={styles.patientMapBtnText}>Map Directions</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.patientCallBtn}
+                  onPress={handleCallPatient}
+                  activeOpacity={0.8}
+                >
+                  <Phone size={13} color={colors.primaryLight} />
+                  <Text style={styles.patientCallBtnText}>Call Patient</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.testPackageBanner}>
@@ -1087,6 +1552,15 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
                     <ChevronRight size={18} color="#fff" />
                   </>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.stepExceptionBtn}
+                onPress={() => setExceptionModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <AlertOctagon size={16} color="#ef4444" />
+                <Text style={styles.stepExceptionBtnText}>Patient Absent / Refused / Unable to Begin</Text>
               </TouchableOpacity>
             </GlassCard>
           </View>
@@ -1422,6 +1896,15 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               <Text style={styles.primaryActionBtnText}>Save Intake & Next: Collect Specimens (Step 3)</Text>
               <ChevronRight size={18} color="#fff" />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stepExceptionBtn}
+              onPress={() => setExceptionModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <AlertOctagon size={16} color="#ef4444" />
+              <Text style={styles.stepExceptionBtnText}>Report Intake Failure / Patient Non-Fasting</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1517,6 +2000,15 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
                     </Text>
                   </TouchableOpacity>
 
+                  <TouchableOpacity
+                    style={styles.stationScanCamBtn}
+                    onPress={() => openBarcodeScanner('blood')}
+                    activeOpacity={0.8}
+                  >
+                    <Scan size={16} color="#000000" />
+                    <Text style={styles.stationScanCamBtnText}>Scan Tube Barcode (Camera)</Text>
+                  </TouchableOpacity>
+
                   {specimens.blood.barcode ? (
                     <TouchableOpacity
                       style={styles.stationVerifyBtn}
@@ -1587,12 +2079,21 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               ) : (
                 <View>
                   <TouchableOpacity
+                    style={styles.specimenScanBtn}
+                    onPress={() => openBarcodeScanner('blood')}
+                    activeOpacity={0.8}
+                  >
+                    <Scan size={18} color="#000000" />
+                    <Text style={styles.specimenScanBtnText}>Scan Vacutainer 1D/2D Barcode</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={styles.capturePrimaryBtn}
                     onPress={() => handleCaptureSpecimenPhoto('blood')}
                     activeOpacity={0.8}
                   >
-                    <Camera size={20} color="#fff" />
-                    <Text style={styles.capturePrimaryText}>Take Blood Vial Barcode Photo First</Text>
+                    <Camera size={18} color="#fff" />
+                    <Text style={styles.capturePrimaryText}>Take Blood Vial Barcode Photo</Text>
                   </TouchableOpacity>
 
                   {!specimens.blood.manualMode ? (
@@ -1676,13 +2177,22 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               ) : (
                 <View>
                   <TouchableOpacity
+                    style={[styles.specimenScanBtn, { backgroundColor: colors.amber }]}
+                    onPress={() => openBarcodeScanner('urine')}
+                    activeOpacity={0.8}
+                  >
+                    <Scan size={18} color="#000000" />
+                    <Text style={styles.specimenScanBtnText}>Scan Urine Container Barcode</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={[styles.capturePrimaryBtn, { borderColor: colors.amber, backgroundColor: colors.amber + '15' }]}
                     onPress={() => handleCaptureSpecimenPhoto('urine')}
                     activeOpacity={0.8}
                   >
-                    <Camera size={20} color={colors.amberLight} />
+                    <Camera size={18} color={colors.amberLight} />
                     <Text style={[styles.capturePrimaryText, { color: colors.amberLight }]}>
-                      Take Urine Container Barcode Photo First
+                      Take Urine Container Barcode Photo
                     </Text>
                   </TouchableOpacity>
 
@@ -1749,13 +2259,22 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               ) : (
                 <View>
                   <TouchableOpacity
+                    style={[styles.specimenScanBtn, { backgroundColor: '#facc15' }]}
+                    onPress={() => openBarcodeScanner('stool')}
+                    activeOpacity={0.8}
+                  >
+                    <Scan size={18} color="#000000" />
+                    <Text style={styles.specimenScanBtnText}>Scan Stool Container Barcode</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     style={[styles.capturePrimaryBtn, { borderColor: '#a16207', backgroundColor: '#a1620718' }]}
                     onPress={() => handleCaptureSpecimenPhoto('stool')}
                     activeOpacity={0.8}
                   >
-                    <Camera size={20} color="#facc15" />
+                    <Camera size={18} color="#facc15" />
                     <Text style={[styles.capturePrimaryText, { color: '#facc15' }]}>
-                      Take Stool Vial Barcode Photo First
+                      Take Stool Vial Barcode Photo
                     </Text>
                   </TouchableOpacity>
 
@@ -1818,6 +2337,15 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
               <CircleCheck size={18} color="#fff" />
               <Text style={styles.primaryActionBtnText}>Next: Record Payment Collection (Step 4)</Text>
               <ChevronRight size={18} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.stepExceptionBtn}
+              onPress={() => setExceptionModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <AlertOctagon size={16} color="#ef4444" />
+              <Text style={styles.stepExceptionBtnText}>Difficult Draw / Vein Collapse / Compromised Specimen</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -2191,6 +2719,30 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
         appointmentId={appointment?._id}
       />
 
+      {/* Field Clinical Exception Modal */}
+      <ClinicalExceptionModal
+        visible={exceptionModalVisible}
+        onClose={() => setExceptionModalVisible(false)}
+        onSubmit={handleReportClinicalException}
+        loading={exceptionLoading}
+        appointmentId={appointment?._id}
+        patientName={patientName}
+      />
+
+      {/* Physical Barcode Camera Viewfinder Scanner Modal */}
+      <BarcodeScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onBarcodeScanned={handleBarcodeScanned}
+        sampleType={
+          targetSpecimenForScan === 'blood'
+            ? 'Blood Vacutainer Tube'
+            : targetSpecimenForScan === 'urine'
+            ? 'Urine Container'
+            : 'Stool Specimen Container'
+        }
+      />
+
       {/* Central Laboratory Analyzer Vitals Entry Modal */}
       <Modal
         visible={vitalsModalVisible}
@@ -2273,6 +2825,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.cyan + '15',
+    borderWidth: 1,
+    borderColor: colors.cyan + '40',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   helplineBtn: {
     width: 36,
     height: 36,
@@ -2280,6 +2842,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.rose + '15',
     borderWidth: 1,
     borderColor: colors.rose + '40',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navExceptionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2326,6 +2898,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 12,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  patientActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  patientMapBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  patientMapBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  patientCallBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.cyan + '15',
+    borderWidth: 1,
+    borderColor: colors.cyan + '40',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  patientCallBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.cyanLight,
   },
   avatar: {
     width: 44,
@@ -2672,6 +3300,39 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.cyanLight,
   },
+  stationScanCamBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.cyan,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  stationScanCamBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  specimenScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.cyan,
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  specimenScanBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
   manualFallbackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2921,6 +3582,23 @@ const styles = StyleSheet.create({
   secondaryActionBtnText: {
     color: colors.textPrimary,
     fontSize: 13,
+    fontWeight: '700',
+  },
+  stepExceptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  stepExceptionBtnText: {
+    color: '#ef4444',
+    fontSize: 12,
     fontWeight: '700',
   },
   // Step 5 Decision & Vitals Styles
@@ -3287,6 +3965,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: colors.cyan,
+  },
+  // Draft Recovery Banner
+  draftRecoveryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  draftRecoveryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingRight: 10,
+  },
+  draftRecoveryIcon: {
+    marginRight: 12,
+  },
+  draftRecoveryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#10b981',
+    letterSpacing: 0.3,
+  },
+  draftRecoverySub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  draftDiscardBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  draftDiscardText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ef4444',
+    letterSpacing: 0.5,
   },
 });
 

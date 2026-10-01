@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import userApi from '../api/userApi';
+import { setOnUnauthorizedCallback } from '../api/axios';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -38,6 +39,18 @@ export const useAuthStore = create((set, get) => ({
     } catch (e) {
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  fetchProfile: async () => {
+    try {
+      const res = await userApi.getProfile();
+      if (res.success && res.user) {
+        set({ user: res.user });
+        AsyncStorage.setItem('biosync_user_profile', JSON.stringify(res.user));
+        return res.user;
+      }
+    } catch (e) {}
+    return null;
   },
 
   fetchVitals: async () => {
@@ -113,5 +126,16 @@ export const useAuthStore = create((set, get) => ({
     AsyncStorage.setItem('biosync_user_profile', JSON.stringify(updated));
   },
 }));
+
+// Automatically invalidate auth state and return to login screen on 401
+setOnUnauthorizedCallback(() => {
+  useAuthStore.setState({
+    user: null,
+    token: null,
+    latestVitals: null,
+    isAuthenticated: false,
+    error: 'Session expired. Please log in again.',
+  });
+});
 
 export default useAuthStore;
