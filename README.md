@@ -12,11 +12,11 @@ BioSync AI is a comprehensive, production-grade medical diagnostic platform brid
 - [System Architecture](#-system-architecture)
 - [Subsystems & Repositories](#-subsystems--repositories)
 - [Key Innovations & Technical Highlights](#-key-innovations--technical-highlights)
+- [Role-Based Access Control (RBAC) & Security](#-role-based-access-control-rbac--security)
 - [Directory Structure](#-directory-structure)
-- [Environment Variables](#-environment-variables)
+- [Environment Configuration](#-environment-configuration)
 - [Getting Started (Local Development on Windows OS)](#-getting-started-local-development-on-windows-os)
 - [Production Deployment (Docker Compose)](#-production-deployment-docker-compose)
-- [Pre-Seeded Test Credentials](#-pre-seeded-test-credentials)
 - [API & Health Endpoints](#-api--health-endpoints)
 - [License](#-license)
 
@@ -27,7 +27,7 @@ BioSync AI is a comprehensive, production-grade medical diagnostic platform brid
 Traditional diagnostic pathology is fragmented: patients endure clinic queues, specimen tubes risk mislabeling or cold-chain decay, and lab reports sit isolated from daily nutritional habits.
 
 **BioSync AI solves this end-to-end through 5 tightly integrated micro-applications:**
-1. **Dynamic Doorstep Logistics**: Uber-like geo-dispatch of mobile phlebotomists with real-time GPS tracking and live ETA.
+1. **Dynamic Doorstep Logistics**: Intelligent dispatch of mobile phlebotomists with real-time GPS tracking and live ETA calculations.
 2. **Doorstep Cryptographic Chain-of-Custody**: Patient OTP verification, dual-barcode scanning, and photographic specimen evidence before departure.
 3. **Dead-Zone Offline Safeguard**: Phlebotomist app operates in basement/rural dead-zones with automatic background queue synchronization upon reconnection.
 4. **Comprehensive 56-Metric Pathology**: Complete clinical analyzer profiling covering metabolic, cardiovascular, immunology, hormonal, organ function, and micronutrient panels.
@@ -91,7 +91,7 @@ flowchart TD
 ### 2. `ai-engine` — FastAPI Machine Learning Microservice
 * **Runtime**: Python 3.11, FastAPI, Uvicorn.
 * **Capabilities**: Multimodal video/frame nutritional decomposition, macro estimation (calories, carbs, protein, fats, fibers), and glycemic spike projection (`+mg/dL`).
-* **Health Check**: `/health` liveness probe for container orchestration.
+* **Health Check**: Dedicated `/health` liveness probe for container orchestration.
 
 ### 3. `admin-panel` — Central Operations & Pathology Web Portal
 * **Runtime**: React 19, Vite 8, TailwindCSS 4, Lucide React, Recharts.
@@ -129,6 +129,22 @@ flowchart TD
 
 ---
 
+## 🛡️ Role-Based Access Control (RBAC) & Security
+
+BioSync AI enforces zero-trust data access across all touchpoints with strict cryptographic and protocol boundaries:
+
+| Persona | Authentication Mechanism | Permissions & Scope |
+| :--- | :--- | :--- |
+| **Super Admin** | Bcrypt-hashed password + JWT Bearer Auth | Complete platform visibility: operations dispatch, revenue analytics, audit logs, user management, and cron triggers. |
+| **Operations Manager** | Bcrypt-hashed password + JWT Bearer Auth | Fleet management, phlebotomist dispatch, customer support/helpline dispute triage. |
+| **Pathologist / Doctor** | Secure phone authentication + Staff JWT | Clinical verification queue, anomaly annotation, and electronic signature authorization on laboratory certificates. |
+| **Phlebotomist (Staff)** | Secure phone authentication + Staff JWT | Geofenced appointment assignments, specimen collection wizard, cold-chain compliance logging, and lab handovers. |
+| **Patient User** | Dynamic Phone OTP Verification + Session JWT | Personal appointment scheduling, live technician tracking, digital lab reports, and AI nutritional diary. |
+
+> **Security Note**: All passwords are encrypted using `bcryptjs` with salt work factor 10. API endpoints are guarded by rate limiters, HTTP-only cookie headers, Cross-Origin Resource Policy (CORP), and JSON Web Tokens. Initial administrative provisioning is performed securely via deployment environment variables.
+
+---
+
 ## 📂 Directory Structure
 
 ```text
@@ -138,6 +154,7 @@ BIO_SYNC_AI/
 │   │   ├── api/              # Axios instance & certificate view helpers
 │   │   ├── components/       # UI Cards, Sidebar, Header, Modals
 │   │   ├── pages/            # Dashboard, Appointments, Reports, Analytics
+│   │   └── store/            # State management
 │   ├── Dockerfile            # Multi-stage Vite build + Nginx static server
 │   ├── nginx.conf            # SPA fallback & asset caching configuration
 │   └── package.json
@@ -188,9 +205,9 @@ BIO_SYNC_AI/
 
 ---
 
-## 🔑 Environment Variables
+## 🔑 Environment Configuration
 
-Each subsystem has a dedicated `.env.example` file in its folder. Copy the example file to `.env` in each directory:
+Each subsystem reads from its own environment variables. Standard configuration templates (`.env.example`) are provided in each subsystem directory.
 
 ### `server/.env`
 ```env
@@ -219,14 +236,14 @@ VITE_API_URL=http://localhost:6446/api
 
 ### `staff-panel/.env`
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.137.1:6446/api
+EXPO_PUBLIC_API_URL=http://<YOUR_LAN_IP_OR_HOST>:6446/api
 EXPO_PUBLIC_GOOGLE_MAPS_KEY=your_google_maps_key
 ```
 
 ### `user-panel/.env`
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.137.1:6446/api
-EXPO_PUBLIC_HOST_IP=192.168.137.1
+EXPO_PUBLIC_API_URL=http://<YOUR_LAN_IP_OR_HOST>:6446/api
+EXPO_PUBLIC_HOST_IP=<YOUR_LAN_IP_OR_HOST>
 ```
 
 ### `ai-engine/.env`
@@ -256,7 +273,7 @@ cd ai-engine
 pip install -r requirements.txt
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
-*API Docs*: `http://localhost:8000/docs`
+*API Documentation*: `http://localhost:8000/docs`
 
 ### Terminal 3: Admin Operations Web Portal
 ```powershell
@@ -306,22 +323,6 @@ Stop services:
 ```bash
 docker compose down
 ```
-
----
-
-## 👥 Pre-Seeded Test Credentials
-
-Use these verified accounts to immediately test all user roles:
-
-| Role | Portal / App | Login Identifier | Password | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Super Admin** | Admin Web Portal | `admin@biosync.ai` | `adminpassword123` | Full access to dispatch, logs, reports |
-| **Operations Manager** | Admin Web Portal | `ops.manager@biosync.ai` | `adminpassword123` | Logistics & Helpline management |
-| **Pathologist** | Staff Mobile App (Doctor Mode) | `9876543201` | `doctor123` | Dr. Ananya Roy (Sample verification) |
-| **Phlebotomist** | Staff Mobile App | `9123456701` | `staffpassword123` | Karan Sharma (Indiranagar Zone) |
-| **Phlebotomist** | Staff Mobile App | `9123456702` | `staffpassword123` | Deepak Verma (Koramangala Zone) |
-| **Patient User** | User Mobile App | `9800000001` | *OTP Access* | Arjun Mehta (Baseline Vitals active) |
-| **Patient User** | User Mobile App | `9800000002` | *OTP Access* | Neha Kapoor (Recalibration Due) |
 
 ---
 
