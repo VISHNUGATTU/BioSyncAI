@@ -10,7 +10,9 @@ import { sendIndianSMS } from '../configs/sendSMS.js';
 import { 
   verifyFirebaseIdToken, 
   createFirebaseCustomToken, 
-  getFirebaseProjectConfig 
+  getFirebaseProjectConfig,
+  sendFirebasePhoneVerification,
+  verifyFirebasePhoneCode,
 } from '../configs/firebase.js';
 
 const isCookieSecure = () => {
@@ -54,12 +56,21 @@ export const sendOTP = asyncHandler(async (req, res) => {
   const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
+  // 1. Attempt Native Google Firebase Phone SMS dispatch
+  let fbSessionInfo = null;
+  let fbDeliveryAttempt = await sendFirebasePhoneVerification(cleanNumber);
+
+  if (fbDeliveryAttempt.success) {
+    fbSessionInfo = fbDeliveryAttempt.sessionInfo;
+  }
+
   await User.findOneAndUpdate(
     { phoneNumber: cleanNumber },
     { 
       $set: { 
         'otp.code': generatedOTP, 
-        'otp.expiresAt': expiresAt 
+        'otp.expiresAt': expiresAt,
+        ...(fbSessionInfo ? { firebaseSessionInfo: fbSessionInfo } : {}),
       } 
     },
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
@@ -73,23 +84,23 @@ export const sendOTP = asyncHandler(async (req, res) => {
   console.log(`║ 🛡️  Provider: Google Firebase Authentication          ║`);
   console.log('╚══════════════════════════════════════════════════════╝\n');
 
-  try {
-    if (process.env.FAST2SMS_API_KEY) {
-       await sendIndianSMS(cleanNumber, generatedOTP);
-    }
-  } catch (smsError) {
-    console.log('⚠️ SMS Delivery Notice:', smsError.message);
+  if (fbDeliveryAttempt.reason === 'CONFIGURATION_NOT_FOUND') {
+    console.log('💡 Note: To deliver SMS directly to your phone via Google, enable "Phone" in Firebase Console:');
+    console.log('👉 https://console.firebase.google.com/project/biosyncai-fd8a2/authentication/providers\n');
   }
 
   res.status(200).json({ 
     success: true, 
-    message: `Verification code sent via Firebase Google auth provider.`,
+    message: fbDeliveryAttempt.success 
+      ? 'Verification code dispatched via Google Firebase SMS.'
+      : 'Verification code generated for Firebase Google authentication.',
+    sessionInfo: fbSessionInfo,
     firebaseProjectId: 'biosyncai-fd8a2',
   });
 });
 
 export const verifyOTP = asyncHandler(async (req, res) => {
-  const { phoneNumber, otp, idToken } = req.body;
+  const { phoneNumber, otp, idToken, sessionInfo } = req.body;
 
   // 1. Direct Firebase Google Auth Verification (via client-side Google Firebase Phone Auth ID token)
   if (idToken) {
