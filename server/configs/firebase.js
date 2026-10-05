@@ -1,24 +1,35 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import dotenv from 'dotenv';
 import axios from 'axios';
 
 dotenv.config();
 
 let isFirebaseInitialized = false;
+let messagingService = null;
 
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    isFirebaseInitialized = true;
-    console.log('[FCM] Firebase Admin Initialized Successfully');
+    const rawVal = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    if (rawVal.startsWith('{') && rawVal.includes('-----BEGIN PRIVATE KEY-----')) {
+      const serviceAccount = JSON.parse(rawVal);
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      const app = getApps().length === 0
+        ? initializeApp({ credential: cert(serviceAccount) })
+        : getApps()[0];
+      messagingService = getMessaging(app);
+      isFirebaseInitialized = true;
+      console.log('[FCM] Firebase Admin Initialized Successfully');
+    } else {
+      console.log('[FCM] Placeholder FIREBASE_SERVICE_ACCOUNT detected. Standard FCM disabled (Expo Push API active).');
+    }
   } catch (err) {
-    console.error('[FCM] Service Account parsing failed. Push notifications disabled:', err.message);
+    console.warn('[FCM] Service Account initialization warning (Expo Push API active):', err.message);
   }
 } else {
-  console.warn('[FCM] FIREBASE_SERVICE_ACCOUNT is missing. Standard FCM disabled (Expo Push API remains active).');
+  console.log('[FCM] FIREBASE_SERVICE_ACCOUNT not configured. Standard FCM disabled (Expo Push API active).');
 }
 
 /**
@@ -64,7 +75,7 @@ export const sendPushNotification = async (targetToken, title, body, data = {}) 
   }
 
   // 2. Native FCM Dispatch via Firebase Admin (Standalone Builds)
-  if (!isFirebaseInitialized) {
+  if (!isFirebaseInitialized || !messagingService) {
     return null;
   }
 
@@ -93,7 +104,7 @@ export const sendPushNotification = async (targetToken, title, body, data = {}) 
       },
     };
 
-    const fcmRes = await admin.messaging().send(payload);
+    const fcmRes = await messagingService.send(payload);
     console.log(`[FCM] Native push delivered to ${targetToken.substring(0, 16)}...: "${title}"`);
     return fcmRes;
   } catch (error) {
@@ -102,4 +113,4 @@ export const sendPushNotification = async (targetToken, title, body, data = {}) 
   }
 };
 
-export default admin;
+export default { isInitialized: () => isFirebaseInitialized };
