@@ -8,12 +8,29 @@ const testCatalogRouter = express.Router();
 
 // Available tests catalog (public read for patients and booking)
 testCatalogRouter.get('/', getTests);
-// Only SuperAdmins can view all tests (including inactive ones) via admin route
-testCatalogRouter.get('/admin', authAdmin, authorizeRoles('SuperAdmin'), getAdminTests);
 
-// Only SuperAdmins can create or modify test catalog data
-testCatalogRouter.post('/', authAdmin, authorizeRoles('SuperAdmin'), auditLogger('TestCatalog'), createTest);
+// Admin portal tests view (accessible to all authenticated administrative staff)
+testCatalogRouter.get(
+  '/admin',
+  authAdmin,
+  getAdminTests
+);
 
-testCatalogRouter.put('/:id', authAdmin, authorizeRoles('SuperAdmin'), auditLogger('TestCatalog'), updateTest);
+// Admin test creation & modification (SuperAdmin, Operations_Manager, Admin)
+testCatalogRouter.post(
+  '/',
+  authAdmin,
+  authorizeRoles('SuperAdmin', 'Operations_Manager', 'Admin'),
+  auditLogger('TestCatalog'),
+  createTest
+);
+
+testCatalogRouter.put(
+  '/:id',
+  authAdmin,
+  authorizeRoles('SuperAdmin', 'Operations_Manager', 'Admin'),
+  auditLogger('TestCatalog'),
+  updateTest
+);
 
 export default testCatalogRouter;

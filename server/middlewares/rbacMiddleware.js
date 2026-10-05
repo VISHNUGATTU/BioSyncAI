@@ -2,7 +2,6 @@
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     // 1. Identify the authenticated entity dynamically
-    // In a multi-portal architecture, different auth middlewares populate different request objects.
     const entity = req.admin || req.user || req.labAssistant;
 
     if (!entity) {
@@ -10,23 +9,45 @@ export const authorizeRoles = (...allowedRoles) => {
       throw new Error('Not authorized: Authentication context missing.');
     }
 
-    // 2. Determine the entity's roles
-    // We normalize the roles into an array to support users with multiple roles in the future.
+    // 2. Determine the entity's roles with proper precedence
     let userRoles = [];
     
-    if (entity.role) {
-      // Admins or users with explicit role fields (e.g., 'SuperAdmin', 'Data_Analyst')
-      userRoles = Array.isArray(entity.role) ? entity.role : [entity.role];
-    } else if (req.user) {
-      // Implicit role for standard users
-      userRoles = ['User'];
+    if (req.admin) {
+      if (req.admin.role) {
+        userRoles = Array.isArray(req.admin.role) ? req.admin.role : [req.admin.role];
+      } else {
+        userRoles = ['Admin'];
+      }
     } else if (req.labAssistant) {
-      // Implicit role for lab assistants
-      userRoles = ['LabAssistant'];
+      if (req.labAssistant.role) {
+        userRoles = Array.isArray(req.labAssistant.role) ? req.labAssistant.role : [req.labAssistant.role];
+      } else {
+        userRoles = ['LabAssistant'];
+      }
+    } else if (req.user) {
+      if (req.user.role) {
+        userRoles = Array.isArray(req.user.role) ? req.user.role : [req.user.role];
+      } else {
+        userRoles = ['User'];
+      }
+    } else if (entity.role) {
+      userRoles = Array.isArray(entity.role) ? entity.role : [entity.role];
     }
 
-    // 3. Check for intersection between allowed roles and user roles
-    const hasAccess = userRoles.some(role => allowedRoles.includes(role));
+    // Helper to normalize strings: removes underscores, spaces, hyphens, lowercase
+    const normalize = (r) => String(r || '').toLowerCase().replace(/[_\s-]/g, '');
+
+    // 3. SuperAdmin has overarching administrative access
+    const isSuperAdmin = userRoles.some(r => normalize(r) === 'superadmin');
+    if (isSuperAdmin) {
+      return next();
+    }
+
+    // 4. Check for intersection between allowed roles and user roles (case-insensitive & format-resilient)
+    const hasAccess = userRoles.some(userRole => {
+      const normUser = normalize(userRole);
+      return allowedRoles.some(allowed => normalize(allowed) === normUser);
+    });
 
     if (!hasAccess) {
       res.status(403);
@@ -38,3 +59,5 @@ export const authorizeRoles = (...allowedRoles) => {
     next();
   };
 };
+
+export default authorizeRoles;

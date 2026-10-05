@@ -38,42 +38,42 @@ adminRouter.get('/dashboard/locations', getDashboardLocations);
 adminRouter.put('/profile', updateAdminProfile);
 
 // Monitoring
-adminRouter.get('/logs', authorizeRoles('SuperAdmin'), getSystemLogs);
-adminRouter.get('/error-monitoring', authorizeRoles('SuperAdmin', 'Data_Analyst'), getErrorMonitoringData);
-adminRouter.post('/error-monitoring/:id/retry', authorizeRoles('SuperAdmin'), retryFailedJob);
-adminRouter.put('/error-monitoring/:id/acknowledge', authorizeRoles('SuperAdmin', 'Support_Staff'), acknowledgeIncident);
-adminRouter.get('/audit', authorizeRoles('SuperAdmin'), getAuditLogs);
-adminRouter.get('/tickets', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllTickets);
-adminRouter.put('/tickets/:id/status', authorizeRoles('SuperAdmin', 'Support_Staff'), updateTicketStatus);
-adminRouter.post('/tickets/:id/reply', authorizeRoles('SuperAdmin', 'Support_Staff'), replyToTicket);
-adminRouter.get('/dashboard/ai-telemetry', authorizeRoles('SuperAdmin', 'Data_Analyst'), getAIMonitoring);
+adminRouter.get('/logs', authorizeRoles('SuperAdmin', 'Operations_Manager'), getSystemLogs);
+adminRouter.get('/error-monitoring', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Data_Analyst'), getErrorMonitoringData);
+adminRouter.post('/error-monitoring/:id/retry', authorizeRoles('SuperAdmin', 'Operations_Manager'), retryFailedJob);
+adminRouter.put('/error-monitoring/:id/acknowledge', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), acknowledgeIncident);
+adminRouter.get('/audit', authorizeRoles('SuperAdmin', 'Operations_Manager'), getAuditLogs);
+adminRouter.get('/tickets', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getAllTickets);
+adminRouter.put('/tickets/:id/status', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), updateTicketStatus);
+adminRouter.post('/tickets/:id/reply', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), replyToTicket);
+adminRouter.get('/dashboard/ai-telemetry', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Data_Analyst'), getAIMonitoring);
 
 // Entity Management
-adminRouter.get('/users', authorizeRoles('SuperAdmin', 'Support_Staff', 'Data_Analyst'), getUsers);
-adminRouter.get('/users/:id', authorizeRoles('SuperAdmin', 'Support_Staff'), getUserDetails);
-adminRouter.put('/users/:id/status', authorizeRoles('SuperAdmin'), updateUserStatus);
-adminRouter.get('/transactions', authorizeRoles('SuperAdmin', 'Data_Analyst'), getTransactions);
-adminRouter.get('/reports', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllReports);
-adminRouter.post('/reports/:id/verify', authorizeRoles('SuperAdmin', 'Support_Staff'), verifyAndApproveReport);
-adminRouter.get('/appointments', authorizeRoles('SuperAdmin', 'Support_Staff'), getAllAppointments);
-adminRouter.put('/appointments/:id', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Appointment'), updateAdminAppointment);
+adminRouter.get('/users', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff', 'Data_Analyst'), getUsers);
+adminRouter.get('/users/:id', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getUserDetails);
+adminRouter.put('/users/:id/status', authorizeRoles('SuperAdmin', 'Operations_Manager'), updateUserStatus);
+adminRouter.get('/transactions', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Data_Analyst'), getTransactions);
+adminRouter.get('/reports', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff', 'Doctor'), getAllReports);
+adminRouter.post('/reports/:id/verify', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff', 'Doctor'), verifyAndApproveReport);
+adminRouter.get('/appointments', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getAllAppointments);
+adminRouter.put('/appointments/:id', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), auditLogger('Appointment'), updateAdminAppointment);
 
-adminRouter.get('/doctors', authorizeRoles('SuperAdmin'), getAllDoctors);
-adminRouter.post('/doctors', authorizeRoles('SuperAdmin'), auditLogger('Doctor'), createDoctor);
-adminRouter.put('/doctors/:id', authorizeRoles('SuperAdmin'), auditLogger('Doctor'), updateDoctor);
+adminRouter.get('/doctors', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getAllDoctors);
+adminRouter.post('/doctors', authorizeRoles('SuperAdmin', 'Operations_Manager'), auditLogger('Doctor'), createDoctor);
+adminRouter.put('/doctors/:id', authorizeRoles('SuperAdmin', 'Operations_Manager'), auditLogger('Doctor'), updateDoctor);
 
-adminRouter.get('/roles', authorizeRoles('SuperAdmin'), getRoles);
+adminRouter.get('/roles', authorizeRoles('SuperAdmin', 'Operations_Manager'), getRoles);
 adminRouter.post('/roles', authorizeRoles('SuperAdmin'), auditLogger('Role'), createRole);
 adminRouter.put('/roles/:id', authorizeRoles('SuperAdmin'), auditLogger('Role'), updateRole);
 adminRouter.delete('/roles/:id', authorizeRoles('SuperAdmin'), auditLogger('Role'), deleteRole);
 
-adminRouter.put('/samples/:id/assign', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Sample'), assignLabAssistantToSample);
-adminRouter.post('/samples/:id/auto-assign', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Sample'), autoAssignStaff);
-adminRouter.post('/appointments/:id/auto-assign', authorizeRoles('SuperAdmin', 'Support_Staff'), auditLogger('Appointment'), autoAssignStaff);
-adminRouter.get('/appointments/:id/nearby-staff', authorizeRoles('SuperAdmin', 'Support_Staff'), getNearbyStaff);
+adminRouter.put('/samples/:id/assign', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), auditLogger('Sample'), assignLabAssistantToSample);
+adminRouter.post('/samples/:id/auto-assign', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), auditLogger('Sample'), autoAssignStaff);
+adminRouter.post('/appointments/:id/auto-assign', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), auditLogger('Appointment'), autoAssignStaff);
+adminRouter.get('/appointments/:id/nearby-staff', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getNearbyStaff);
 
 // Baseline Calibration Cron Trigger
-adminRouter.post('/trigger-recalibration-cron', authorizeRoles('SuperAdmin'), async (req, res, next) => {
+adminRouter.post('/trigger-recalibration-cron', authorizeRoles('SuperAdmin', 'Operations_Manager'), async (req, res, next) => {
   try {
     const { runBaselineCalibrationCheck } = await import('../services/recalibrationCron.js');
     const stats = await runBaselineCalibrationCheck();
@@ -88,9 +88,9 @@ adminRouter.post('/trigger-recalibration-cron', authorizeRoles('SuperAdmin'), as
 });
 
 // Staff Management (Strictly Audited)
-adminRouter.post('/lab-assistants', authorizeRoles('SuperAdmin'), auditLogger('LabAssistant'), createLabAssistant);
-adminRouter.get('/lab-assistants', authorizeRoles('SuperAdmin', 'Support_Staff'), getLabAssistants);
-adminRouter.put('/lab-assistants/:id', authorizeRoles('SuperAdmin'), auditLogger('LabAssistant'), updateLabAssistant);
+adminRouter.post('/lab-assistants', authorizeRoles('SuperAdmin', 'Operations_Manager'), auditLogger('LabAssistant'), createLabAssistant);
+adminRouter.get('/lab-assistants', authorizeRoles('SuperAdmin', 'Operations_Manager', 'Support_Staff'), getLabAssistants);
+adminRouter.put('/lab-assistants/:id', authorizeRoles('SuperAdmin', 'Operations_Manager'), auditLogger('LabAssistant'), updateLabAssistant);
 adminRouter.delete('/lab-assistants/:id', authorizeRoles('SuperAdmin'), auditLogger('LabAssistant'), deleteLabAssistant);
 
 export default adminRouter;
