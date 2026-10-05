@@ -440,14 +440,14 @@ export const HomeScreen = ({ navigation }) => {
                   <Sparkles size={20} color={colors.cyan} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.onboardingTitle}>Baseline Health Profile Required</Text>
+                  <Text style={styles.onboardingTitle}>Set Up Health Profile</Text>
                   <Text style={styles.onboardingSub}>
-                    To unlock AI-powered food scanning and personalized glycemic surge predictions, establish your initial clinical profile.
+                    Set up your vitals to unlock personalized nutrition analysis and insights.
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.onboardingOptionsHeader}>CHOOSE YOUR ASSESSMENT METHOD:</Text>
+              <Text style={styles.onboardingOptionsHeader}>SETUP OPTIONS:</Text>
 
               <View style={styles.onboardingOptionsRow}>
                 {/* Option 1: Book Home Collection */}
@@ -504,7 +504,7 @@ export const HomeScreen = ({ navigation }) => {
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={[styles.reportBannerTitle, { color: colors.textPrimary }]}>
-                      Official Diagnostic Report
+                      Diagnostic Report
                     </Text>
                     <View style={styles.nablChip}>
                       <Text style={styles.nablChipText}>NABL VERIFIED</Text>
@@ -520,7 +520,7 @@ export const HomeScreen = ({ navigation }) => {
                 onPress={() => setSelectedReportAppt(completedWithReport)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.viewReportActionBtnText}>VIEW & DOWNLOAD REPORT</Text>
+                <Text style={styles.viewReportActionBtnText}>VIEW REPORT</Text>
                 <ArrowRight size={14} color="#000000" />
               </TouchableOpacity>
             </GlassCard>
@@ -534,7 +534,7 @@ export const HomeScreen = ({ navigation }) => {
           <View style={styles.sectionHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <ActivityIcon size={16} color={colors.cyan} />
-              <Text style={styles.sectionTitle}>REAL-TIME BIOMETRIC VITALS</Text>
+              <Text style={styles.sectionTitle}>HEALTH VITALS</Text>
               <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
             </View>
             {vitalsPresent ? (

@@ -116,9 +116,9 @@ export const AppointmentsListScreen = ({ navigation }) => {
       const hoursUntil = (scheduledTime - Date.now()) / (1000 * 60 * 60);
       if (hoursUntil < 8 && hoursUntil > -1) {
         Alert.alert(
-          'Reschedule Locked (Section 33)',
-          'Home visit appointments cannot be modified within 8 hours of scheduled collection. This ensures allocated phlebotomist routes and cold chain sample integrity are maintained.',
-          [{ text: 'Understood' }]
+          'Reschedule Locked',
+          'Appointments cannot be modified within 8 hours of scheduled collection time.',
+          [{ text: 'OK' }]
         );
         return;
       }
@@ -132,16 +132,16 @@ export const AppointmentsListScreen = ({ navigation }) => {
     const willSuspend = strikesAfter >= 2;
 
     Alert.alert(
-      'Cancel Diagnostic Visit?',
-      `Section 33 Cancellation Policy & Strike Warning:\n\n• Current strikes: ${currentStrikes}/2\n• Cancelling this confirmed booking will issue Strike #${strikesAfter}.\n\n${
+      'Cancel Appointment?',
+      `Are you sure you want to cancel this booking?${
         willSuspend
-          ? '⚠️ CRITICAL: Reaching 2 strikes will immediately SUSPEND your account from scheduling new home visits.'
-          : 'Note: Accounts reaching 2 strikes are automatically suspended from home visit bookings.'
-      }\n\nDo you wish to proceed with cancellation?`,
+          ? '\n\nNote: Reaching 2 cancellation strikes will temporarily pause home visit booking.'
+          : currentStrikes > 0 ? `\n\nCurrent strikes: ${currentStrikes}/2.` : ''
+      }`,
       [
-        { text: 'Keep Visit', style: 'cancel' },
+        { text: 'Keep Booking', style: 'cancel' },
         {
-          text: 'Confirm Cancellation',
+          text: 'Cancel Booking',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -152,19 +152,19 @@ export const AppointmentsListScreen = ({ navigation }) => {
 
               if (res.warning) {
                 Alert.alert(
-                  'Visit Cancelled with Strike',
-                  `Your appointment has been cancelled.\n\nStrike count: ${res.strikeCount}/2.\nAccount status: ${res.accountStatus}.\n${
+                  'Appointment Cancelled',
+                  `Your appointment has been cancelled.${
                     res.accountStatus === 'Suspended'
-                      ? 'Your account has been suspended from scheduling new home visits.'
-                      : 'Please note future cancellations may lead to account suspension.'
+                      ? ' Your account has been temporarily suspended from new bookings.'
+                      : ''
                   }`
                 );
               } else {
-                Alert.alert('Visit Cancelled', res.message || 'Appointment cancelled successfully.');
+                Alert.alert('Appointment Cancelled', res.message || 'Appointment cancelled successfully.');
               }
             } catch (err) {
               const msg = err.response?.data?.message || err.message || 'Failed to cancel appointment.';
-              Alert.alert('Cancellation Blocked', msg);
+              Alert.alert('Cancellation Error', msg);
             } finally {
               setCancellingId(null);
             }
@@ -183,18 +183,14 @@ export const AppointmentsListScreen = ({ navigation }) => {
       const verifiedBy = item.sample?.verifiedBy || 'Dr. Arvind Sharma, MD';
       const shareUrl = item.reportPdfUrl || getReportViewUrl(item._id);
 
-      const shareMessage = `🏥 BIOSYNC AI — OFFICIAL DIAGNOSTIC REPORT
+      const shareMessage = `🏥 BIOSYNC DIAGNOSTIC REPORT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Diagnostic Panel: ${testNames}
-NABL Accreditation: ISO 15189:2022 Certified
-Specimen Barcode: #${barcode}
-Verification: Verified & Digitally Signed by ${verifiedBy}
+Panel: ${testNames}
+Specimen ID: #${barcode}
+Verified by: ${verifiedBy}
 
-🔗 Access Certified Diagnostic Web Report / PDF:
-${shareUrl}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Sec. 1 & 47 Notice: This report represents certified wet-lab medical measurements issued by BioSync Diagnostics Central Lab.`;
+View Report:
+${shareUrl}`;
 
       await Share.share(
         Platform.OS === 'ios'
@@ -298,7 +294,7 @@ Sec. 1 & 47 Notice: This report represents certified wet-lab medical measurement
             <AlertCircle size={14} color="#ef4444" />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#ef4444', marginBottom: 2 }}>
-                Collection Non-Performance Notice
+                Sample Collection Notice
               </Text>
               <Text
                 style={[
@@ -331,7 +327,7 @@ Sec. 1 & 47 Notice: This report represents certified wet-lab medical measurement
             >
               <RotateCcw size={13} color={colors.primary} />
               <Text style={[styles.rescheduleBtnText, { color: colors.primary, fontWeight: '800' }]}>
-                RESCHEDULE VISIT NOW
+                RESCHEDULE VISIT
               </Text>
             </TouchableOpacity>
           </View>

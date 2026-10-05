@@ -343,8 +343,8 @@ export const MapLocationPickerModal = ({
             <X size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitleWrap}>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Lock Exact Doorstep</Text>
-            <Text style={styles.headerSubtitle}>Tap map or drag pin directly to your entrance</Text>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Select Location</Text>
+            <Text style={styles.headerSubtitle}>Tap map or drag pin to your doorstep</Text>
           </View>
           <TouchableOpacity
             style={[styles.locateHeaderBtn, isLocating && styles.locateHeaderBtnDisabled]}
@@ -377,7 +377,7 @@ export const MapLocationPickerModal = ({
               <View style={styles.mapLoadingOverlay}>
                 <ActivityIndicator size="large" color={colors.cyan} />
                 <Text style={[styles.mapLoadingText, { color: colors.textSecondary }]}>
-                  Loading satellite & street grid...
+                  Loading map...
                 </Text>
               </View>
             )}
@@ -405,7 +405,7 @@ export const MapLocationPickerModal = ({
               {/* Doorstep Precision Badge */}
               <View style={styles.accuracyBadge}>
                 <View style={styles.accuracyDot} />
-                <Text style={styles.accuracyText}>ACCURATE TO DOORSTEP (HIGH SATELLITE FIDELITY)</Text>
+                <Text style={styles.accuracyText}>EXACT DOORSTEP PINNED</Text>
               </View>
 
               {/* Resolved Address Readout */}
@@ -426,20 +426,20 @@ export const MapLocationPickerModal = ({
               {/* Detailed Flat & Landmark Inputs */}
               <View style={styles.inputsRow}>
                 <View style={[styles.inputCol, { flex: 1, marginRight: 8 }]}>
-                  <Text style={[styles.inputLabel, { color: colors.textMuted }]}>HOUSE / FLAT / VILLA NO</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textMuted }]}>HOUSE / FLAT NO.</Text>
                   <TextInput
                     style={[styles.inputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
-                    placeholder="e.g. Flat 402, Tower B"
+                    placeholder="e.g. Flat 402"
                     placeholderTextColor={colors.textMuted}
                     value={houseNumber}
                     onChangeText={setHouseNumber}
                   />
                 </View>
                 <View style={[styles.inputCol, { flex: 1.2 }]}>
-                  <Text style={[styles.inputLabel, { color: colors.textMuted }]}>LANDMARK / GATE</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textMuted }]}>LANDMARK</Text>
                   <TextInput
                     style={[styles.inputField, { color: colors.textPrimary, borderColor: colors.borderSubtle }]}
-                    placeholder="e.g. Near Metro Pillar 42"
+                    placeholder="e.g. Near Metro Station"
                     placeholderTextColor={colors.textMuted}
                     value={landmark}
                     onChangeText={setLandmark}
@@ -451,7 +451,7 @@ export const MapLocationPickerModal = ({
               <View style={styles.assuranceStrip}>
                 <Navigation size={12} color={colors.emeraldLight} />
                 <Text style={styles.assuranceText}>
-                  Our Lab Assistant will receive these exact coordinates on Google Maps to navigate straight to your doorstep.
+                  Coordinates will be used for direct doorstep navigation.
                 </Text>
               </View>
 
@@ -462,7 +462,7 @@ export const MapLocationPickerModal = ({
                 activeOpacity={0.85}
               >
                 <Check size={18} color="#030712" style={{ marginRight: 8 }} />
-                <Text style={styles.confirmBtnText}>CONFIRM & LOCK THIS LOCATION</Text>
+                <Text style={styles.confirmBtnText}>CONFIRM LOCATION</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

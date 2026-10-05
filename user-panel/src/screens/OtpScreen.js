@@ -215,7 +215,7 @@ export const OtpScreen = ({ navigation, route }) => {
 
         <View style={styles.secureBadge}>
           <View style={styles.pulseDot} />
-          <Text style={styles.secureBadgeText}>FIREBASE VERIFIED</Text>
+          <Text style={styles.secureBadgeText}>VERIFY OTP</Text>
         </View>
 
         <View style={{ width: 38 }} />
@@ -240,9 +240,9 @@ export const OtpScreen = ({ navigation, route }) => {
                 <KeyRound size={32} color={colors.cyanLight} />
               </LinearGradient>
             </View>
-            <Text style={styles.screenHeading}>Firebase Phone Verification</Text>
+            <Text style={styles.screenHeading}>Verification Code</Text>
             <Text style={styles.screenSub}>
-              Enter the 6-digit code authenticated via Google Firebase to
+              Enter the 6-digit code sent to
             </Text>
 
             {/* Mobile Pill with CHANGE NUMBER option */}
@@ -254,7 +254,7 @@ export const OtpScreen = ({ navigation, route }) => {
                 activeOpacity={0.7}
               >
                 <Edit2 size={12} color={colors.cyanLight} />
-                <Text style={styles.changeNumberPillText}>Change Number</Text>
+                <Text style={styles.changeNumberPillText}>Edit</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -262,7 +262,7 @@ export const OtpScreen = ({ navigation, route }) => {
           {/* OTP Input Card */}
           <GlassCard style={styles.card}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>6-DIGIT FIREBASE VERIFICATION CODE</Text>
+              <Text style={styles.inputLabel}>ENTER 6-DIGIT CODE</Text>
               <View
                 style={[
                   styles.otpInputRow,
@@ -313,12 +313,12 @@ export const OtpScreen = ({ navigation, route }) => {
                 {loading ? (
                   <View style={styles.btnContentRow}>
                     <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.primaryBtnText}>Authenticating with Firebase...</Text>
+                    <Text style={styles.primaryBtnText}>Logging in...</Text>
                   </View>
                 ) : (
                   <View style={styles.btnContentRow}>
                     <ShieldCheck size={18} color="#000" />
-                    <Text style={styles.primaryBtnText}>Verify with Firebase Google</Text>
+                    <Text style={styles.primaryBtnText}>Login</Text>
                   </View>
                 )}
               </LinearGradient>
@@ -338,7 +338,7 @@ export const OtpScreen = ({ navigation, route }) => {
                   disabled={loading}
                 >
                   <RotateCcw size={13} color={colors.cyanLight} />
-                  <Text style={styles.resendActionText}>Resend Real-Time Code</Text>
+                  <Text style={styles.resendActionText}>Resend Code</Text>
                 </TouchableOpacity>
               )}
 
@@ -357,12 +357,11 @@ export const OtpScreen = ({ navigation, route }) => {
             <View style={styles.trustBadgeRow}>
               <Lock size={12} color={colors.textMuted} />
               <Text style={styles.trustBadgeText}>
-                SECURED BY GOOGLE FIREBASE · 256-BIT ENCRYPTION
+                256-BIT ENCRYPTION · HIPAA COMPLIANT
               </Text>
             </View>
             <Text style={styles.trustDisclaimer}>
-              Your clinical biomarkers and health records are encrypted at rest and in transit.
-              By signing in, you agree to the BioSync AI Terms of Clinical Service.
+              Your clinical biomarkers and health records are encrypted and securely protected.
             </Text>
           </View>
         </ScrollView>

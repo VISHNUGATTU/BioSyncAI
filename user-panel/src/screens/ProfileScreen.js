@@ -137,9 +137,9 @@ export const ProfileScreen = ({ navigation }) => {
       {/* Top Header */}
       <View style={[styles.header, { backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
         <View>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Patient Health Profile</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Health Profile</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-            Verified telemetry, biomarkers & AI calibration cycle
+            Your health records, vitals & diagnostic history
           </Text>
         </View>
       </View>
@@ -171,7 +171,7 @@ export const ProfileScreen = ({ navigation }) => {
           <View style={styles.sectionHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Activity size={16} color={colors.cyan} />
-              <Text style={styles.sectionTitle}>CLINICAL VITALS TOTAL</Text>
+              <Text style={styles.sectionTitle}>HEALTH VITALS</Text>
             </View>
             {vitalsUploaded ? (
               <TouchableOpacity
@@ -364,7 +364,7 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 2. APPOINTMENT BOOKING & 30-DAY CALIBRATION SECTION       */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DIAGNOSTIC CALIBRATION CYCLE</Text>
+          <Text style={styles.sectionTitle}>HEALTH CHECKUP CYCLE</Text>
 
           <GlassCard style={styles.calibrationCard}>
             <View style={styles.calibrationHeader}>
@@ -373,26 +373,26 @@ export const ProfileScreen = ({ navigation }) => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.calibrationTitle}>
-                  {canBook ? 'Recalibration Window Open' : 'AI Calibration Cycle Active'}
+                  {canBook ? 'Checkup Available' : 'Routine Checkup Cycle'}
                 </Text>
                 <Text style={styles.calibrationSubtitle}>
                   {canBook
-                    ? '30-day calibration cycle matured. Book home diagnostics to update your biomarkers.'
-                    : `Recalibration appointment locked for ${daysRemaining} more days for AI cross-calibration.`}
+                    ? 'Schedule a home visit to update your vitals and health history.'
+                    : `Next checkup eligible in ${daysRemaining} days.`}
                 </Text>
               </View>
             </View>
 
             {/* Calibration explanation note */}
             <Text style={styles.calibrationExplainerText}>
-              🧬 BioSync AI requires laboratory vitals and predicted telemetry to synchronize every 30 days so the neural network can adapt to your evolving metabolism.
+              Regular checkups every 30 days help maintain accurate, up-to-date health insights.
             </Text>
 
             {/* Calibration Progress Bar if locked */}
             {!canBook && !activeAppointment && (
               <View style={styles.calibrationProgressWrap}>
                 <View style={styles.progressHeaderRow}>
-                  <Text style={styles.progressLabelText}>30-Day Calibration Adaptation</Text>
+                  <Text style={styles.progressLabelText}>Checkup Cycle Progress</Text>
                   <Text style={styles.progressValueText}>{daysSince}/30 Days ({calibrationPercent}%)</Text>
                 </View>
                 <View style={styles.progressTrack}>
@@ -426,14 +426,14 @@ export const ProfileScreen = ({ navigation }) => {
                 activeOpacity={0.85}
               >
                 <CalendarPlus size={16} color="#000000" />
-                <Text style={styles.bookCalibrationBtnText}>SCHEDULE DIAGNOSTIC VISIT</Text>
+                <Text style={styles.bookCalibrationBtnText}>SCHEDULE HEALTH CHECKUP</Text>
               </TouchableOpacity>
             ) : (
               /* 30-DAY RESTRICTION LOCKED BUTTON */
               <View style={styles.lockedBtnWrap}>
                 <Lock size={15} color={colors.textMuted} />
                 <Text style={styles.lockedBtnText}>
-                  NEXT APPOINTMENT IN {daysRemaining} DAYS
+                  NEXT CHECKUP IN {daysRemaining} DAYS
                 </Text>
               </View>
             )}
@@ -444,7 +444,7 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 3. NABL ACCOUNT STANDING & COMPLIANCE                     */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT COMPLIANCE & VERIFICATION</Text>
+          <Text style={styles.sectionTitle}>ACCOUNT STATUS</Text>
           <GlassCard
             style={[
               styles.complianceCard,
@@ -463,8 +463,8 @@ export const ProfileScreen = ({ navigation }) => {
                 </Text>
                 <Text style={styles.complianceSubtitle}>
                   {isSuspended
-                    ? 'Account suspended due to repeated cancellation breaches.'
-                    : 'NABL & ISO-15189 Verified Patient Identity'}
+                    ? 'Account temporarily paused due to repeated cancellations.'
+                    : 'Verified Patient Account'}
                 </Text>
               </View>
             </View>
@@ -494,7 +494,7 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 4. REGISTERED HOME COLLECTION ADDRESS                     */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>REGISTERED HOME COLLECTION ADDRESS</Text>
+          <Text style={styles.sectionTitle}>COLLECTION ADDRESS</Text>
           <GlassCard style={styles.addressCard}>
             <View style={styles.addressRow}>
               <MapPin size={20} color={colors.cyan} />

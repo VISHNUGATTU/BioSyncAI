@@ -504,27 +504,27 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               <View style={styles.masterPlanBadgeRow}>
                 <View style={styles.singlePlanTag}>
                   <Sparkles size={11} color="#030712" />
-                  <Text style={styles.singlePlanTagText}>1 MASTER PLAN • ALL VITALS INCLUDED</Text>
+                  <Text style={styles.singlePlanTagText}>FULL HEALTH SCREENING</Text>
                 </View>
                 <View style={styles.accreditedTag}>
                   <ShieldCheck size={11} color={colors.emeraldLight} />
-                  <Text style={styles.accreditedTagText}>NABL & ISO-15189</Text>
+                  <Text style={styles.accreditedTagText}>NABL CERTIFIED</Text>
                 </View>
               </View>
 
               {/* Title & Price */}
               <Text style={[styles.masterPlanTitle, { color: colors.textPrimary }]}>
-                {singleMasterPlan?.testName || 'BioSync Complete Health & Full Vital Battery (All Biomarkers)'}
+                {singleMasterPlan?.testName || 'BioSync Complete Health Screening'}
               </Text>
               <Text style={styles.masterPlanSubtitle}>
-                Complete diagnostic battery calibrated to measure and verify all 8 body vitals systems in the database.
+                Comprehensive checkup covering all 8 vital body systems.
               </Text>
 
               <View style={styles.priceRow}>
                 <View style={styles.priceContainer}>
                   <Text style={styles.priceCurrency}>₹</Text>
                   <Text style={[styles.priceValue, { color: colors.textPrimary }]}>{basePrice}</Text>
-                  <Text style={styles.priceInclusive}>• Doorstep Collection & Telemetry Included</Text>
+                  <Text style={styles.priceInclusive}>• Home sample collection included</Text>
                 </View>
               </View>
             </View>
@@ -533,12 +533,12 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
             <View style={styles.fastingBanner}>
               <Clock size={13} color={colors.amberLight} />
               <Text style={styles.fastingBannerText}>
-                Requires 10-12 hours overnight fasting. Water intake permitted.
+                10-12 hrs fasting required. Water is permitted.
               </Text>
             </View>
 
             {/* Total Vitals Covered Grid */}
-            <Text style={styles.vitalsCoverageHeading}>ALL 8 BODY VITALS SYSTEMS COVERED IN DB:</Text>
+            <Text style={styles.vitalsCoverageHeading}>INCLUDED TESTS:</Text>
             <View style={styles.vitalsGrid}>
               {INCLUDED_VITAL_CATEGORIES.map((cat, idx) => {
                 const IconComponent = cat.icon;
@@ -571,7 +571,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
         <View style={styles.detailSection}>
           <View style={styles.detailSectionHeader}>
             <MapPin size={16} color={colors.cyan} />
-            <Text style={styles.detailSectionTitle}>2. HOME COLLECTION LOCATION (MAP LOCK)</Text>
+            <Text style={styles.detailSectionTitle}>2. COLLECTION ADDRESS</Text>
           </View>
 
           {lockedCoordinates ? (
@@ -580,7 +580,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               <View style={styles.lockedHeaderRow}>
                 <View style={styles.lockedBadge}>
                   <CheckCircle2 size={13} color={colors.emeraldLight} />
-                  <Text style={styles.lockedBadgeText}>MAP & SATELLITE ACCURATELY LOCKED</Text>
+                  <Text style={styles.lockedBadgeText}>LOCATION PINNED</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.adjustMapBtn}
@@ -588,7 +588,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   activeOpacity={0.7}
                 >
                   <MapPin size={12} color={colors.cyan} />
-                  <Text style={styles.adjustMapBtnText}>ADJUST PIN</Text>
+                  <Text style={styles.adjustMapBtnText}>Change Pin</Text>
                 </TouchableOpacity>
               </View>
 
@@ -614,7 +614,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               <View style={styles.laNavigationAssurance}>
                 <Zap size={12} color={colors.cyan} />
                 <Text style={styles.laNavigationAssuranceText}>
-                  Our certified Lab Assistant will receive these exact coordinates on Google Maps to navigate directly to your entrance with zero detour.
+                  The lab assistant will navigate directly to this address.
                 </Text>
               </View>
 
@@ -683,10 +683,10 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.unlockedTitle, { color: colors.textPrimary }]}>
-                    Lock Exact Doorstep on Map
+                    Set Collection Location
                   </Text>
                   <Text style={styles.unlockedSubtitle}>
-                    Select your exact doorstep on the map so the phlebotomist navigates straight to your home.
+                    Choose your exact doorstep location on map for sample collection.
                   </Text>
                 </View>
               </View>
@@ -699,7 +699,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   activeOpacity={0.85}
                 >
                   <MapPin size={16} color="#030712" />
-                  <Text style={styles.selectOnMapBtnText}>SELECT ON INTERACTIVE MAP</Text>
+                  <Text style={styles.selectOnMapBtnText}>SELECT ON MAP</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -713,7 +713,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   ) : (
                     <>
                       <Crosshair size={14} color={colors.cyan} />
-                      <Text style={styles.quickGpsBtnText}>USE CURRENT GPS</Text>
+                      <Text style={styles.quickGpsBtnText}>USE GPS</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -728,7 +728,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
         <View style={styles.detailSection}>
           <View style={styles.detailSectionHeader}>
             <Calendar size={16} color={colors.cyan} />
-            <Text style={styles.detailSectionTitle}>3. CHOOSE VISIT DATE & TIME</Text>
+            <Text style={styles.detailSectionTitle}>3. VISIT DATE & TIME</Text>
           </View>
 
           {/* Date Chips */}
@@ -831,7 +831,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
         <View style={styles.detailSection}>
           <View style={styles.detailSectionHeader}>
             <CreditCard size={16} color={colors.cyan} />
-            <Text style={styles.detailSectionTitle}>4. MODE OF PAYMENT</Text>
+            <Text style={styles.detailSectionTitle}>4. PAYMENT METHOD</Text>
           </View>
 
           <View style={styles.paymentOptionsRow}>
@@ -861,7 +861,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
               </View>
               <Text style={[styles.paymentTitle, { color: colors.textPrimary }]}>Pay on Collection</Text>
               <Text style={styles.paymentDesc}>
-                Pay cash or scan UPI with the phlebotomist at your doorstep upon blood draw.
+                Pay cash or UPI at home during sample collection.
               </Text>
             </TouchableOpacity>
 
@@ -889,9 +889,9 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
                   </View>
                 ) : null}
               </View>
-              <Text style={[styles.paymentTitle, { color: colors.textPrimary }]}>Prepay Online</Text>
+              <Text style={[styles.paymentTitle, { color: colors.textPrimary }]}>Pay Online</Text>
               <Text style={styles.paymentDesc}>
-                Instant checkout via UPI, Google Pay, PhonePe, Debit/Credit Card.
+                Pay securely via UPI, cards, or net banking.
               </Text>
             </TouchableOpacity>
           </View>
@@ -922,10 +922,10 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.prepAcknowledgeTitle, { color: colors.textPrimary }]}>
-                I confirm 10-12 hours overnight fasting
+                10-12 hours fasting observed
               </Text>
               <Text style={styles.prepAcknowledgeDesc}>
-                Required for clinical blood glucose, lipid profile, and liver enzyme accuracy. Drinking plain water is permitted.
+                Required for accurate test results. Plain water is permitted.
               </Text>
             </View>
           </TouchableOpacity>
@@ -945,7 +945,7 @@ export const BookAppointmentScreen = ({ route, navigation }) => {
           ) : (
             <>
               <Text style={styles.mainBookBtnText}>
-                CONFIRM HOME COLLECTION • ₹{basePrice}
+                Confirm Booking • ₹{basePrice}
               </Text>
               <ChevronRight size={18} color="#030712" />
             </>

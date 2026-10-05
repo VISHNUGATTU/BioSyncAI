@@ -72,7 +72,7 @@ export const LoginScreen = ({ navigation }) => {
       <View style={styles.topBar}>
         <View style={styles.securePill}>
           <View style={styles.pulseDot} />
-          <Text style={styles.securePillText}>FIREBASE AUTHENTICATION</Text>
+          <Text style={styles.securePillText}>SECURE SIGN IN</Text>
         </View>
         <TouchableOpacity
           style={styles.serverBtn}
@@ -108,9 +108,9 @@ export const LoginScreen = ({ navigation }) => {
 
           {/* Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Patient Sign In</Text>
+            <Text style={styles.cardTitle}>Sign In</Text>
             <Text style={styles.cardSub}>
-              Enter your mobile number for secure Google Firebase phone verification.
+              Enter your mobile number to continue.
             </Text>
 
             {/* Phone input */}
@@ -159,11 +159,11 @@ export const LoginScreen = ({ navigation }) => {
                 {loading ? (
                   <View style={styles.ctaRow}>
                     <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.ctaText}>Requesting Firebase Code…</Text>
+                    <Text style={styles.ctaText}>Sending…</Text>
                   </View>
                 ) : (
                   <View style={styles.ctaRow}>
-                    <Text style={styles.ctaText}>Get Verification Code</Text>
+                    <Text style={styles.ctaText}>Continue</Text>
                     <ArrowRight size={17} color="#000" strokeWidth={2.5} />
                   </View>
                 )}
@@ -173,7 +173,7 @@ export const LoginScreen = ({ navigation }) => {
             {/* OTP info */}
             <View style={styles.otpNote}>
               <ShieldCheck size={13} color={colors.textMuted} />
-              <Text style={styles.otpNoteText}>Verified via Google Firebase Authentication.</Text>
+              <Text style={styles.otpNoteText}>A 6-digit verification code will be sent to your phone.</Text>
             </View>
           </View>
 
@@ -181,10 +181,10 @@ export const LoginScreen = ({ navigation }) => {
           <View style={styles.trustFooter}>
             <View style={styles.trustRow}>
               <View style={styles.trustDot} />
-              <Text style={styles.trustText}>FIREBASE AUTHENTICATION · HIPAA & DISHA STANDARDS</Text>
+              <Text style={styles.trustText}>HIPAA & DISHA STANDARDS · 256-BIT ENCRYPTION</Text>
             </View>
             <Text style={styles.trustDisclaimer}>
-              By signing in, you agree to BioSyncAI's Terms of Service and Medical Privacy Policy.
+              By signing in, you agree to BioSyncAI's Terms of Service and Privacy Policy.
             </Text>
           </View>
         </ScrollView>
