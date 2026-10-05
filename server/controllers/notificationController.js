@@ -80,7 +80,7 @@ export const markAsRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findByIdAndUpdate(
     req.params.id,
     { $set: { isRead: true } },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   ).lean();
 
   if (!notification) {

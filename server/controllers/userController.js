@@ -49,7 +49,7 @@ export const sendOTP = asyncHandler(async (req, res) => {
         'otp.expiresAt': expiresAt 
       } 
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 
   console.log('\n╔══════════════════════════════════════════════════════╗');
@@ -285,7 +285,7 @@ export const saveDraft = asyncHandler(async (req, res) => {
         lastSaved: new Date()
       }
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   ).lean();
 
   res.status(200).json({

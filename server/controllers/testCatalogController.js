@@ -23,7 +23,7 @@ export const updateTest = asyncHandler(async (req, res) => {
   const test = await TestCatalog.findByIdAndUpdate(
     req.params.id, 
     { $set: req.body }, 
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   ).lean();
 
   if (!test) {

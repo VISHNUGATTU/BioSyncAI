@@ -501,7 +501,7 @@ export const updateLabAssistant = asyncHandler(async (req, res) => {
   const labAssistant = await LabAssistant.findByIdAndUpdate(
     req.params.id,
     { $set: updates },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   ).select('-password').lean();
 
   if (!labAssistant) {
@@ -894,7 +894,7 @@ export const updateDoctor = asyncHandler(async (req, res) => {
   const doctor = await Doctor.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   ).lean();
 
   if (!doctor) {

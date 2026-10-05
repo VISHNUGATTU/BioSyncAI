@@ -312,7 +312,7 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
       await Vitals.findOneAndUpdate(
         { user: appointment.user, isInitialBaseline: true },
         { $set: cleanVitalsData },
-        { upsert: true, new: true, session }
+        { upsert: true, returnDocument: 'after', session }
       );
 
       // Update User profile with lifestyle properties for AI prediction models
@@ -374,7 +374,7 @@ export const rejectSample = asyncHandler(async (req, res) => {
         exceptionReportedAt: new Date(),
       } 
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!sample) {
@@ -612,7 +612,7 @@ export const recordAppointmentVitals = asyncHandler(async (req, res) => {
   const record = await Vitals.findOneAndUpdate(
     { user: appointment.user, isInitialBaseline: true },
     { $set: cleanVitalsData },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   await User.findByIdAndUpdate(appointment.user, { vitalsStatus: 'Lab_Verified' });
@@ -773,7 +773,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
     const updatedDoctor = await Doctor.findByIdAndUpdate(
       req.doctor?._id || req.user?._id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).lean();
 
     return res.status(200).json({ success: true, data: updatedDoctor });
@@ -791,7 +791,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const updatedLabAssistant = await LabAssistant.findByIdAndUpdate(
     req.labAssistant?._id || req.user?._id,
     { $set: updateData },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   ).lean();
 
   res.status(200).json({ success: true, data: updatedLabAssistant });
@@ -890,7 +890,7 @@ export const submitTestResults = asyncHandler(async (req, res) => {
     const updatedAppt = await Appointment.findByIdAndUpdate(sample.appointment, {
       $set: { status: 'Completed' },
       $push: { trackingLogs: { status: 'Completed', timestamp: new Date(), notes: 'All sample reports successfully generated and verified.' } }
-    }, { new: true });
+    }, { returnDocument: 'after' });
 
     if (updatedAppt && updatedAppt.user) {
       await User.findByIdAndUpdate(updatedAppt.user, { $set: { vitalsStatus: 'Lab_Verified' } });
@@ -918,7 +918,7 @@ export const submitTestResults = asyncHandler(async (req, res) => {
         await Vitals.findOneAndUpdate(
           { user: updatedAppt.user, isInitialBaseline: true },
           { $set: cleanVitalsData },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       } else if (results && Array.isArray(results) && results.length > 0) {
         // Map any biomarkers from results
@@ -989,7 +989,7 @@ export const submitTestResults = asyncHandler(async (req, res) => {
         await Vitals.findOneAndUpdate(
           { user: updatedAppt.user, isInitialBaseline: true },
           { $set: cleanVitalsData },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       }
     }

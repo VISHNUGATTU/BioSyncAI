@@ -221,7 +221,7 @@ export const doctorVerifyReport = asyncHandler(async (req, res) => {
         await Vitals.findOneAndUpdate(
           { user: targetUserId, isInitialBaseline: true },
           { $set: cleanVitalsData },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
       }
 
