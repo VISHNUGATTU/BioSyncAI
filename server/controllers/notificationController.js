@@ -23,8 +23,14 @@ export const sendNotification = asyncHandler(async (req, res) => {
 // @route   GET /api/notifications
 // @access  Private (User/LabAssistant)
 export const getMyNotifications = asyncHandler(async (req, res) => {
-  const userId = req.user ? req.user._id : req.labAssistant._id;
-  const userAudience = req.user ? 'Users' : 'LabAssistants';
+  const entity = req.labAssistant || req.doctor || req.admin || req.user;
+  const userId = entity?._id;
+  
+  let userAudience = 'Users';
+  if (req.labAssistant) userAudience = 'LabAssistants';
+  else if (req.doctor) userAudience = 'Doctors';
+  else if (req.admin) userAudience = 'Admins';
+  
   const { unreadOnly, page = 1, limit = 30 } = req.query;
   
   const startIndex = (parseInt(page, 10) - 1) * parseInt(limit, 10);

@@ -133,6 +133,8 @@ api.interceptors.request.use(
 // RESPONSE INTERCEPTOR
 // ============================================================
 
+let isLoggingOut = false;
+
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -158,6 +160,28 @@ api.interceptors.response.use(
       console.warn(
         '[Axios] Server rejected the authentication token.'
       );
+
+      // If the rejection was not on a login attempt, wipe stale tokens and reset session
+      const isLoginAttempt = typeof url === 'string' && url.includes('/login');
+      if (!isLoginAttempt && !isLoggingOut) {
+        isLoggingOut = true;
+        console.warn(
+          '[Axios] Stale or invalid session detected. Clearing credentials & resetting auth state.'
+        );
+        try {
+          await AsyncStorage.multiRemove(['@staff_token', '@staff_profile']);
+          const { useAuthStore } = await import('../store/authStore');
+          if (useAuthStore?.getState()?.logout) {
+            await useAuthStore.getState().logout();
+          }
+        } catch (resetErr) {
+          console.warn('[Axios] Session reset error:', resetErr?.message || resetErr);
+        } finally {
+          setTimeout(() => {
+            isLoggingOut = false;
+          }, 1500);
+        }
+      }
     } else if (status === 403) {
       console.warn(
         `[Axios] 403 Forbidden: ${url}`
