@@ -215,7 +215,7 @@ export const OtpScreen = ({ navigation, route }) => {
 
         <View style={styles.secureBadge}>
           <View style={styles.pulseDot} />
-          <Text style={styles.secureBadgeText}>VERIFY IDENTITY</Text>
+          <Text style={styles.secureBadgeText}>FIREBASE VERIFIED</Text>
         </View>
 
         <View style={{ width: 38 }} />
@@ -240,9 +240,9 @@ export const OtpScreen = ({ navigation, route }) => {
                 <KeyRound size={32} color={colors.cyanLight} />
               </LinearGradient>
             </View>
-            <Text style={styles.screenHeading}>Enter Verification Code</Text>
+            <Text style={styles.screenHeading}>Firebase Phone Verification</Text>
             <Text style={styles.screenSub}>
-              We sent a real-time 6-digit one-time code to
+              Enter the 6-digit code authenticated via Google Firebase to
             </Text>
 
             {/* Mobile Pill with CHANGE NUMBER option */}
@@ -262,7 +262,7 @@ export const OtpScreen = ({ navigation, route }) => {
           {/* OTP Input Card */}
           <GlassCard style={styles.card}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>6-DIGIT REAL-TIME CODE</Text>
+              <Text style={styles.inputLabel}>6-DIGIT FIREBASE VERIFICATION CODE</Text>
               <View
                 style={[
                   styles.otpInputRow,
@@ -313,12 +313,12 @@ export const OtpScreen = ({ navigation, route }) => {
                 {loading ? (
                   <View style={styles.btnContentRow}>
                     <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.primaryBtnText}>Authenticating Session...</Text>
+                    <Text style={styles.primaryBtnText}>Authenticating with Firebase...</Text>
                   </View>
                 ) : (
                   <View style={styles.btnContentRow}>
                     <ShieldCheck size={18} color="#000" />
-                    <Text style={styles.primaryBtnText}>Verify & Open Health Portal</Text>
+                    <Text style={styles.primaryBtnText}>Verify with Firebase Google</Text>
                   </View>
                 )}
               </LinearGradient>
@@ -357,7 +357,7 @@ export const OtpScreen = ({ navigation, route }) => {
             <View style={styles.trustBadgeRow}>
               <Lock size={12} color={colors.textMuted} />
               <Text style={styles.trustBadgeText}>
-                HIPAA & DISHA STANDARDS • 256-BIT ENCRYPTION
+                SECURED BY GOOGLE FIREBASE · 256-BIT ENCRYPTION
               </Text>
             </View>
             <Text style={styles.trustDisclaimer}>

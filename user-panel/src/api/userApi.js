@@ -7,8 +7,13 @@ export const userApi = {
     return res.data;
   },
 
-  verifyOTP: async (phoneNumber, otp) => {
-    const res = await api.post('/users/verify-otp', { phoneNumber, otp });
+  verifyOTP: async (phoneNumber, otp, idToken = null) => {
+    const res = await api.post('/users/verify-otp', { phoneNumber, otp, idToken });
+    return res.data;
+  },
+
+  getFirebaseConfig: async () => {
+    const res = await api.get('/users/firebase-config');
     return res.data;
   },
 

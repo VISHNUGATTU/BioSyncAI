@@ -2,6 +2,7 @@ import express from 'express';
 import { 
   sendOTP, 
   verifyOTP, 
+  getFirebaseConfig,
   getUserProfile, 
   updateUserProfile,
   updateFCMToken,
@@ -17,6 +18,7 @@ import { authUser } from '../middlewares/authUser.js';
 
 const userRouter = express.Router();
 
+userRouter.get('/firebase-config', getFirebaseConfig);
 userRouter.post('/request-otp', sendOTP);
 userRouter.post('/verify-otp', verifyOTP);
 userRouter.post('/logout', logoutUser);

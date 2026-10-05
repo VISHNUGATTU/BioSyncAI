@@ -80,6 +80,8 @@ const userSchema = new mongoose.Schema({
   accountStatus: { type: String, enum: ['Active', 'Suspended', 'Banned'], default: 'Active', index: true },
   suspensionReason: { type: String, trim: true },
   strikeCount: { type: Number, default: 0, min: 0 },
+  firebaseUid: { type: String, select: false, index: true },
+  isPhoneVerified: { type: Boolean, default: true },
   fcmToken: { type: String, select: false }, // Only needed for backend push logic
   pushToken: { type: String, select: false }, // Expo Push Token or APNS/FCM
   lastActive: { type: Date, default: Date.now }

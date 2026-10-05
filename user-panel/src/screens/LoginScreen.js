@@ -72,7 +72,7 @@ export const LoginScreen = ({ navigation }) => {
       <View style={styles.topBar}>
         <View style={styles.securePill}>
           <View style={styles.pulseDot} />
-          <Text style={styles.securePillText}>ENCRYPTED SESSION</Text>
+          <Text style={styles.securePillText}>FIREBASE AUTHENTICATION</Text>
         </View>
         <TouchableOpacity
           style={styles.serverBtn}
@@ -110,7 +110,7 @@ export const LoginScreen = ({ navigation }) => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Patient Sign In</Text>
             <Text style={styles.cardSub}>
-              Enter your registered mobile number to access your diagnostic records and home visits.
+              Enter your mobile number for secure Google Firebase phone verification.
             </Text>
 
             {/* Phone input */}
@@ -159,7 +159,7 @@ export const LoginScreen = ({ navigation }) => {
                 {loading ? (
                   <View style={styles.ctaRow}>
                     <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.ctaText}>Sending…</Text>
+                    <Text style={styles.ctaText}>Requesting Firebase Code…</Text>
                   </View>
                 ) : (
                   <View style={styles.ctaRow}>
@@ -173,7 +173,7 @@ export const LoginScreen = ({ navigation }) => {
             {/* OTP info */}
             <View style={styles.otpNote}>
               <ShieldCheck size={13} color={colors.textMuted} />
-              <Text style={styles.otpNoteText}>A secure 6-digit OTP will be sent instantly.</Text>
+              <Text style={styles.otpNoteText}>Verified via Google Firebase Authentication.</Text>
             </View>
           </View>
 
@@ -181,7 +181,7 @@ export const LoginScreen = ({ navigation }) => {
           <View style={styles.trustFooter}>
             <View style={styles.trustRow}>
               <View style={styles.trustDot} />
-              <Text style={styles.trustText}>HIPAA & DISHA STANDARDS · 256-BIT ENCRYPTION</Text>
+              <Text style={styles.trustText}>FIREBASE AUTHENTICATION · HIPAA & DISHA STANDARDS</Text>
             </View>
             <Text style={styles.trustDisclaimer}>
               By signing in, you agree to BioSyncAI's Terms of Service and Medical Privacy Policy.

@@ -78,10 +78,10 @@ export const useAuthStore = create((set, get) => ({
     return !!get().latestVitals;
   },
 
-  login: async (phoneNumber, otp) => {
+  login: async (phoneNumber, otp, idToken = null) => {
     try {
       set({ isLoading: true, error: null });
-      const res = await userApi.verifyOTP(phoneNumber, otp);
+      const res = await userApi.verifyOTP(phoneNumber, otp, idToken);
 
       if (res.success && res.token) {
         const user = res.user;
