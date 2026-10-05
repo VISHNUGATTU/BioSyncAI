@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -6,22 +6,18 @@ import {
   CheckCircle2,
   Download,
   Search,
-  Filter,
   RefreshCw,
   Cpu,
   FileText,
   Database,
   Radio,
   Clock,
-  ExternalLink,
-  ChevronRight,
   Terminal,
   Activity,
   Layers,
   Copy,
   Check,
   X,
-  Sparkles,
 } from 'lucide-react';
 import api from '../api/axios';
 

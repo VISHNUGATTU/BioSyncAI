@@ -1,10 +1,7 @@
-import mongoose from 'mongoose';
 import Sample from '../models/Sample.js';
 import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
 import Vitals from '../models/Vitals.js';
-import Doctor from '../models/Doctor.js';
-import Notification from '../models/Notification.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { notifyReportReady } from '../services/notificationService.js';
 import { generatePdfReport } from '../services/pdfReportGenerator.js';

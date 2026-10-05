@@ -13,7 +13,6 @@ import { uploadToCloudinary } from '../configs/cloudinary.js';
 import { findNearestDoctor } from '../utils/distanceAssignment.js';
 import { calculateDerivedVitals } from '../utils/aiFeatureExtractor.js';
 import {
-  createNotification,
   notifyPhlebotomistEnRoute,
   notifyPhlebotomistArrived,
   notifySampleCollected,

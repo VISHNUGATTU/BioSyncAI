@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
-  Modal,
-  TextInput,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,7 +20,6 @@ import {
   TriangleAlert,
   CircleCheck,
   KeyRound,
-  X,
   ChevronRight,
   HeartPulse,
   Headset,
@@ -41,7 +38,7 @@ import SpecimenTubeGuide from '../components/SpecimenTubeGuide';
 import PatientBaselineModal from '../components/PatientBaselineModal';
 import OpsHelplineModal from '../components/OpsHelplineModal';
 import ClinicalExceptionModal from '../components/ClinicalExceptionModal';
-import LifecycleStateMachine, { getStageNumber } from '../components/LifecycleStateMachine';
+import LifecycleStateMachine from '../components/LifecycleStateMachine';
 
 import staffApi from '../api/staffApi';
 import locationService from '../services/locationService';

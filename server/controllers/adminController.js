@@ -17,7 +17,6 @@ import Admin from '../models/Admin.js';
 import Doctor from '../models/Doctor.js';
 import AuditLog from '../models/AuditLog.js';
 import Role from '../models/Role.js';
-import Notification from '../models/Notification.js';
 import { autoAssignNearestStaff, findNearestLabAssistant, findNearestDoctor } from '../utils/distanceAssignment.js';
 import {
   notifyStaffAssigned,

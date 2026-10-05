@@ -7,18 +7,14 @@ import {
   Clock3,
   CheckCircle2,
   RefreshCw,
-  ChevronDown,
-  Activity,
   X,
   AlertTriangle,
   QrCode,
-  Calendar,
-  User,
   ExternalLink,
   Stethoscope,
 } from 'lucide-react';
 
-import api, { getCertificateViewUrl, getCertificatePdfUrl } from '../api/axios';
+import api, { getCertificateViewUrl } from '../api/axios';
 
 const Reports = () => {
   const [reports, setReports] = useState([]);

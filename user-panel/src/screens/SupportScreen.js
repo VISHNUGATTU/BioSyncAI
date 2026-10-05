@@ -22,8 +22,6 @@ import {
   X,
   ChevronRight,
   Clock,
-  CheckCircle2,
-  AlertCircle,
   MessageSquare,
   ArrowLeft,
   LifeBuoy,
@@ -31,7 +29,6 @@ import {
   Receipt,
   UserX,
   Cpu,
-  ShieldAlert,
 } from 'lucide-react-native';
 
 import { colors } from '../theme/colors';

@@ -12,16 +12,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Bell,
-  Check,
   CheckCheck,
   X,
   Truck,
   FileText,
-  Activity,
   AlertTriangle,
   LifeBuoy,
   Clock,
-  Sparkles,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import GlassCard from './GlassCard';

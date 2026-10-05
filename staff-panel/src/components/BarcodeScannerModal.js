@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Animated,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -22,8 +21,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react-native';
-import { colors, gradients } from '../theme/colors';
-import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '../theme/colors';
 
 export const BarcodeScannerModal = ({
   visible,

@@ -13,7 +13,6 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ShieldAlert,
@@ -23,7 +22,6 @@ import {
   Camera,
   Scan,
   Sparkles,
-  Flame,
   Activity,
   CheckCircle2,
   AlertTriangle,
@@ -32,17 +30,12 @@ import {
   Edit3,
   ChevronRight,
   Image as ImageIcon,
-  Check,
   RefreshCw,
   Scale,
-  Heart,
-  Droplets,
-  Info,
   Plus,
   Minus,
   CheckSquare,
   CornerDownRight,
-  Share2,
   Barcode,
 } from 'lucide-react-native';
 import { colors, useTheme } from '../theme/colors';

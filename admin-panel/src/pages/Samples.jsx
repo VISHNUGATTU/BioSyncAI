@@ -1,20 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  FileText,
   Navigation,
   Search,
   TestTube2,
-  UserRound,
   UserRoundCog,
   Clock3,
   RefreshCw,
-  ChevronDown,
   Activity,
   X,
   CheckCircle2,
   Save,
   QrCode,
-  Calendar,
 } from 'lucide-react';
 
 import api from '../api/axios';

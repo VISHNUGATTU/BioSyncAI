@@ -7,13 +7,11 @@ import {
   Clock3,
   CheckCircle2,
   AlertCircle,
-  ChevronDown,
   X,
   Send,
   User,
   Shield,
   MessageSquare,
-  Sparkles,
 } from 'lucide-react';
 
 import api from '../api/axios';

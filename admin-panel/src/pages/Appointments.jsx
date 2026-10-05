@@ -2,30 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
-  Clock,
-  Video,
-  Building2,
   Search,
   CheckCircle2,
-  XCircle,
-  Timer,
-  UserRound,
-  Stethoscope,
   RefreshCw,
-  MapPin,
   UserRoundCog,
   Calendar,
   X,
   Save,
-  Activity,
-  Phone,
-  ShieldAlert,
   Zap,
   Download,
   CheckSquare,
   Square,
-  Navigation,
-  ChevronRight,
   AlertCircle,
   Truck,
   Check,
@@ -33,7 +20,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-import api, { getCertificateViewUrl, getCertificatePdfUrl } from '../api/axios';
+import api, { getCertificateViewUrl } from '../api/axios';
 
 export const Appointments = () => {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -16,8 +16,6 @@ import {
   Copy,
   Check,
   Star,
-  User,
-  Filter
 } from 'lucide-react';
 
 import api from '../api/axios';

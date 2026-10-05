@@ -1,20 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  BarChart3,
   TrendingUp,
-  DollarSign,
   RefreshCw,
-  Activity,
-  ArrowUpRight,
-  CalendarDays,
   CreditCard,
   Banknote,
   FlaskConical,
   Truck,
   CheckCircle2,
-  Clock,
-  Layers,
-  Percent,
   IndianRupee,
 } from 'lucide-react';
 import {
@@ -23,14 +15,11 @@ import {
   BarChart,
   Bar,
   Cell,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 import api from '../api/axios';

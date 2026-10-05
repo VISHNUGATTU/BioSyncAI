@@ -11,9 +11,7 @@ import {
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Heart,
   Activity,
   Utensils,
   FileText,
@@ -25,11 +23,8 @@ import {
   Sparkles,
   AlertCircle,
   ShieldCheck,
-  CheckCircle2,
   RotateCcw,
   AlertTriangle,
-  Zap,
-  Info,
   Layers,
   Share2,
 } from 'lucide-react-native';
@@ -37,7 +32,7 @@ import { useTheme } from '../theme/ThemeContext';
 import userApi from '../api/userApi';
 import { getReportViewUrl } from '../api/axios';
 import GlassCard from '../components/GlassCard';
-import DataProvenanceBadge, { normalizeProvenance } from '../components/DataProvenanceBadge';
+import DataProvenanceBadge from '../components/DataProvenanceBadge';
 import ReportViewerModal from '../components/ReportViewerModal';
 
 const CATEGORY_FILTERS = [

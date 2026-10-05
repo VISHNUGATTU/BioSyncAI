@@ -16,8 +16,6 @@ import {
   FlaskConical,
   Building,
   FileCheck2,
-  AlertTriangle,
-  ChevronRight,
 } from 'lucide-react-native';
 import { colors, useTheme } from '../theme/colors';
 

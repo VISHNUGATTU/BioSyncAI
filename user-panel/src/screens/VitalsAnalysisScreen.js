@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  ActivityIndicator,
   Modal,
   TextInput,
 } from 'react-native';

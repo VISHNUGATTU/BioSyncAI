@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,20 +13,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  FileText,
   Download,
   Share2,
   CheckCircle2,
   ShieldCheck,
-  AlertTriangle,
   Activity,
   ArrowRight,
   X,
-  User,
-  Calendar,
-  Barcode,
   Award,
-  ExternalLink,
   Sparkles,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';

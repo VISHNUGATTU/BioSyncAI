@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  TextInput,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,13 +17,9 @@ import {
   Building,
   CircleCheck,
   Clock,
-  FlaskConical,
   Barcode,
   SquareCheck,
   Square,
-  ArrowRight,
-  Activity,
-  Plus,
   X,
   FileCheck,
   Sparkles,

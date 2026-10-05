@@ -10,11 +10,7 @@ import {
   Car,
   Clock3,
   ShieldCheck,
-  ChevronDown,
   Save,
-  CheckCircle2,
-  MapPin,
-  Check,
 } from 'lucide-react';
 
 import api from '../api/axios';

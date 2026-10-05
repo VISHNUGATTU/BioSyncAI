@@ -18,9 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft,
   KeyRound,
-  HeartPulse,
   Activity,
-  Thermometer,
   Stethoscope,
   Camera,
   Barcode,
@@ -39,7 +37,6 @@ import {
   Headset,
   Building,
   ClipboardList,
-  Edit3,
   FileCheck,
   TestTube,
   X,

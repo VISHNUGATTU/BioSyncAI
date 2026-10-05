@@ -5,14 +5,11 @@ import {
   ShieldAlert,
   Search,
   RefreshCw,
-  Activity,
   Server,
-  Clock3,
   X,
   Code,
   Copy,
   Check,
-  Globe,
   Terminal,
 } from 'lucide-react';
 

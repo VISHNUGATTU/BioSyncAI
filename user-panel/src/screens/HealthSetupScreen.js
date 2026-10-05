@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,15 +24,11 @@ import {
   UploadCloud,
   Camera,
   CheckCircle2,
-  AlertTriangle,
   RotateCcw,
   Activity,
   Heart,
   Droplets,
-  Flame,
   ChevronRight,
-  Save,
-  Check,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuthStore } from '../store/authStore';

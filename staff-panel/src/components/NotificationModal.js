@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Bell,
-  Check,
   CheckCheck,
   X,
   MapPin,
@@ -20,8 +19,6 @@ import {
   AlertTriangle,
   Clock,
   Radio,
-  FileText,
-  ShieldAlert,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import staffApi from '../api/staffApi';

@@ -1,7 +1,6 @@
 import express from 'express';
 import { createTest, getTests, updateTest, getAdminTests } from '../controllers/testCatalogController.js';
 import { authAdmin } from '../middlewares/authAdmin.js';
-import { authUser } from '../middlewares/authUser.js';
 import { authorizeRoles } from '../middlewares/rbacMiddleware.js';
 import { auditLogger } from '../middlewares/auditMiddleware.js';
 

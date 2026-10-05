@@ -10,13 +10,9 @@ import {
   ChevronDown,
   CheckCircle2,
   Phone,
-  Mail,
-  User,
   Stethoscope,
   X,
-  FileHeart,
-  ExternalLink,
-  Check
+  Check,
 } from 'lucide-react';
 
 import api from '../api/axios';

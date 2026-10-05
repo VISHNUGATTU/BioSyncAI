@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Edit,
-  ShieldCheck,
   Search,
   Stethoscope,
   Star,
-  UserCheck,
-  ArrowUpRight,
   Plus,
   X,
   RefreshCw,
   Phone,
   Mail,
-  CheckCircle2,
   Save,
 } from 'lucide-react';
 

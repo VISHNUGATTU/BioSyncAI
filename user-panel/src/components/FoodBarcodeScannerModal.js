@@ -8,7 +8,6 @@ import {
   TextInput,
   Animated,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -16,13 +15,10 @@ import {
   X,
   Flashlight,
   FlashlightOff,
-  SwitchCamera,
   Barcode,
   Search,
   Sparkles,
-  CheckCircle2,
   AlertCircle,
-  Scan,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import nutritionLookupService from '../services/nutritionLookupService';

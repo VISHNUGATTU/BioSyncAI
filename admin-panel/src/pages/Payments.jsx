@@ -12,16 +12,14 @@ import {
   Activity,
   Eye,
   X,
-  FileText,
   User,
   Calendar,
   Building,
-  ArrowUpRight,
   ShieldCheck,
   Receipt,
   Copy,
   Check,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 
 import api from '../api/axios';

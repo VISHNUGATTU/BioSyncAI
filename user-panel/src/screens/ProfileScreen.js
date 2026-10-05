@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -21,9 +20,7 @@ import {
   Activity,
   Heart,
   Wind,
-  Brain,
   Droplets,
-  Clock,
   Sparkles,
   Lock,
   ArrowRight,

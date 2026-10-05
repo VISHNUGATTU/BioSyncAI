@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,13 +18,10 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   Scan,
   Flame,
   ArrowRight,
-  ShieldAlert,
-  Calendar,
   CalendarPlus,
   FileText,
   Edit3,

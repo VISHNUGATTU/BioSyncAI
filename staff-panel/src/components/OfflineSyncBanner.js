@@ -5,18 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import {
-  Wifi,
   WifiOff,
-  RefreshCw,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
   Zap,
 } from 'lucide-react-native';
-import { colors } from '../theme/colors';
 import offlineSyncQueueService from '../services/offlineSyncQueueService';
 
 export const OfflineSyncBanner = ({ style }) => {

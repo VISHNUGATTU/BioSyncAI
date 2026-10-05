@@ -10,17 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import {
-  Calendar,
   Clock,
   RotateCcw,
   X,
   AlertCircle,
-  CheckCircle2,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/colors';
-import GlassCard from './GlassCard';
 import userApi from '../api/userApi';
 
 const TIME_SLOTS = [

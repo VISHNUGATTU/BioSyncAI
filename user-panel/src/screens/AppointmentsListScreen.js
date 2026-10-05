@@ -19,7 +19,6 @@ import {
   KeyRound,
   FileText,
   ChevronRight,
-  Sparkles,
   RotateCcw,
   AlertTriangle,
   AlertCircle,

@@ -14,7 +14,6 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Stethoscope,
   FlaskConical,
@@ -26,15 +25,12 @@ import {
   LogOut,
   Phone,
   ShieldCheck,
-  AlertCircle,
   FileCheck,
-  ChevronRight,
   X,
   Sparkles,
-  MapPin,
   CheckCircle2,
 } from 'lucide-react-native';
-import { colors, gradients, useTheme } from '../theme/colors';
+import { colors, useTheme } from '../theme/colors';
 import GlassCard from '../components/GlassCard';
 import StatusBadge from '../components/StatusBadge';
 import VitalsFormSection from '../components/VitalsFormSection';

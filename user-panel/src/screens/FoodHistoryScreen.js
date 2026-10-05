@@ -11,16 +11,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Utensils,
-  Clock,
   Flame,
-  Sparkles,
   TrendingUp,
   Scan,
-  Filter,
-  CheckCircle2,
-  AlertTriangle,
-  ChevronRight,
-  Calendar,
   Activity,
 } from 'lucide-react-native';
 import { colors } from '../theme/colors';

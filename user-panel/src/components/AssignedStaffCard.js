@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
-import { UserCheck, Phone, Navigation, Bike, Car, Shield } from 'lucide-react-native';
+import { UserCheck, Phone, Shield } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import GlassCard from './GlassCard';
 
