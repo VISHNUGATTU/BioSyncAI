@@ -20,6 +20,11 @@ import {
   notifyCollectionException,
 } from '../services/notificationService.js';
 
+const isCookieSecure = () => {
+  return process.env.COOKIE_SECURE === 'true' || 
+    (process.env.NODE_ENV === 'production' && (process.env.PUBLIC_URL?.startsWith('https') || false));
+};
+
 const generateLATokenAndCookie = (res, laId, role = 'lab_assistant') => {
   const token = jwt.sign(
     { id: laId, role }, 
@@ -27,15 +32,33 @@ const generateLATokenAndCookie = (res, laId, role = 'lab_assistant') => {
     { expiresIn: '30d' }
   );
 
+  const secure = isCookieSecure();
+
   res.cookie('la_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure,
+    sameSite: secure ? 'strict' : 'lax',
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 
   return token;
 };
+
+export const logoutLabAssistant = asyncHandler(async (req, res) => {
+  const secure = isCookieSecure();
+
+  res.cookie('la_token', '', {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? 'strict' : 'lax',
+    expires: new Date(0),
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
+});
 
 export const loginLabAssistant = asyncHandler(async (req, res) => {
   const { phone, password } = req.body;

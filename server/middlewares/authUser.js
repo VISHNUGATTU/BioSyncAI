@@ -5,14 +5,14 @@ import User from '../models/User.js';
 const authUser = asyncHandler(async (req, res, next) => {
   let token;
 
-  // Support both HTTP-only cookies and Authorization headers
-  if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  } else if (
+  // Bearer Authorization header takes precedence over ambient cookies
+  if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
   }
 
   if (!token) {

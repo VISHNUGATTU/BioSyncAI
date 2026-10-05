@@ -17,6 +17,15 @@ export const staffApi = {
     return res.data;
   },
 
+  logout: async () => {
+    try {
+      const res = await api.post('/lab-assistant/logout');
+      return res.data;
+    } catch (_) {
+      return { success: true };
+    }
+  },
+
   updatePushToken: async (pushToken) => {
     const res = await api.put('/lab-assistant/push-token', {
       pushToken,

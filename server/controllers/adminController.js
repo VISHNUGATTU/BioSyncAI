@@ -24,12 +24,18 @@ import {
   notifyAppointmentCancelled,
 } from '../services/notificationService.js';
 
+const isCookieSecure = () => {
+  return process.env.COOKIE_SECURE === 'true' || 
+    (process.env.NODE_ENV === 'production' && (process.env.PUBLIC_URL?.startsWith('https') || false));
+};
+
 const generateAdminTokenAndCookie = (res, adminId) => {
   const token = jwt.sign({ id: adminId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  const secure = isCookieSecure();
   res.cookie('admin_token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure,
+    sameSite: secure ? 'strict' : 'lax',
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
   return token;

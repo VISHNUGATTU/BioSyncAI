@@ -222,6 +222,10 @@ export const useAuthStore = create((set, get) => ({
   // ─────────────────────────────────────────────
   logout: async () => {
     try {
+      await staffApi.logout().catch(() => {});
+    } catch (_) {}
+
+    try {
       await AsyncStorage.multiRemove([
         TOKEN_KEY,
         PROFILE_KEY,

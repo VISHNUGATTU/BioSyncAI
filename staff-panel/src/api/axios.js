@@ -77,9 +77,16 @@ export const getApiBaseUrl = () => {
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem(
-        '@staff_token'
-      );
+      // Prioritize in-memory store token first to eliminate async disk storage lag right after login
+      let token;
+      try {
+        const { useAuthStore } = await import('../store/authStore');
+        token = useAuthStore?.getState()?.token;
+      } catch (_) {}
+
+      if (!token) {
+        token = await AsyncStorage.getItem('@staff_token');
+      }
 
       config.headers = config.headers || {};
 
@@ -161,9 +168,10 @@ api.interceptors.response.use(
         '[Axios] Server rejected the authentication token.'
       );
 
-      // If the rejection was not on a login attempt, wipe stale tokens and reset session
+      // Only wipe session if an Authorization header was actually provided and rejected
+      const hadTokenAttached = !!error?.config?.headers?.Authorization;
       const isLoginAttempt = typeof url === 'string' && url.includes('/login');
-      if (!isLoginAttempt && !isLoggingOut) {
+      if (hadTokenAttached && !isLoginAttempt && !isLoggingOut) {
         isLoggingOut = true;
         console.warn(
           '[Axios] Stale or invalid session detected. Clearing credentials & resetting auth state.'

@@ -6,10 +6,11 @@ import Admin from '../models/Admin.js'; // Placeholder for Admin model - we will
 const authAdmin = asyncHandler(async (req, res, next) => {
   let token;
 
-  if (req.cookies && req.cookies.admin_token) {
-    token = req.cookies.admin_token;
-  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  // Bearer Authorization header takes precedence over ambient cookies
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.admin_token) {
+    token = req.cookies.admin_token;
   }
 
   if (!token) {

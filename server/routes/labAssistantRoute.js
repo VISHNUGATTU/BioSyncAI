@@ -1,6 +1,6 @@
 import express from 'express';
 import { 
-  loginLabAssistant, getPendingAppointments, updateAppointmentStatus, 
+  loginLabAssistant, logoutLabAssistant, getPendingAppointments, updateAppointmentStatus, 
   updateLiveLocation, collectSampleAndCOD, rejectSample, bulkLaboratoryDropoff, 
   getProfile, updateProfile, uploadCollectionEvidence, getCollectedSamples, getDashboardKPIs,
   getAppointmentsByCategory, getProcessingQueue, startSampleProcessing, submitTestResults, getEarnings,
@@ -14,6 +14,7 @@ import { memoryUpload } from '../configs/multer.js';
 
 const labAssistantRouter = express.Router();
 labAssistantRouter.post('/login', loginLabAssistant);
+labAssistantRouter.post('/logout', logoutLabAssistant);
 labAssistantRouter.use(authLabAssistant);
 
 // Push Notification Token Registration

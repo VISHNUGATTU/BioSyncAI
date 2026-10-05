@@ -7,10 +7,10 @@ import Admin from '../models/Admin.js';
 
 export const authGeneral = asyncHandler(async (req, res, next) => {
   const token =
-    (req.cookies && (req.cookies.token || req.cookies.la_token || req.cookies.admin_token)) ||
     (req.headers.authorization?.startsWith('Bearer')
       ? req.headers.authorization.split(' ')[1]
-      : null);
+      : null) ||
+    (req.cookies && (req.cookies.token || req.cookies.la_token || req.cookies.admin_token));
 
   if (!token) {
     res.status(401);
