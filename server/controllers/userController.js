@@ -84,7 +84,20 @@ export const sendOTP = asyncHandler(async (req, res) => {
   console.log(`║ 🛡️  Provider: Google Firebase Authentication          ║`);
   console.log('╚══════════════════════════════════════════════════════╝\n');
 
-  if (fbDeliveryAttempt.reason?.includes('SMS unable to be sent until this region enabled') || fbDeliveryAttempt.reason?.includes('OPERATION_NOT_ALLOWED')) {
+  if (fbDeliveryAttempt.reason === 'BILLING_NOT_ENABLED') {
+    console.log('╔════════════════════════════════════════════════════════════════════════════════╗');
+    console.log('║ ⚠️  GOOGLE FIREBASE NOTICE: CLOUD BILLING REQUIRED FOR REAL SMS                 ║');
+    console.log('║ Google blocked live SMS because project "biosyncai-fd8a2" is on the free Spark ║');
+    console.log('║ plan. Google requires the pay-as-you-go "Blaze" plan to dispatch live SMS.     ║');
+    console.log('║                                                                                ║');
+    console.log('║ OPTION 1 (Receive Real SMS on your phone):                                     ║');
+    console.log('║ 👉 Upgrade to Blaze plan: https://console.firebase.google.com/project/biosyncai-fd8a2/usage/details ║');
+    console.log('║                                                                                ║');
+    console.log('║ OPTION 2 (100% Free - Instant Testing):                                        ║');
+    console.log('║ 👉 Add +91 ' + cleanNumber + ' under "Phone numbers for testing" with code 123456:║');
+    console.log('║    https://console.firebase.google.com/project/biosyncai-fd8a2/authentication/providers ║');
+    console.log('╚════════════════════════════════════════════════════════════════════════════════╝\n');
+  } else if (fbDeliveryAttempt.reason?.includes('SMS unable to be sent until this region enabled') || fbDeliveryAttempt.reason?.includes('OPERATION_NOT_ALLOWED')) {
     console.log('╔════════════════════════════════════════════════════════════════════════════════╗');
     console.log('║ ⚠️  GOOGLE FIREBASE ACTION: ENABLE SMS REGION POLICY (INDIA +91)                ║');
     console.log('║ Google blocked live SMS dispatch because India (+91) is not enabled in the     ║');
@@ -95,10 +108,6 @@ export const sendOTP = asyncHandler(async (req, res) => {
     console.log('║ 2. Click on the "SMS Region Policy" tab                                        ║');
     console.log('║ 3. Add "India (+91)" to the allowlist                                          ║');
     console.log('║ 4. Click Save!                                                                 ║');
-    console.log('║                                                                                ║');
-    console.log('║ 💡 Instant Testing Alternative:                                                ║');
-    console.log('║    Add +91 ' + cleanNumber + ' under "Phone numbers for testing" with code 123456 ║');
-    console.log('║    at https://console.firebase.google.com/project/biosyncai-fd8a2/authentication/providers ║');
     console.log('╚════════════════════════════════════════════════════════════════════════════════╝\n');
   } else if (fbDeliveryAttempt.reason === 'CONFIGURATION_NOT_FOUND') {
     console.log('💡 Note: To deliver SMS directly to your phone via Google, enable "Phone" in Firebase Console:');
