@@ -26,10 +26,10 @@ async function testPhase1Flow() {
     });
 
     // STEP 2: Authenticate Lab Assistant
-    console.log('\nStep 2: Authenticating Lab Assistant (9876543210)...');
+    console.log('\nStep 2: Authenticating Lab Assistant (9123456701)...');
     const staffLogin = await axios.post(`${API_BASE}/lab-assistant/login`, {
-      phone: '9876543210',
-      password: 'password123'
+      phone: '9123456701',
+      password: 'staffpassword123'
     });
     const staffToken = staffLogin.data.token;
     console.log('  ✅ Lab Assistant Logged In:', staffLogin.data.user?.name || staffLogin.data.labAssistant?.name);
