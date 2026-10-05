@@ -1,23 +1,41 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import api from '../api/axios';
 
 const PUSH_TOKEN_STORAGE_KEY = 'biosync_registered_push_token';
 
-// Configure foreground notification presentation handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// In Expo SDK 53+, remote push notifications were removed from Expo Go on Android.
+// To prevent fatal startup crashes in Expo Go, we guard the notifications module.
+const isExpoGoOnAndroid =
+  Platform.OS === 'android' &&
+  (Constants?.executionEnvironment === ExecutionEnvironment.StoreClient ||
+   Constants?.appOwnership === 'expo');
+
+let Notifications = null;
+if (!isExpoGoOnAndroid) {
+  try {
+    Notifications = require('expo-notifications');
+    if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+    }
+  } catch (err) {
+    console.warn('[PushService] expo-notifications initialization note:', err?.message || err);
+  }
+}
 
 /**
  * Configure Android notification channels for critical healthcare alerts
  */
 export const setupNotificationChannels = async () => {
+  if (isExpoGoOnAndroid || !Notifications?.setNotificationChannelAsync) return;
+
   if (Platform.OS === 'android') {
     try {
       await Notifications.setNotificationChannelAsync('biosync-critical', {
@@ -46,6 +64,11 @@ export const setupNotificationChannels = async () => {
  * Register device for Expo Push Notifications and sync token with BioSync backend
  */
 export const registerForPushNotifications = async () => {
+  if (isExpoGoOnAndroid || !Notifications?.getExpoPushTokenAsync) {
+    console.log('[PushService] Remote push notifications disabled in Expo Go Android (SDK 53+). Standalone & dev builds support FCM.');
+    return null;
+  }
+
   try {
     await setupNotificationChannels();
 
@@ -108,6 +131,10 @@ export const registerForPushNotifications = async () => {
  * Attach notification response and received listeners
  */
 export const attachNotificationListeners = (navigationRef) => {
+  if (isExpoGoOnAndroid || !Notifications?.addNotificationReceivedListener) {
+    return () => {};
+  }
+
   // Listener for incoming notification while app is in foreground
   const foregroundSubscription = Notifications.addNotificationReceivedListener((notification) => {
     console.log('[PushService] Foreground notification received:', notification.request.content.title);
@@ -135,8 +162,8 @@ export const attachNotificationListeners = (navigationRef) => {
   });
 
   return () => {
-    foregroundSubscription.remove();
-    responseSubscription.remove();
+    if (foregroundSubscription?.remove) foregroundSubscription.remove();
+    if (responseSubscription?.remove) responseSubscription.remove();
   };
 };
 
