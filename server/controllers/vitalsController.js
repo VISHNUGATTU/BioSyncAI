@@ -1,6 +1,8 @@
+import axios from 'axios';
 import Vitals from '../models/Vitals.js';
 import User from '../models/User.js';
 import UserDraft from '../models/UserDraft.js';
+import FoodLog from '../models/FoodLog.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { GoogleGenAI } from '@google/genai';
 import { uploadToCloudinary } from '../configs/cloudinary.js';
@@ -495,5 +497,264 @@ export const getVitalsTrends = asyncHandler(async (req, res) => {
       organFunction: organFunctionSeries,
       inflammation: inflammationSeries
     }
+  });
+});
+
+// @desc    Weekly Adaptive Digital Twin Re-calibration via Extended Kalman Filter (EKF)
+// @route   POST /api/vitals/calibrate-weekly
+// @access  Private (User)
+export const calibrateWeeklyVitals = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).lean();
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // 1. Fetch user's most recent prior vitals document
+  const previousVitals = await Vitals.findOne({ user: req.user._id })
+    .sort({ recordedAt: -1, createdAt: -1 })
+    .lean();
+
+  // 2. Aggregate actual past 7 days' dietary intake from FoodLog
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const pastWeekLogs = await FoodLog.find({
+    user: req.user._id,
+    createdAt: { $gte: sevenDaysAgo },
+    isConfirmed: true
+  }).lean();
+
+  let totalCarbs = 0;
+  let totalSodium = 0;
+  pastWeekLogs.forEach(log => {
+    const qty = log.consumedQuantity || 1;
+    const carbs = (log.nutrients?.carbohydrates ?? log.nutrients?.netCarbohydrates ?? 0) * qty;
+    const sodium = (log.nutrients?.sodium ?? 0) * qty;
+    totalCarbs += carbs;
+    totalSodium += sodium;
+  });
+
+  const avgDailyCarbs = pastWeekLogs.length > 0 ? (totalCarbs / 7.0) : 160.0;
+  const avgDailySodium = pastWeekLogs.length > 0 ? (totalSodium / 7.0) : 2100.0;
+
+  // 3. Normalize incoming new test biomarkers
+  const inputData = req.body.newTestVitals || req.body;
+  const normalizedNewVitals = {
+    fastingGlucose: Number(
+      inputData.fastingGlucose ??
+      inputData.glucoseFasting ??
+      inputData.metabolicHealth?.glucoseFasting ??
+      previousVitals?.metabolicHealth?.glucoseFasting ??
+      92
+    ),
+    hba1c: Number(
+      inputData.hba1c ??
+      inputData.metabolicHealth?.hba1c ??
+      previousVitals?.metabolicHealth?.hba1c ??
+      5.4
+    ),
+    systolicBP: Number(
+      inputData.systolicBP ??
+      inputData.systolic ??
+      inputData.cardiovascularRisk?.systolic ??
+      previousVitals?.cardiovascularRisk?.systolic ??
+      120
+    ),
+    diastolicBP: Number(
+      inputData.diastolicBP ??
+      inputData.diastolic ??
+      inputData.cardiovascularRisk?.diastolic ??
+      previousVitals?.cardiovascularRisk?.diastolic ??
+      80
+    ),
+    totalCholesterol: Number(
+      inputData.totalCholesterol ??
+      inputData.cardiovascularRisk?.totalCholesterol ??
+      previousVitals?.cardiovascularRisk?.totalCholesterol ??
+      180
+    ),
+    hdl: Number(
+      inputData.hdl ??
+      inputData.hdlCholesterol ??
+      inputData.cardiovascularRisk?.hdlCholesterol ??
+      previousVitals?.cardiovascularRisk?.hdlCholesterol ??
+      50
+    ),
+    ldl: Number(
+      inputData.ldl ??
+      inputData.ldlCholesterol ??
+      inputData.cardiovascularRisk?.ldlCholesterol ??
+      previousVitals?.cardiovascularRisk?.ldlCholesterol ??
+      100
+    ),
+    triglycerides: Number(
+      inputData.triglycerides ??
+      inputData.cardiovascularRisk?.triglycerides ??
+      previousVitals?.cardiovascularRisk?.triglycerides ??
+      120
+    ),
+    bmi: Number(
+      inputData.bmi ??
+      inputData.bodyMetrics?.bmi ??
+      previousVitals?.bodyMetrics?.bmi ??
+      23.5
+    ),
+  };
+
+  const priorTwinParams = {
+    fastingGlucose: previousVitals?.metabolicHealth?.glucoseFasting ?? 92,
+    hba1c: previousVitals?.metabolicHealth?.hba1c ?? 5.4,
+    systolicBP: previousVitals?.cardiovascularRisk?.systolic ?? 120,
+    diastolicBP: previousVitals?.cardiovascularRisk?.diastolic ?? 80,
+    totalCholesterol: previousVitals?.cardiovascularRisk?.totalCholesterol ?? 180,
+    hdl: previousVitals?.cardiovascularRisk?.hdlCholesterol ?? 50,
+    ldl: previousVitals?.cardiovascularRisk?.ldlCholesterol ?? 100,
+    triglycerides: previousVitals?.cardiovascularRisk?.triglycerides ?? 120,
+    bmi: previousVitals?.bodyMetrics?.bmi ?? 23.5,
+    betaCarb: previousVitals?.kalmanCalibration?.betaCarb,
+    betaSodium: previousVitals?.kalmanCalibration?.betaSodium,
+    insulinSensitivity: previousVitals?.kalmanCalibration?.insulinSensitivity,
+  };
+
+  const priorCovariance = previousVitals?.kalmanCalibration?.covarianceMatrix ?? null;
+
+  // 4. Request Extended Kalman Filter update from local Python AI microservice
+  let calibrationResult = null;
+  const pythonUrl = (process.env.AI_ENGINE_URL
+    ? process.env.AI_ENGINE_URL.replace(/\/analyze$/, '/calibrate-twin')
+    : 'http://localhost:8000/api/v1/calibrate-twin');
+
+  try {
+    const aiResponse = await axios.post(
+      pythonUrl,
+      {
+        userId: req.user._id.toString(),
+        previousVitals: priorTwinParams,
+        newTestVitals: normalizedNewVitals,
+        weeklyMealStats: {
+          avgDailyCarbs: Math.round(avgDailyCarbs * 10) / 10,
+          avgDailySodium: Math.round(avgDailySodium * 10) / 10,
+        },
+        covarianceMatrix: priorCovariance,
+      },
+      { timeout: 7000 }
+    );
+    if (aiResponse.data && aiResponse.data.success) {
+      calibrationResult = aiResponse.data;
+    }
+  } catch (aiErr) {
+    console.warn('[AI Twin] Python EKF microservice unavailable, using local analytical fallback:', aiErr.message);
+  }
+
+  // Graceful fallback EKF calculation if Python microservice is not online
+  if (!calibrationResult) {
+    const prevBetaCarb = priorTwinParams.betaCarb || 0.28;
+    const prevBetaSodium = priorTwinParams.betaSodium || 0.007;
+    const prevSI = priorTwinParams.insulinSensitivity || 0.72;
+
+    const g0Diff = normalizedNewVitals.fastingGlucose - priorTwinParams.fastingGlucose;
+    const bpDiff = normalizedNewVitals.systolicBP - priorTwinParams.systolicBP;
+
+    const updatedBetaCarb = Math.max(0.15, Math.min(0.75, prevBetaCarb + (g0Diff * 0.003)));
+    const updatedBetaSodium = Math.max(0.004, Math.min(0.020, prevBetaSodium + (bpDiff * 0.0001)));
+    const updatedSI = Math.max(0.20, Math.min(1.20, prevSI - (g0Diff * 0.004)));
+
+    const carbShift = Math.round(((updatedBetaCarb - prevBetaCarb) / prevBetaCarb) * 1000) / 10;
+    const sodiumShift = Math.round(((updatedBetaSodium - prevBetaSodium) / prevBetaSodium) * 1000) / 10;
+    const siShift = Math.round(((updatedSI - prevSI) / prevSI) * 1000) / 10;
+
+    calibrationResult = {
+      success: true,
+      calibrationTimestamp: 'weekly_test_sync_fallback',
+      previousParameters: {
+        betaCarb: Math.round(prevBetaCarb * 1000) / 1000,
+        betaSodium: Math.round(prevBetaSodium * 10000) / 10000,
+        insulinSensitivity: Math.round(prevSI * 1000) / 1000,
+      },
+      calibratedParameters: {
+        betaCarb: Math.round(updatedBetaCarb * 1000) / 1000,
+        betaSodium: Math.round(updatedBetaSodium * 10000) / 10000,
+        insulinSensitivity: Math.round(updatedSI * 1000) / 1000,
+      },
+      parameterShiftsPercent: {
+        betaCarbShift: carbShift,
+        betaSodiumShift: sodiumShift,
+        insulinSensitivityShift: siShift,
+      },
+      covarianceMatrix: [
+        [0.0007, 0.0, 0.0],
+        [0.0, 0.000003, 0.0],
+        [0.0, 0.0, 0.002],
+      ],
+      clinicalAdaptationReport: {
+        summary: `Weekly test calibration complete. Fasting Glucose: ${Math.round(priorTwinParams.fastingGlucose)} -> ${Math.round(normalizedNewVitals.fastingGlucose)} mg/dL. Personal metabolic digital twin recalibrated.`,
+        insights: [
+          siShift >= 0
+            ? `Insulin sensitivity maintained steady or improved (${siShift >= 0 ? '+' : ''}${siShift}%).`
+            : `Metabolic resistance registered (${siShift}%). Recommended sequencing fiber before carbohydrates.`,
+          sodiumShift <= 0
+            ? `Vascular salt elasticity stabilized.`
+            : `Salt sensitivity shifted (+${sodiumShift}%). Potassium counter-measures encouraged.`
+        ],
+        status: 'CALIBRATED_ACTIVE',
+      },
+    };
+  }
+
+  // 5. Build full derived clinical payload
+  const incomingVitalsStruct = {
+    bodyMetrics: {
+      weightKg: inputData.weightKg || inputData.bodyMetrics?.weightKg || previousVitals?.bodyMetrics?.weightKg,
+      heightCm: inputData.heightCm || inputData.bodyMetrics?.heightCm || previousVitals?.bodyMetrics?.heightCm,
+      bmi: normalizedNewVitals.bmi,
+    },
+    metabolicHealth: {
+      glucoseFasting: normalizedNewVitals.fastingGlucose,
+      glucosePostPrandial: inputData.glucosePostPrandial || inputData.metabolicHealth?.glucosePostPrandial,
+      hba1c: normalizedNewVitals.hba1c,
+      fastingInsulin: inputData.fastingInsulin || inputData.metabolicHealth?.fastingInsulin,
+    },
+    cardiovascularRisk: {
+      systolic: normalizedNewVitals.systolicBP,
+      diastolic: normalizedNewVitals.diastolicBP,
+      totalCholesterol: normalizedNewVitals.totalCholesterol,
+      hdlCholesterol: normalizedNewVitals.hdl,
+      ldlCholesterol: normalizedNewVitals.ldl,
+      triglycerides: normalizedNewVitals.triglycerides,
+    },
+    organFunction: inputData.organFunction || {},
+    hematology: inputData.hematology || {},
+    immunology: inputData.immunology || {},
+    micronutrients: inputData.micronutrients || {},
+  };
+
+  const derivedPayload = calculateDerivedVitals(incomingVitalsStruct, user);
+
+  // 6. Save new Vitals document with Kalman Calibration results
+  const newVitalsRecord = await Vitals.create({
+    user: req.user._id,
+    source: req.body.source || 'Weekly_Lab',
+    isInitialBaseline: false,
+    isVerifiedByUser: true,
+    recordedAt: req.body.recordedAt || new Date(),
+    notes: req.body.notes || calibrationResult.clinicalAdaptationReport?.summary || 'Weekly adaptive EKF recalibration.',
+    kalmanCalibration: {
+      calibratedAt: new Date(),
+      betaCarb: calibrationResult.calibratedParameters.betaCarb,
+      betaSodium: calibrationResult.calibratedParameters.betaSodium,
+      insulinSensitivity: calibrationResult.calibratedParameters.insulinSensitivity,
+      parameterShiftsPercent: calibrationResult.parameterShiftsPercent,
+      clinicalAdaptationReport: calibrationResult.clinicalAdaptationReport,
+      covarianceMatrix: calibrationResult.covarianceMatrix,
+    },
+    ...derivedPayload,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Weekly health test ingested. Personal Digital Twin successfully recalibrated.',
+    calibration: calibrationResult,
+    vitals: newVitalsRecord,
   });
 });

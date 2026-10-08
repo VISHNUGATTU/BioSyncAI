@@ -79,7 +79,7 @@ class MetabolicDigitalTwin:
         egfr = renal.get("egfr", vitals.get("egfr", 95.0))
         bmi = body.get("bmi", vitals.get("bmi", 23.5))
 
-        return cls(
+        twin = cls(
             user_id=user_id or vitals.get("user"),
             fasting_glucose=fg or 92.0,
             hba1c=a1c or 5.4,
@@ -92,6 +92,25 @@ class MetabolicDigitalTwin:
             egfr=egfr or 95.0,
             bmi=bmi or 23.5,
         )
+
+        # Preserve previously calibrated coefficients if available
+        kalman_data = vitals.get("kalmanCalibration", {}) if isinstance(vitals.get("kalmanCalibration"), dict) else {}
+        if vitals.get("betaCarb") is not None:
+            twin.beta_carb = float(vitals["betaCarb"])
+        elif kalman_data.get("betaCarb") is not None:
+            twin.beta_carb = float(kalman_data["betaCarb"])
+
+        if vitals.get("betaSodium") is not None:
+            twin.beta_sodium = float(vitals["betaSodium"])
+        elif kalman_data.get("betaSodium") is not None:
+            twin.beta_sodium = float(kalman_data["betaSodium"])
+
+        if vitals.get("insulinSensitivity") is not None:
+            twin.insulin_sensitivity_index = float(vitals["insulinSensitivity"])
+        elif kalman_data.get("insulinSensitivity") is not None:
+            twin.insulin_sensitivity_index = float(kalman_data["insulinSensitivity"])
+
+        return twin
 
     def _compute_insulin_sensitivity(self) -> float:
         """

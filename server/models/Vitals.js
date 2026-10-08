@@ -228,6 +228,22 @@ const vitalsSchema = new mongoose.Schema({
     status: { type: String, enum: ['Unresolved', 'Doctor_Notified', 'Resolved'], default: 'Unresolved', trim: true }
   }],
 
+  // 13. ADAPTIVE DIGITAL TWIN KALMAN CALIBRATION
+  kalmanCalibration: {
+    calibratedAt: { type: Date },
+    betaCarb: Number,
+    betaSodium: Number,
+    insulinSensitivity: Number,
+    parameterShiftsPercent: {
+      betaCarbShift: Number,
+      betaSodiumShift: Number,
+      insulinSensitivityShift: Number,
+    },
+    clinicalAdaptationReport: { type: mongoose.Schema.Types.Mixed },
+    covarianceMatrix: [[Number]],
+  },
+  notes: { type: String, trim: true },
+
 }, { 
   timestamps: true,
   toJSON: { transform: (doc, ret) => { delete ret.__v; return ret; } }

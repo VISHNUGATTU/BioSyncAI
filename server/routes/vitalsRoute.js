@@ -7,12 +7,16 @@ import {
   getLatestVitals,
   getVitalsHistory,
   getVitalsTrends,
-  getAIFeatureVector
+  getAIFeatureVector,
+  calibrateWeeklyVitals
 } from '../controllers/vitalsController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { memoryUpload } from '../configs/multer.js'; 
 
 const vitalsRouter = express.Router();
+
+// Weekly adaptive digital twin calibration via EKF
+vitalsRouter.post('/calibrate-weekly', authUser, calibrateWeeklyVitals);
 
 // Baseline and vitals submission
 vitalsRouter.post('/manual', authUser, addManualVitals);

@@ -13,6 +13,7 @@ from nutrition_db import nutrition_db
 from metabolic_twin import MetabolicDigitalTwin
 from clinical_ranker import clinical_ranker
 from vital_simulator import vital_simulator
+from adaptive_calibration import kalman_engine
 
 app = FastAPI(
     title="BioSync AI Engine",
@@ -63,6 +64,14 @@ class VitalSurgeSimulateRequest(BaseModel):
     applyDoctorHacks: Optional[bool] = Field(False, description="Whether to simulate with doctor hacks applied")
 
 
+class WeeklyCalibrationRequest(BaseModel):
+    userId: Optional[str] = Field(None, description="Patient User ID")
+    previousVitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Previous baseline vitals / twin state")
+    newTestVitals: Dict[str, Any] = Field(..., description="Newly submitted weekly lab test biomarkers")
+    weeklyMealStats: Optional[Dict[str, float]] = Field(None, description="Aggregated weekly meal stats (avgDailyCarbs, avgDailySodium)")
+    covarianceMatrix: Optional[List[List[float]]] = Field(None, description="Previous error covariance matrix P")
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -77,8 +86,26 @@ def health_check():
             "digital_twin_engine": True,
             "clinical_pareto_ranker": True,
             "vital_surge_simulator": True,
+            "adaptive_kalman_engine": True,
         }
     }
+
+
+@app.post("/api/v1/calibrate-twin")
+async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...)):
+    """
+    Phase 5 Core Endpoint:
+    Recursively updates personal metabolic sensitivities (beta_carb, beta_sodium, S_I)
+    using the Extended Kalman Filter when new weekly test biomarkers arrive.
+    """
+    twin = MetabolicDigitalTwin.from_vitals_dict(payload.previousVitals or {}, user_id=payload.userId)
+    calibration_result = kalman_engine.calibrate(
+        current_twin=twin,
+        new_vitals=payload.newTestVitals,
+        weekly_meal_stats=payload.weeklyMealStats,
+        prior_covariance=payload.covarianceMatrix
+    )
+    return calibration_result
 
 
 @app.post("/api/v1/simulate-vital-surge")
