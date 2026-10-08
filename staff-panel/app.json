@@ -1,24 +1,31 @@
 {
   "expo": {
-    "name": "BioSyncAI Staff",
+    "name": "BioSync AI Staff",
     "slug": "staff-panel",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "biosync-staff",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.biosync.staff",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BioSyncAI uses your location to route you to patient home appointments and provide live ETA to patients.",
-        "NSCameraUsageDescription": "BioSyncAI uses the camera to scan sample barcodes and capture specimen verification photos."
+        "NSLocationWhenInUseUsageDescription": "BioSync AI uses your location to route you to patient home appointments and provide live ETA to patients.",
+        "NSCameraUsageDescription": "BioSync AI uses the camera to scan sample barcodes and capture specimen verification photos."
       }
     },
     "android": {
       "package": "com.biosync.staff",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#0f172a",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

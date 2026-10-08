@@ -1,23 +1,32 @@
 {
   "expo": {
-    "name": "BioSyncAI",
-    "slug": "user-panel",
+    "name": "BioSync AI",
+    "slug": "biosync-ai",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "biosync-user",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.biosync.patient",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "BioSyncAI requires camera access to scan packaged food barcodes and meal nutrition.",
-        "NSLocationWhenInUseUsageDescription": "BioSyncAI uses your location to recommend home phlebotomy dispatch availability."
+        "NSCameraUsageDescription": "BioSync AI requires camera access to scan packaged food barcodes and meal nutrition.",
+        "NSLocationWhenInUseUsageDescription": "BioSync AI uses your location to recommend home phlebotomy dispatch availability."
       }
     },
     "android": {
       "package": "com.biosync.patient",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#000000"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
       },
       "permissions": [
         "CAMERA",
@@ -25,6 +34,9 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-camera",
