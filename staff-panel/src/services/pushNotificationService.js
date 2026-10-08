@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import staffApi from '../api/staffApi';
+import webPushService from './webPushService';
 
 const STAFF_PUSH_TOKEN_STORAGE_KEY = 'biosync_staff_push_token';
 
@@ -65,6 +66,10 @@ export const setupStaffNotificationChannels = async () => {
  * Register staff device for Expo Push Notifications and sync token with BioSync backend
  */
 export const registerStaffPushNotifications = async () => {
+  if (Platform.OS === 'web') {
+    return await webPushService.registerServiceWorker();
+  }
+
   if (isExpoGoOnAndroid || !Notifications?.getExpoPushTokenAsync) {
     console.log('[StaffPushService] Remote push notifications disabled in Expo Go Android (SDK 53+). Standalone & dev builds support FCM.');
     return null;
@@ -128,6 +133,18 @@ export const registerStaffPushNotifications = async () => {
  * Attach notification response and received listeners
  */
 export const attachStaffNotificationListeners = (navigationRef) => {
+  if (Platform.OS === 'web') {
+    const unsub = webPushService.addListener((payload) => {
+      console.log('[WebPushService] Received urgent broadcast in app:', payload);
+      if (navigationRef?.current && payload?.appointmentId) {
+        navigationRef.current.navigate('AppointmentDetail', {
+          appointmentId: payload.appointmentId,
+        });
+      }
+    });
+    return unsub;
+  }
+
   if (isExpoGoOnAndroid || !Notifications?.addNotificationReceivedListener) {
     return () => {};
   }

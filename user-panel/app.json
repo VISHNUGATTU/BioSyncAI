@@ -32,7 +32,9 @@
         "CAMERA",
         "NOTIFICATIONS",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -41,6 +43,11 @@
     "plugins": [
       "expo-camera",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3008f7d4-582a-48a6-8f71-ee27eb82946f"
+      }
+    }
   }
 }

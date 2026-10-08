@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -26,6 +27,7 @@ import {
   Wallet,
   Headset,
   Bell,
+  Volume2,
 } from 'lucide-react-native';
 
 import { colors, gradients, useTheme } from '../theme/colors';
@@ -39,6 +41,7 @@ import OpsHelplineModal from '../components/OpsHelplineModal';
 import NotificationModal from '../components/NotificationModal';
 import staffApi from '../api/staffApi';
 import { OfflineSyncBanner } from '../components/OfflineSyncBanner';
+import webPushService from '../services/webPushService';
 
 export const DashboardScreen = ({ navigation }) => {
   const { isDark } = useTheme();
@@ -65,6 +68,10 @@ export const DashboardScreen = ({ navigation }) => {
   const [helplineVisible, setHelplineVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
+  const [webAlertGranted, setWebAlertGranted] = useState(
+    Platform.OS === 'web' && typeof Notification !== 'undefined' && Notification.permission === 'granted'
+  );
+  const prevPendingCountRef = useRef(pendingAppointments?.length || 0);
 
   const fetchUnreadNotifs = async () => {
     try {
@@ -78,6 +85,9 @@ export const DashboardScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      webPushService.registerServiceWorker();
+    }
     fetchDashboardData();
     fetchUnreadNotifs();
 
@@ -87,6 +97,30 @@ export const DashboardScreen = ({ navigation }) => {
     }, 6000);
     return () => clearInterval(interval);
   }, []);
+
+  // Monitor incoming urgent dispatches
+  useEffect(() => {
+    const currentPending = pendingAppointments?.length || 0;
+    if (currentPending > prevPendingCountRef.current && prevPendingCountRef.current > 0) {
+      webPushService.triggerUrgentDispatchAlert({
+        title: '🚨 Urgent Phlebotomy Dispatch Assigned',
+        body: `You have ${currentPending} pending patient sample collections.`,
+      });
+    }
+    prevPendingCountRef.current = currentPending;
+  }, [pendingAppointments]);
+
+  const handleTestOrEnableWebAlerts = async () => {
+    if (Platform.OS === 'web') {
+      const perm = await webPushService.requestPermission();
+      setWebAlertGranted(perm === 'granted');
+      webPushService.playMedicalAlertChime('urgent');
+      Alert.alert(
+        'Dispatcher Audio Alerts Active',
+        'Hospital-grade audio chime verified. Desktop notifications will alert you for incoming urgent patient dispatches.'
+      );
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -203,6 +237,20 @@ export const DashboardScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.headerActions}>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                style={styles.webAlertHeaderBtn}
+                onPress={handleTestOrEnableWebAlerts}
+                activeOpacity={0.8}
+              >
+                <Volume2
+                  size={17}
+                  color={webAlertGranted ? colors.cyan : colors.textMuted}
+                  strokeWidth={2.2}
+                />
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.notifHeaderBtn}
               onPress={() => setNotifVisible(true)}
@@ -848,6 +896,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
+  },
+
+  webAlertHeaderBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: colors.alphaCyan10,
+    borderWidth: 1,
+    borderColor: colors.borderCyan,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   notifHeaderBtn: {
