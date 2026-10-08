@@ -751,10 +751,140 @@ export const calibrateWeeklyVitals = asyncHandler(async (req, res) => {
     ...derivedPayload,
   });
 
-  res.status(200).json({
+    res.status(200).json({
     success: true,
     message: 'Weekly health test ingested. Personal Digital Twin successfully recalibrated.',
     calibration: calibrationResult,
     vitals: newVitalsRecord,
+  });
+});
+
+/**
+ * High-Precision Biometric IoT Telemetry Generator (1-Second Real-Time Clock)
+ * Models continuous sinus rhythm, respiratory arrhythmia, interstitial CGM diffusion,
+ * and arterial pulse pressure dynamics grounded in the patient's verified baseline.
+ */
+export const generateRealisticIoTTelemetry = (baseVitalsDoc, stepIndex = 0) => {
+  const baseHR = baseVitalsDoc?.continuousMetrics?.restingHeartRate || 72;
+  const baseSpO2 = baseVitalsDoc?.continuousMetrics?.oxygenSaturationSpO2 || 98;
+  const baseGlucose = baseVitalsDoc?.metabolicHealth?.glucoseFasting || 92;
+  const baseSystolic = baseVitalsDoc?.cardiovascularRisk?.systolic || 120;
+  const baseDiastolic = baseVitalsDoc?.cardiovascularRisk?.diastolic || 80;
+  const baseHRV = baseVitalsDoc?.continuousMetrics?.hrv || 52;
+
+  // 1-Second Respiratory Sinus Arrhythmia & stochastic fluctuations
+  const t = stepIndex;
+  const respiratoryModulation = Math.sin(t * 0.35) * 3.2; // ~14 breaths per min modulation
+  const hrRandomDrift = (Math.random() - 0.5) * 1.8;
+  const currentHeartRate = Math.round(
+    Math.max(48, Math.min(130, baseHR + respiratoryModulation + hrRandomDrift))
+  );
+
+  // Heart Rate Variability (ms) - inversely coupled to sudden pulse spikes
+  const hrvDrift = (Math.random() - 0.5) * 3.0;
+  const currentHRV = Math.round(
+    Math.max(22, Math.min(95, baseHRV - (respiratoryModulation * 0.8) + hrvDrift))
+  );
+
+  // Pulse Oximetry SpO2 (%)
+  const spO2Jitter = Math.random() > 0.85 ? -1 : 0;
+  const currentSpO2 = Math.max(94, Math.min(100, baseSpO2 + spO2Jitter));
+
+  // Continuous Interstitial Glucose (CGM in mg/dL)
+  // Low-frequency biological drift mimicking continuous subcutaneous glucose flux
+  const glucoseSlowWave = Math.sin(t * 0.04) * 4.5 + Math.cos(t * 0.015) * 2.0;
+  const glucoseJitter = (Math.random() - 0.5) * 0.8;
+  const currentGlucose = Number(
+    Math.max(65, Math.min(220, baseGlucose + glucoseSlowWave + glucoseJitter)).toFixed(1)
+  );
+
+  // Arterial Blood Pressure Pulse Waveform (mmHg)
+  const bpModulation = Math.sin(t * 0.2) * 2.0;
+  const currentSystolic = Math.round(
+    Math.max(90, Math.min(160, baseSystolic + bpModulation + (Math.random() - 0.5) * 1.2))
+  );
+  const currentDiastolic = Math.round(
+    Math.max(55, Math.min(100, baseDiastolic + (bpModulation * 0.5) + (Math.random() - 0.5) * 0.8))
+  );
+
+  // Autonomic Stress Index (0 - 100) derived from real-time HRV
+  const stressRaw = Math.round(100 - (currentHRV * 1.2) + (respiratoryModulation * 1.5));
+  const currentStress = Math.max(12, Math.min(88, stressRaw));
+
+  // Respiration Rate (breaths/min) & Skin Temperature (°C)
+  const respirationRate = Number((15.0 + Math.sin(t * 0.1) * 1.5 + (Math.random() - 0.5) * 0.4).toFixed(1));
+  const skinTemp = Number((36.6 + Math.sin(t * 0.02) * 0.2 + (Math.random() - 0.5) * 0.05).toFixed(2));
+  const perfusionIndex = Number((5.2 + Math.sin(t * 0.08) * 0.6 + (Math.random() - 0.5) * 0.15).toFixed(2));
+
+  return {
+    timestamp: new Date().toISOString(),
+    epochMs: Date.now(),
+    stepSecond: stepIndex,
+    device: {
+      deviceName: 'BioSync Medical Telemetry Watch Ultra',
+      cgmSensor: 'Dexcom G7 / FreeStyle Continuous Subcutaneous Probe',
+      batteryLevel: 94,
+      connectionStatus: 'ACTIVE_STREAMING',
+      bleRssi: -52, // dBm
+    },
+    metrics: {
+      heartRate: currentHeartRate,
+      hrvMs: currentHRV,
+      spO2Percent: currentSpO2,
+      glucoseCgm: currentGlucose,
+      glucoseTrend: glucoseSlowWave > 0.5 ? 'RISING_STEADY' : glucoseSlowWave < -0.5 ? 'FALLING_STEADY' : 'STABLE',
+      systolicBP: currentSystolic,
+      diastolicBP: currentDiastolic,
+      meanArterialPressure: Math.round((currentSystolic + 2 * currentDiastolic) / 3),
+      stressIndex: currentStress,
+      respirationRate,
+      skinTemperatureCelsius: skinTemp,
+      perfusionIndexPercent: perfusionIndex,
+    },
+  };
+};
+
+// @desc    Real-time 1-Second Server-Sent Events (SSE) Biometric IoT Telemetry Stream
+// @route   GET /api/vitals/iot-stream
+// @access  Private (User)
+export const getLiveIoTTelemetryStream = asyncHandler(async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders();
+  }
+
+  const latestVitals = await Vitals.findOne({ user: req.user._id })
+    .sort({ recordedAt: -1, createdAt: -1 })
+    .lean();
+
+  let step = Math.floor(Date.now() / 1000);
+  const intervalId = setInterval(() => {
+    step += 1;
+    const packet = generateRealisticIoTTelemetry(latestVitals, step);
+    res.write(`data: ${JSON.stringify(packet)}\n\n`);
+  }, 1000);
+
+  req.on('close', () => {
+    clearInterval(intervalId);
+    res.end();
+  });
+});
+
+// @desc    Get Latest Instant 1-Second Biometric Telemetry Reading (Single Packet or Fast Polling)
+// @route   GET /api/vitals/iot-latest
+// @access  Private (User)
+export const getLatestIoTReading = asyncHandler(async (req, res) => {
+  const latestVitals = await Vitals.findOne({ user: req.user._id })
+    .sort({ recordedAt: -1, createdAt: -1 })
+    .lean();
+
+  const step = Math.floor(Date.now() / 1000);
+  const reading = generateRealisticIoTTelemetry(latestVitals, step);
+
+  res.status(200).json({
+    success: true,
+    reading,
   });
 });

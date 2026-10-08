@@ -46,6 +46,7 @@ import { useAuthStore } from '../store/authStore';
 import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
 import DataProvenanceBadge, { normalizeProvenance } from '../components/DataProvenanceBadge';
+import LiveIoTWatchSyncCard from '../components/LiveIoTWatchSyncCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - 40;
@@ -1073,6 +1074,9 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
             </Text>
           </View>
         </GlassCard>
+
+        {/* Real-Time 1-Second Biometric IoT Wearable Sync Card */}
+        <LiveIoTWatchSyncCard baseVitals={latestVitals} />
 
         {/* ========================================================= */}
         {/* 3. SIMPLE, CLEAR TREND CHART                              */}

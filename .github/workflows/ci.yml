@@ -1,0 +1,60 @@
+name: BioSync AI Monorepo Continuous Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  node-syntax-validation:
+    name: Node.js Syntax & Server Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache-dependency-path: server/package-lock.json
+
+      - name: Validate Server Syntax
+        run: |
+          cd server
+          npm install --package-lock-only || npm install --no-audit
+          node -c server.js
+          node -c controllers/vitalsController.js
+          node -c controllers/appointmentController.js
+          node -c routes/vitalsRoute.js
+          node -c routes/appointmentRoute.js
+          node -c services/pdfReportGenerator.js
+
+      - name: Validate Standalone IoT Simulator
+        run: |
+          node -c scripts/iot_watch_simulator.js
+
+  python-ai-engine-tests:
+    name: AI Engine & Digital Twin Pytest Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Dependencies
+        run: |
+          cd ai-engine
+          python -m pip install --upgrade pip
+          pip install numpy scipy pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+
+      - name: Run Core Medical Pytest Suite
+        run: |
+          cd ai-engine
+          python -m pytest test_phase2_nutrition.py test_phase3_twin_ranker.py test_phase4_vital_simulation.py test_phase5_kalman_calibration.py -v

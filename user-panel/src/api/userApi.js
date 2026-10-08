@@ -229,6 +229,12 @@ export const userApi = {
     const res = await api.post('/vitals/calibrate-weekly', payload);
     return res.data;
   },
+
+  // Real-Time 1-Second Biometric IoT Telemetry (Wearable / CGM Watch Sync)
+  getLatestIoTReading: async () => {
+    const res = await api.get('/vitals/iot-latest');
+    return res.data;
+  },
 };
 
 export default userApi;

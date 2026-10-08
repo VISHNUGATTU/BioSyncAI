@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "server": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "sim:iot": "node ../scripts/iot_watch_simulator.js"
   },
   "keywords": [],
   "author": "",

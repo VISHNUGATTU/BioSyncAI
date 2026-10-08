@@ -45,6 +45,7 @@ import ReportViewerModal from '../components/ReportViewerModal';
 import NotificationModal from '../components/NotificationModal';
 import DataProvenanceBadge, { PROVENANCE_TYPES, normalizeProvenance } from '../components/DataProvenanceBadge';
 import WeeklyKalmanCalibrationModal from '../components/WeeklyKalmanCalibrationModal';
+import LiveIoTWatchSyncCard from '../components/LiveIoTWatchSyncCard';
 
 const TRACKING_STAGES = [
   { key: 'Booked', label: 'Booked' },
@@ -741,6 +742,9 @@ export const HomeScreen = ({ navigation }) => {
               </View>
             </GlassCard>
           )}
+
+          {/* Real-Time 1-Second Biometric IoT Watch Telemetry Sync */}
+          <LiveIoTWatchSyncCard baseVitals={latestVitals} />
         </View>
 
         {/* ========================================================= */}
