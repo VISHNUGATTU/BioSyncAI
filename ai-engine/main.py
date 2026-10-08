@@ -5,12 +5,14 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+import numpy as np
 import uvicorn
 
 from vision_pipeline import vision_pipeline
 from nutrition_db import nutrition_db
 from metabolic_twin import MetabolicDigitalTwin
 from clinical_ranker import clinical_ranker
+from vital_simulator import vital_simulator
 
 app = FastAPI(
     title="BioSync AI Engine",
@@ -51,6 +53,16 @@ class ClinicalRankRequest(BaseModel):
     mealContext: Optional[str] = Field("Meal", description="Meal type context (Breakfast, Lunch, Dinner, Snack)")
 
 
+class VitalSurgeSimulateRequest(BaseModel):
+    itemName: Optional[str] = Field(None, description="Food item name or canonical key")
+    netCarbs: Optional[float] = Field(None, description="Net digestible carbohydrates in grams")
+    sodium: Optional[float] = Field(None, description="Sodium content in milligrams")
+    glycemicIndex: Optional[int] = Field(None, description="Glycemic Index (0-100)")
+    consumedQuantity: Optional[float] = Field(1.0, ge=0.05, le=50.0, description="Portion quantity multiplier")
+    vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Patient's active metabolic vitals")
+    applyDoctorHacks: Optional[bool] = Field(False, description="Whether to simulate with doctor hacks applied")
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -64,7 +76,73 @@ def health_check():
             "nutrition_catalog_entries": len(nutrition_db.NUTRITION_CATALOG),
             "digital_twin_engine": True,
             "clinical_pareto_ranker": True,
+            "vital_surge_simulator": True,
         }
+    }
+
+
+@app.post("/api/v1/simulate-vital-surge")
+async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Body(...)):
+    """
+    Phase 4 Core Endpoint:
+    Simulates continuous 180-minute postprandial vital dynamics using
+    Runge-Kutta 4th Order integration of the Bergman Minimal Model and
+    Windkessel Hemodynamic BP model, providing side-by-side standard vs.
+    doctor-hacks projections.
+    """
+    carbs = payload.netCarbs
+    sodium = payload.sodium
+    gi = payload.glycemicIndex
+    display_name = payload.itemName or "Custom Meal"
+
+    # Auto-resolve nutrients if itemName is given
+    if payload.itemName and (carbs is None or sodium is None or gi is None):
+        data = nutrition_db.decompose(payload.itemName, quantity=1.0)
+        if data:
+            display_name = data["displayName"]
+            if carbs is None:
+                carbs = data["nutrients"].get("netCarbohydrates", data["nutrients"].get("carbohydrates", 20.0))
+            if sodium is None:
+                sodium = data["nutrients"].get("sodium", 150.0)
+            if gi is None:
+                gi = data.get("glycemicIndex", 50)
+
+    carbs = max(0.0, float(carbs if carbs is not None else 25.0))
+    sodium = max(0.0, float(sodium if sodium is not None else 200.0))
+    gi = int(gi if gi is not None else 50)
+    q = float(payload.consumedQuantity if payload.consumedQuantity is not None else 1.0)
+
+    twin = MetabolicDigitalTwin.from_vitals_dict(payload.vitals or {})
+
+    comparison = vital_simulator.simulate_comparison(
+        net_carbs=carbs,
+        sodium_mg=sodium,
+        glycemic_index=gi,
+        twin=twin,
+        consumed_quantity=q
+    )
+
+    std_sim = comparison["standardIntake"]
+    hacks_sim = comparison["withDoctorHacks"]
+
+    return {
+        "success": True,
+        "itemName": display_name,
+        "consumedQuantity": q,
+        "effectiveCarbsGrams": float(np.round(carbs * q, 1)),
+        "effectiveSodiumMg": float(np.round(sodium * q, 1)),
+        "glycemicIndex": gi,
+        "baselineVitals": std_sim["baselineVitals"],
+        "peakProjections": std_sim["peakProjections"],
+        "clinicalStatus": std_sim["clinicalStatus"],
+        "clinicalAdvisory": std_sim["clinicalAdvisory"],
+        "timeSeries": std_sim["timeSeries"],
+        "withDoctorHacks": {
+            "peakProjections": hacks_sim["peakProjections"],
+            "clinicalStatus": hacks_sim["clinicalStatus"],
+            "timeSeries": hacks_sim["timeSeries"],
+        },
+        "harmReductionBenefit": comparison["harmReductionBenefit"]
     }
 
 
@@ -79,6 +157,7 @@ async def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
     twin = MetabolicDigitalTwin.from_vitals_dict(payload.vitals or {})
     ranking_result = clinical_ranker.rank_candidates(payload.items, twin, meal_context=payload.mealContext)
     return ranking_result
+
 
 
 @app.get("/api/v1/nutrition-catalog")

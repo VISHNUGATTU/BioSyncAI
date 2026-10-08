@@ -289,36 +289,121 @@ export const confirmConsumption = asyncHandler(async (req, res) => {
   foodLog.consumedQuantity = quantity;
   foodLog.isConfirmed = true;
 
-  // Re-evaluate personalized projections based on actual quantity consumed
+  // Re-evaluate personalized projections via Phase 4 Bergman Minimal Model ODE Simulator
   const latestVitals = await Vitals.findOne({ user: req.user._id }).sort({ recordedAt: -1 }).lean();
   const baseGlucose = latestVitals?.metabolicHealth?.glucoseFasting || 90;
-  const carbLoad = (foodLog.nutrients?.carbohydrates || 0) * quantity;
-  const sodiumLoad = (foodLog.nutrients?.sodium || 0) * quantity;
+  const baseBP = latestVitals?.cardiovascularRisk?.systolic || 120;
 
-  const carbMultiplier = baseGlucose > 105 ? 0.38 : 0.22;
-  const glucoseSpike = Number((carbLoad * carbMultiplier).toFixed(1));
-  const bpSpike = Number((sodiumLoad * 0.008).toFixed(1));
+  const netCarbs = (foodLog.nutrients?.netCarbohydrates || foodLog.nutrients?.carbohydrates || 0);
+  const sodiumLoad = (foodLog.nutrients?.sodium || 0);
+  const gi = foodLog.glycemicIndex || 50;
+
+  let peakGlucose = baseGlucose + Number(((netCarbs * quantity) * (baseGlucose > 105 ? 0.38 : 0.22)).toFixed(1));
+  let glucoseSpike = Number((peakGlucose - baseGlucose).toFixed(1));
+  let timeToPeak = 60;
+  let peakBP = baseBP + Number(((sodiumLoad * quantity) * 0.008).toFixed(1));
+  let bpSpike = Number((peakBP - baseBP).toFixed(1));
+  let timeSeries = [];
+  let harmReduction = null;
+  let advisory = baseGlucose > 100 && (netCarbs * quantity) > 50
+    ? 'Elevated glucose surge expected. Hydrate and consider light post-meal movement.'
+    : 'Normal metabolic response expected.';
+
+  // Call local Python AI engine simulation endpoint
+  const simUrl = process.env.AI_ENGINE_SIMULATE_URL || 'http://localhost:8000/api/v1/simulate-vital-surge';
+  try {
+    const simPayload = {
+      itemName: foodLog.recognizedItemName,
+      netCarbs: netCarbs,
+      sodium: sodiumLoad,
+      glycemicIndex: gi,
+      consumedQuantity: quantity,
+      vitals: {
+        fastingGlucose: baseGlucose,
+        hba1c: latestVitals?.metabolicHealth?.hba1c || 5.4,
+        systolicBP: baseBP,
+        diastolicBP: latestVitals?.cardiovascularRisk?.diastolic || 80,
+        totalCholesterol: latestVitals?.cardiovascularRisk?.totalCholesterol || 180,
+        bmi: latestVitals?.bodyMetrics?.bmi || 23.5,
+      }
+    };
+
+    const simRes = await axios.post(simUrl, simPayload, { timeout: 5000 });
+    if (simRes.data?.success && simRes.data?.peakProjections) {
+      const proj = simRes.data.peakProjections;
+      peakGlucose = proj.peakGlucose;
+      glucoseSpike = proj.glucoseSpike;
+      timeToPeak = proj.timeToPeakGlucoseMin;
+      peakBP = proj.peakSystolicBP;
+      bpSpike = proj.bpSpikeSystolic;
+      timeSeries = simRes.data.timeSeries || [];
+      harmReduction = simRes.data.harmReductionBenefit || null;
+      advisory = simRes.data.clinicalAdvisory || advisory;
+    }
+  } catch (simErr) {
+    console.log('[AI Simulator] Local ODE engine unreachable, using analytical projection fallback.');
+    // Analytical fallback trajectory if microservice call times out
+    for (let m = 0; m <= 180; m += 15) {
+      const factor = (m / 60.0) * Math.exp(1.0 - (m / 60.0));
+      timeSeries.push({
+        minute: m,
+        glucose: Number((baseGlucose + (glucoseSpike * factor)).toFixed(1)),
+        systolicBP: Number((baseBP + (bpSpike * factor)).toFixed(1)),
+        insulinAction: Number((factor * 25).toFixed(1))
+      });
+    }
+  }
 
   foodLog.predictedImpact = {
     glucoseSpike,
+    peakGlucose,
+    timeToPeakGlucoseMin: timeToPeak,
     bpSpikeSystolic: bpSpike,
-    aiWarningMessage: baseGlucose > 100 && carbLoad > 50
-      ? 'Elevated glucose surge expected. Hydrate and consider light post-meal movement.'
-      : 'Normal metabolic response expected.',
+    peakSystolicBP: peakBP,
+    vitalSurgeCurve: timeSeries,
+    harmReductionBenefit: harmReduction,
+    aiWarningMessage: advisory,
     aiAlternativeSuggestions: [
       'Drink water to aid digestion and maintain glucose stability.',
       'A 10-minute post-meal walk is clinically shown to lower postprandial spikes.'
-    ]
+    ],
+    doctorHacks: foodLog.predictedImpact?.doctorHacks || [],
+    clinicalRanking: foodLog.predictedImpact?.clinicalRanking || null
   };
 
   await foodLog.save();
+
+  // Phase 4 Database Persistence: Record expected vital surge to Vitals collection
+  try {
+    await Vitals.create({
+      user: req.user._id,
+      source: 'Wearable_Sync',
+      metabolicHealth: {
+        glucosePostPrandial: peakGlucose,
+        glucoseFasting: baseGlucose,
+        hba1c: latestVitals?.metabolicHealth?.hba1c || 5.4,
+      },
+      cardiovascularRisk: {
+        systolic: peakBP,
+        diastolic: latestVitals?.cardiovascularRisk?.diastolic || 80,
+        totalCholesterol: latestVitals?.cardiovascularRisk?.totalCholesterol || 180,
+      },
+      bodyMetrics: latestVitals?.bodyMetrics || {},
+      continuousMetrics: latestVitals?.continuousMetrics || {},
+      clinicalAlerts: peakGlucose >= 180 ? ['Postprandial Hyperglycemic Spike (>=180 mg/dL)'] : [],
+      recordedAt: new Date(Date.now() + (timeToPeak * 60 * 1000)),
+      notes: `Expected vital surge from ${quantity}x ${foodLog.recognizedItemName} (Simulated by BioSync Digital Twin Bergman ODE).`
+    });
+  } catch (vitalSaveErr) {
+    console.warn('[Vitals Persistence] Postprandial vital log commit warning:', vitalSaveErr.message);
+  }
 
   // Clear food scan draft
   await UserDraft.deleteOne({ user: req.user._id, draftType: 'food_scan' });
 
   res.status(200).json({
     success: true,
-    message: 'Food consumption recorded to your longitudinal health timeline.',
+    message: 'Food consumption recorded and expected vital rise updated in your health profile.',
     data: foodLog
   });
 });

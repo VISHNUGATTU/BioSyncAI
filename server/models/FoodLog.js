@@ -61,7 +61,17 @@ const foodLogSchema = new mongoose.Schema({
 
   predictedImpact: {
     glucoseSpike: { type: Number },
+    peakGlucose: { type: Number },
+    timeToPeakGlucoseMin: { type: Number },
     bpSpikeSystolic: { type: Number },
+    peakSystolicBP: { type: Number },
+    vitalSurgeCurve: [{
+      minute: Number,
+      glucose: Number,
+      systolicBP: Number,
+      insulinAction: Number
+    }],
+    harmReductionBenefit: { type: mongoose.Schema.Types.Mixed },
     aiWarningMessage: { type: String },
     aiAlternativeSuggestions: [{ type: String }],
     doctorHacks: [{
