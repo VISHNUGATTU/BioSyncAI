@@ -5,6 +5,7 @@
   "scripts": {
     "server": "nodemon server.js",
     "start": "node server.js",
+    "seed": "node seed.js",
     "sim:iot": "node ../scripts/iot_watch_simulator.js"
   },
   "keywords": [],
