@@ -126,32 +126,11 @@ Return only JSON.`;
     aiRecognitionResult = pythonBackup;
   }
 
-  // 6. Ultimate safe fallback if both AI services fail
-  if (!aiRecognitionResult) {
-    aiRecognitionResult = {
-      recognizedItemName: "Assorted Meal",
-      servingSize: "1 standard portion",
-      servingUnit: "portion",
-      confidenceScore: 0.78,
-      confidenceLevel: "Medium",
-      candidates: [
-        { name: "Assorted Meal", confidence: 0.78 },
-        { name: "Mixed Rice & Veggie Dish", confidence: 0.16 },
-        { name: "Steamed Protein Platter", confidence: 0.06 }
-      ],
-      nutrients: {
-        calories: 320,
-        carbohydrates: 42,
-        proteins: 12,
-        fats: 9,
-        sugar: 4,
-        fiber: 4,
-        sodium: 280,
-        cholesterol: 15
-      },
-      personalizedInsight: "Standard balanced portion. Monitor your portion size to maintain stable glycemic response.",
-      suggestedAlternative: "Salad bowl with grilled protein"
-    };
+  // 6. Strict Non-Hallucination Guardrail:
+  // If no eatable item could be identified with clinical confidence, explicitly refuse
+  if (!aiRecognitionResult || !aiRecognitionResult.recognizedItemName) {
+    res.status(422);
+    throw new Error('I cannot identify any eatable food, beverage, or packaged item in this image with clinical confidence. Please ensure good lighting and hold the camera steady.');
   }
 
   // Ensure candidate array always has at least 3 candidates with distinct confidence percentages

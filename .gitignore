@@ -27,5 +27,7 @@ staff-panel/assets/
 *.jpg
 *.jpeg
 *.webp
-*.gif
 *.mp4
+*.pt
+*.pth
+*.onnx
