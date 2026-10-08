@@ -50,6 +50,15 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
       filename: req.file.originalname || 'food_scan.jpg',
       contentType: req.file.mimetype || 'image/jpeg',
     });
+    formData.append('vitals', JSON.stringify({
+      fastingGlucose: userFastingGlucose,
+      systolicBP: userSystolicBP,
+      totalCholesterol: userCholesterol,
+      hba1c: latestVitals?.metabolicHealth?.hba1c || 5.4,
+      diastolicBP: latestVitals?.cardiovascularRisk?.diastolic || 80,
+      triglycerides: latestVitals?.cardiovascularRisk?.triglycerides || 120,
+      bmi: latestVitals?.bodyMetrics?.bmi || 23.5,
+    }));
 
     let pythonBackup = null;
     const aiResponse = await axios.post(pythonAiUrl, formData, {
@@ -190,7 +199,9 @@ Return only JSON.`;
       glucoseSpike: predictedGlucoseSpike,
       bpSpikeSystolic: predictedBPSpike,
       aiWarningMessage: warningMessage,
-      aiAlternativeSuggestions: alternativeSuggestions
+      aiAlternativeSuggestions: alternativeSuggestions,
+      doctorHacks: aiRecognitionResult.doctorHacks || [],
+      clinicalRanking: aiRecognitionResult.clinicalRanking || null
     }
   });
 

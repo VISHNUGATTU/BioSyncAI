@@ -63,7 +63,13 @@ const foodLogSchema = new mongoose.Schema({
     glucoseSpike: { type: Number },
     bpSpikeSystolic: { type: Number },
     aiWarningMessage: { type: String },
-    aiAlternativeSuggestions: [{ type: String }]
+    aiAlternativeSuggestions: [{ type: String }],
+    doctorHacks: [{
+      type: { type: String },
+      title: { type: String },
+      action: { type: String }
+    }],
+    clinicalRanking: { type: mongoose.Schema.Types.Mixed }
   }
 }, { timestamps: true });
 

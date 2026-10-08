@@ -1,6 +1,7 @@
 import os
+import json
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -8,6 +9,8 @@ import uvicorn
 
 from vision_pipeline import vision_pipeline
 from nutrition_db import nutrition_db
+from metabolic_twin import MetabolicDigitalTwin
+from clinical_ranker import clinical_ranker
 
 app = FastAPI(
     title="BioSync AI Engine",
@@ -27,7 +30,7 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------------------------
-# Pydantic Schemas for Nutritional Decomposition
+# Pydantic Schemas for Bio-Nutrition & Clinical Digital Twin
 # ---------------------------------------------------------------------------
 
 class DecomposeItemInput(BaseModel):
@@ -42,6 +45,12 @@ class NutritionDecomposeRequest(BaseModel):
     quantity: Optional[float] = Field(1.0, ge=0.05, description="Single item quantity multiplier")
 
 
+class ClinicalRankRequest(BaseModel):
+    items: List[Dict[str, Any]] = Field(..., description="List of candidate food items (by name, dictionary, or detection)")
+    vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="User's active blood biomarkers and clinical vitals")
+    mealContext: Optional[str] = Field("Meal", description="Meal type context (Breakfast, Lunch, Dinner, Snack)")
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -53,8 +62,23 @@ def health_check():
             "scene_ocr": vision_pipeline.ocr_reader is not None,
             "barcode_detector": vision_pipeline.barcode_detector is not None,
             "nutrition_catalog_entries": len(nutrition_db.NUTRITION_CATALOG),
+            "digital_twin_engine": True,
+            "clinical_pareto_ranker": True,
         }
     }
+
+
+@app.post("/api/v1/clinical-rank")
+async def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
+    """
+    Phase 3 Core Endpoint:
+    Confined Personal Digital Twin (M_user) evaluates candidates using multi-objective
+    Pareto optimization across Glycemic Stress, Vascular Strain, and Vitality,
+    and returns non-preachy practical Doctor Hacks.
+    """
+    twin = MetabolicDigitalTwin.from_vitals_dict(payload.vitals or {})
+    ranking_result = clinical_ranker.rank_candidates(payload.items, twin, meal_context=payload.mealContext)
+    return ranking_result
 
 
 @app.get("/api/v1/nutrition-catalog")
@@ -127,12 +151,15 @@ async def decompose_nutrition(payload: NutritionDecomposeRequest = Body(...)):
 
 
 @app.post("/api/v1/detect-items")
-async def detect_items_in_frame(file: UploadFile = File(...)):
+async def detect_items_in_frame(
+    file: UploadFile = File(...),
+    vitals: Optional[str] = Form(None)
+):
     """
-    Primary Perception + Bio-Nutritional Endpoint:
+    Primary Perception + Bio-Nutritional + Digital Twin Ranking Endpoint:
     Processes live frame snapshot, executes multi-hypothesis segmentation,
-    OCR, and barcode inspection, and automatically enriches every detected item
-    with full nutritional and glycemic decomposition.
+    OCR, and barcode inspection, enriches every detected item with full
+    nutritional decomposition, and optionally evaluates against user vitals.
     """
     try:
         image_bytes = await file.read()
@@ -159,7 +186,8 @@ async def detect_items_in_frame(file: UploadFile = File(...)):
                     "confidenceScore": 0.0,
                     "detectedCount": 0,
                     "items": [],
-                    "aggregatedMealNutrition": None
+                    "aggregatedMealNutrition": None,
+                    "clinicalRanking": None
                 }
             )
 
@@ -183,6 +211,19 @@ async def detect_items_in_frame(file: UploadFile = File(...)):
             if decomposed_for_aggregation else None
         )
 
+        # Optional Phase 3 Digital Twin Pareto Ranking
+        clinical_ranking = None
+        vitals_dict = {}
+        if vitals:
+            try:
+                vitals_dict = json.loads(vitals)
+            except Exception:
+                pass
+        
+        if enriched_items:
+            twin = MetabolicDigitalTwin.from_vitals_dict(vitals_dict)
+            clinical_ranking = clinical_ranker.rank_candidates(enriched_items, twin)
+
         return {
             "success": True,
             "identified": True,
@@ -190,7 +231,8 @@ async def detect_items_in_frame(file: UploadFile = File(...)):
             "confidenceScore": inspection_result.get("confidenceScore"),
             "detectedCount": inspection_result.get("detectedCount"),
             "items": enriched_items,
-            "aggregatedMealNutrition": aggregated_meal
+            "aggregatedMealNutrition": aggregated_meal,
+            "clinicalRanking": clinical_ranking
         }
 
     except Exception as e:
@@ -205,11 +247,15 @@ async def detect_items_in_frame(file: UploadFile = File(...)):
 
 
 @app.post("/api/v1/analyze")
-async def analyze_frame_legacy(file: UploadFile = File(...)):
+async def analyze_frame_legacy(
+    file: UploadFile = File(...),
+    vitals: Optional[str] = Form(None)
+):
     """
     Backward-compatible route for server/controllers/foodController.js
-    Fuses multi-item detection with primary candidate resolution and attaches
-    complete bio-nutritional decomposition for immediate clinical consumption.
+    Fuses multi-item detection with primary candidate resolution, attaches
+    complete bio-nutritional decomposition, and computes digital twin Pareto ranking
+    with realistic harm-reduction Doctor Hacks.
     Zero static/mock data.
     """
     try:
@@ -252,6 +298,45 @@ async def analyze_frame_legacy(file: UploadFile = File(...)):
         serving_unit = primary_nutrition.get("servingUnit", "portion") if primary_nutrition else "portion"
         serving_weight = primary_nutrition.get("servingWeightGrams", 100) if primary_nutrition else 100
 
+        # Parse patient vitals & run Digital Twin Pareto Ranker
+        vitals_dict = {}
+        if vitals:
+            try:
+                vitals_dict = json.loads(vitals)
+            except Exception:
+                pass
+
+        twin = MetabolicDigitalTwin.from_vitals_dict(vitals_dict)
+        candidate_pool = [{"itemName": primary_item["itemName"]}]
+        for cand in primary_item.get("candidates", []):
+            if cand.get("name") and cand["name"] != primary_item["itemName"]:
+                candidate_pool.append({"itemName": cand["name"]})
+        for other in inspection_result["items"][1:]:
+            candidate_pool.append({"itemName": other["itemName"]})
+
+        ranking_result = clinical_ranker.rank_candidates(candidate_pool, twin)
+
+        primary_ranked = None
+        if ranking_result.get("rankedItems"):
+            for r in ranking_result["rankedItems"]:
+                if (
+                    r.get("canonicalKey") == primary_item.get("normalizedKey")
+                    or r.get("displayName") == primary_item["itemName"]
+                ):
+                    primary_ranked = r
+                    break
+            if not primary_ranked:
+                primary_ranked = ranking_result["rankedItems"][0]
+
+        doctor_hacks = primary_ranked.get("doctorHacks", []) if primary_ranked else []
+        personalized_insight = ranking_result.get(
+            "clinicalRationale",
+            "Normal metabolic response expected."
+        )
+        suggested_alternative = ranking_result.get(
+            "bestSuggestableItem", {}
+        ).get("displayName", "Consider pairing with fresh leafy greens.")
+
         return {
             "success": True,
             "identified": True,
@@ -269,6 +354,10 @@ async def analyze_frame_legacy(file: UploadFile = File(...)):
                 "glycemicLoad": gl,
                 "glycemicLoadCategory": primary_nutrition.get("glycemicLoadCategory", "Low") if primary_nutrition else "Low",
                 "nutrients": nutrients,
+                "personalizedInsight": personalized_insight,
+                "suggestedAlternative": suggested_alternative,
+                "doctorHacks": doctor_hacks,
+                "clinicalRanking": ranking_result,
                 "allDetectedItems": enriched_all_items
             }
         }
