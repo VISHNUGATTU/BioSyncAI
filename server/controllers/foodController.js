@@ -54,7 +54,7 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
     let pythonBackup = null;
     const aiResponse = await axios.post(pythonAiUrl, formData, {
       headers: { ...formData.getHeaders() },
-      timeout: 4000 // 4s timeout before fast fallback
+      timeout: 12000 // 12s timeout for edge AI perception & bio-nutritional decomposition
     });
 
     if (aiResponse.data?.data) {
@@ -173,10 +173,15 @@ Return only JSON.`;
     recognizedItemName: aiRecognitionResult.recognizedItemName,
     servingSize: aiRecognitionResult.servingSize || '1 standard portion',
     servingUnit: aiRecognitionResult.servingUnit || 'portion',
+    servingWeightGrams: aiRecognitionResult.servingWeightGrams || 100,
     aiConfidenceScore: aiRecognitionResult.confidenceScore || 0.85,
     confidenceLevel: aiRecognitionResult.confidenceLevel || 'High',
     candidates: aiRecognitionResult.candidates || [{ name: aiRecognitionResult.recognizedItemName, confidence: 0.85 }],
     nutrients: aiRecognitionResult.nutrients,
+    glycemicIndex: aiRecognitionResult.glycemicIndex || 50,
+    glycemicLoad: aiRecognitionResult.glycemicLoad || 0.0,
+    glycemicLoadCategory: aiRecognitionResult.glycemicLoadCategory || 'Low',
+    allDetectedItems: aiRecognitionResult.allDetectedItems || [],
     mealType: req.body.mealType || 'Lunch',
     source: req.body.source || 'Home_Cooked',
     isConfirmed: false,
