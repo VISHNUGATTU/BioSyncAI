@@ -223,6 +223,12 @@ export const userApi = {
     const res = await api.get(`/appointments/${appointmentId}/report/share-data`);
     return res.data;
   },
+
+  // Weekly Adaptive Digital Twin Re-calibration via Extended Kalman Filter (Phase 5 & 6)
+  calibrateWeeklyVitals: async (payload) => {
+    const res = await api.post('/vitals/calibrate-weekly', payload);
+    return res.data;
+  },
 };
 
 export default userApi;

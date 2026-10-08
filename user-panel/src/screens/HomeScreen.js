@@ -31,6 +31,7 @@ import {
   Bell,
   RotateCcw,
   AlertCircle,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { colors, useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -43,6 +44,7 @@ import AssignedStaffCard from '../components/AssignedStaffCard';
 import ReportViewerModal from '../components/ReportViewerModal';
 import NotificationModal from '../components/NotificationModal';
 import DataProvenanceBadge, { PROVENANCE_TYPES, normalizeProvenance } from '../components/DataProvenanceBadge';
+import WeeklyKalmanCalibrationModal from '../components/WeeklyKalmanCalibrationModal';
 
 const TRACKING_STAGES = [
   { key: 'Booked', label: 'Booked' },
@@ -72,6 +74,7 @@ export const HomeScreen = ({ navigation }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [selectedReportAppt, setSelectedReportAppt] = useState(null);
+  const [showKalmanModal, setShowKalmanModal] = useState(false);
 
   // Fetch recent food log
   const fetchRecentFood = async () => {
@@ -538,14 +541,25 @@ export const HomeScreen = ({ navigation }) => {
               <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
             </View>
             {vitalsPresent ? (
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Analysis')}
-                style={styles.viewTrendsBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewTrendsText}>View Charts</Text>
-                <TrendingUp size={13} color={colors.cyan} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setShowKalmanModal(true)}
+                  style={[styles.viewTrendsBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderWidth: 1, borderColor: 'rgba(6, 182, 212, 0.35)' }]}
+                  activeOpacity={0.7}
+                >
+                  <RotateCcw size={11} color={colors.cyan} />
+                  <Text style={[styles.viewTrendsText, { color: colors.cyan }]}>Adaptive EKF</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Analysis')}
+                  style={styles.viewTrendsBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.viewTrendsText}>View Charts</Text>
+                  <TrendingUp size={13} color={colors.cyan} />
+                </TouchableOpacity>
+              </View>
             ) : (
               <TouchableOpacity
                 onPress={() => navigation.navigate('HealthSetup')}
@@ -681,6 +695,52 @@ export const HomeScreen = ({ navigation }) => {
               </Text>
             </View>
           </GlassCard>
+
+          {/* Confined Personal Digital Twin (M_user) Status */}
+          {vitalsPresent && (
+            <GlassCard style={styles.twinHomeCard}>
+              <View style={styles.twinHomeHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <ShieldCheck size={14} color={colors.cyan} />
+                  <Text style={styles.twinHomeTitle}>CONFined DIGITAL TWIN VECTOR (M_USER)</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.twinRecalibrateAction}
+                  onPress={() => setShowKalmanModal(true)}
+                  activeOpacity={0.75}
+                >
+                  <RotateCcw size={11} color="#06b6d4" />
+                  <Text style={styles.twinRecalibrateText}>Weekly Test Sync</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.twinHomeMetricsRow}>
+                <View style={styles.twinHomeMetric}>
+                  <Text style={styles.twinHomeMetricLabel}>β_carb</Text>
+                  <Text style={styles.twinHomeMetricValue}>
+                    {latestVitals?.kalmanCalibration?.betaCarb ? latestVitals.kalmanCalibration.betaCarb.toFixed(3) : '0.280'}
+                  </Text>
+                  <Text style={styles.twinHomeMetricSub}>mg/dL / g carb</Text>
+                </View>
+                <View style={styles.twinHomeDivider} />
+                <View style={styles.twinHomeMetric}>
+                  <Text style={styles.twinHomeMetricLabel}>β_sodium</Text>
+                  <Text style={styles.twinHomeMetricValue}>
+                    {latestVitals?.kalmanCalibration?.betaSodium ? latestVitals.kalmanCalibration.betaSodium.toFixed(4) : '0.0070'}
+                  </Text>
+                  <Text style={styles.twinHomeMetricSub}>mmHg / mg Na</Text>
+                </View>
+                <View style={styles.twinHomeDivider} />
+                <View style={styles.twinHomeMetric}>
+                  <Text style={styles.twinHomeMetricLabel}>Sensitivity (S_I)</Text>
+                  <Text style={styles.twinHomeMetricValue}>
+                    {latestVitals?.kalmanCalibration?.insulinSensitivity ? latestVitals.kalmanCalibration.insulinSensitivity.toFixed(3) : '0.720'}
+                  </Text>
+                  <Text style={styles.twinHomeMetricSub}>Adaptive Quicki</Text>
+                </View>
+              </View>
+            </GlassCard>
+          )}
         </View>
 
         {/* ========================================================= */}
@@ -889,6 +949,12 @@ export const HomeScreen = ({ navigation }) => {
         onClose={() => setShowNotifications(false)}
         onNotificationCountChange={setUnreadNotifCount}
         navigation={navigation}
+      />
+
+      <WeeklyKalmanCalibrationModal
+        visible={showKalmanModal}
+        onClose={() => setShowKalmanModal(false)}
+        onSuccess={() => fetchVitals()}
       />
     </View>
   );
@@ -1622,6 +1688,68 @@ const styles = StyleSheet.create({
   timelineBannerSub: {
     fontSize: 11,
     lineHeight: 15,
+  },
+  twinHomeCard: {
+    marginTop: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.25)',
+    backgroundColor: 'rgba(6, 182, 212, 0.06)',
+  },
+  twinHomeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  twinHomeTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#06b6d4',
+    letterSpacing: 0.5,
+  },
+  twinRecalibrateAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  twinRecalibrateText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#06b6d4',
+  },
+  twinHomeMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  twinHomeMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  twinHomeMetricLabel: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#94a3b8',
+  },
+  twinHomeMetricValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#ffffff',
+    marginTop: 2,
+  },
+  twinHomeMetricSub: {
+    fontSize: 7.5,
+    color: '#64748b',
+  },
+  twinHomeDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });
 
