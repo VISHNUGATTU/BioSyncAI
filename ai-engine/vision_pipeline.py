@@ -181,6 +181,13 @@ class VisionPerceptionPipeline:
 
         height, width = img_bgr.shape[:2]
 
+        # Downscale ultra-high-res camera captures (e.g. 12MP/48MP) to standard vision resolution for real-time edge speed
+        max_dim = max(height, width)
+        if max_dim > 1024:
+            scale = 1024.0 / max_dim
+            img_bgr = cv2.resize(img_bgr, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_AREA)
+            height, width = img_bgr.shape[:2]
+
         evidence_items: Dict[str, Dict[str, Any]] = {}
 
         # -------------------------------------------------------------
@@ -340,9 +347,16 @@ class VisionPerceptionPipeline:
 
         if self.ocr_reader:
             try:
-                results = self.ocr_reader.readtext(img_bgr)
-                for bbox, text, conf in results:
-                    if conf > 0.35:
+                # Fast downscale specifically for rapid OCR token extraction on CPU
+                h, w = img_bgr.shape[:2]
+                ocr_img = img_bgr
+                if max(h, w) > 640:
+                    scale = 640.0 / max(h, w)
+                    ocr_img = cv2.resize(img_bgr, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
+                results = self.ocr_reader.readtext(ocr_img, detail=0)
+                for text in results:
+                    if text and len(text.strip()) > 1:
                         recognized_texts.append(text.lower().strip())
             except Exception as e:
                 print(f"[VisionPipeline] OCR runtime note: {e}")

@@ -63,7 +63,7 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
 
     const aiResponse = await axios.post(pythonAiUrl, formData, {
       headers: { ...formData.getHeaders() },
-      timeout: 12000 // 12s timeout for edge AI perception & bio-nutritional decomposition
+      timeout: 30000 // 30s timeout for edge AI perception & bio-nutritional decomposition
     });
 
     if (aiResponse.data?.data) {
