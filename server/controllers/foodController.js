@@ -43,7 +43,8 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
   let aiRecognitionResult = null;
 
   // 3. Try primary Python microservice if available
-  const pythonAiUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000/api/v1/analyze';
+  const pythonAiUrl = (process.env.AI_ENGINE_URL || 'http://127.0.0.1:8000/api/v1/analyze').replace('localhost', '127.0.0.1');
+  let pythonBackup = null;
   try {
     const formData = new FormData();
     formData.append('file', req.file.buffer, {
@@ -60,7 +61,6 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
       bmi: latestVitals?.bodyMetrics?.bmi || 23.5,
     }));
 
-    let pythonBackup = null;
     const aiResponse = await axios.post(pythonAiUrl, formData, {
       headers: { ...formData.getHeaders() },
       timeout: 12000 // 12s timeout for edge AI perception & bio-nutritional decomposition
@@ -68,18 +68,17 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
 
     if (aiResponse.data?.data) {
       pythonBackup = aiResponse.data.data;
-      if (aiResponse.data.data.recognizedItemName !== 'Grilled Salmon with Quinoa') {
-        aiRecognitionResult = aiResponse.data.data;
-      }
+      aiRecognitionResult = aiResponse.data.data;
     }
   } catch (pyErr) {
-    console.log('[AI Bridge] Python engine unreachable or timed out. Falling back to Gemini Multimodal.');
+    console.log('[AI Bridge] Python engine notice:', pyErr.message, '- Attempting multimodal fallback.');
   }
 
   // 4. Robust Multimodal Fallback using Google Gemini 2.5 Flash
-  if (!aiRecognitionResult && process.env.GEMINI_API_KEY) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!aiRecognitionResult && geminiKey && !geminiKey.includes('your_') && geminiKey.length > 20) {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
       const prompt = `You are an expert clinical nutrition AI for BioSync AI.
 Analyze this food image. Identify the dish, estimate its nutritional composition, portion size, and alternative options.
 User's Clinical Context:
@@ -310,7 +309,7 @@ export const confirmConsumption = asyncHandler(async (req, res) => {
     : 'Normal metabolic response expected.';
 
   // Call local Python AI engine simulation endpoint
-  const simUrl = process.env.AI_ENGINE_SIMULATE_URL || 'http://localhost:8000/api/v1/simulate-vital-surge';
+  const simUrl = (process.env.AI_ENGINE_SIMULATE_URL || 'http://127.0.0.1:8000/api/v1/simulate-vital-surge').replace('localhost', '127.0.0.1');
   try {
     const simPayload = {
       itemName: foodLog.recognizedItemName,

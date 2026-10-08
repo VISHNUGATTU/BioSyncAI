@@ -623,7 +623,7 @@ export const calibrateWeeklyVitals = asyncHandler(async (req, res) => {
   let calibrationResult = null;
   const pythonUrl = (process.env.AI_ENGINE_URL
     ? process.env.AI_ENGINE_URL.replace(/\/analyze$/, '/calibrate-twin')
-    : 'http://localhost:8000/api/v1/calibrate-twin');
+    : 'http://127.0.0.1:8000/api/v1/calibrate-twin').replace('localhost', '127.0.0.1');
 
   try {
     const aiResponse = await axios.post(
