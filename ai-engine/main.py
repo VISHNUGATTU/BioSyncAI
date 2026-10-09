@@ -379,30 +379,57 @@ async def analyze_frame_legacy(
                 }
             )
 
-        # Primary recognized candidate
-        primary_item = inspection_result["items"][0]
-
-        # Decompose primary item
-        primary_nutrition = nutrition_db.decompose(primary_item.get("normalizedKey", ""), 1.0)
-        if not primary_nutrition:
-            primary_nutrition = nutrition_db.decompose(primary_item.get("itemName", ""), 1.0)
-
-        # Enrich all detected items
+        # Process all detected items
+        items = inspection_result["items"]
         enriched_all_items = []
-        for it in inspection_result["items"]:
+        decomposed_for_aggregation = []
+
+        for it in items:
             it_copy = dict(it)
             n = nutrition_db.decompose(it_copy.get("normalizedKey", ""), 1.0)
             if not n:
                 n = nutrition_db.decompose(it_copy.get("itemName", ""), 1.0)
             it_copy["nutritionProfile"] = n
             enriched_all_items.append(it_copy)
+            if n:
+                decomposed_for_aggregation.append(n)
 
-        nutrients = primary_nutrition.get("nutrients", {}) if primary_nutrition else {}
-        gi = primary_nutrition.get("glycemicIndex", 50) if primary_nutrition else 50
-        gl = primary_nutrition.get("glycemicLoad", 0.0) if primary_nutrition else 0.0
-        serving_size = primary_nutrition.get("standardServing", "1 standard portion") if primary_nutrition else "1 standard portion"
-        serving_unit = primary_nutrition.get("servingUnit", "portion") if primary_nutrition else "portion"
-        serving_weight = primary_nutrition.get("servingWeightGrams", 100) if primary_nutrition else 100
+        # Primary recognized candidate
+        primary_item = items[0]
+        primary_nutrition = primary_item.get("nutritionProfile")
+        if not primary_nutrition:
+            primary_nutrition = nutrition_db.decompose(primary_item.get("normalizedKey", ""), 1.0)
+            if not primary_nutrition:
+                primary_nutrition = nutrition_db.decompose(primary_item.get("itemName", ""), 1.0)
+
+        # Multi-Item Aggregated Meal vs Single Item Resolution
+        if len(items) > 1 and decomposed_for_aggregation:
+            aggregated_meal = nutrition_db.aggregate_nutrients(decomposed_for_aggregation)
+            item_names = [it["itemName"] for it in items]
+            if len(item_names) == 2:
+                composite_meal_name = f"{item_names[0]} & {item_names[1]}"
+            else:
+                composite_meal_name = f"Meal Plate: {', '.join(item_names[:-1])} & {item_names[-1]}"
+
+            nutrients = aggregated_meal.get("nutrients", {})
+            gi = aggregated_meal.get("weightedGlycemicIndex", 50)
+            gl = aggregated_meal.get("totalGlycemicLoad", 0.0)
+            gl_category = aggregated_meal.get("glycemicLoadCategory", "Medium")
+            serving_size = f"Composite Meal Plate ({len(items)} items, approx {aggregated_meal.get('totalWeightGrams', 400)}g)"
+            serving_unit = "plate"
+            serving_weight = aggregated_meal.get("totalWeightGrams", 400)
+            category = "Cooked_Dish"
+            primary_name = composite_meal_name
+        else:
+            nutrients = primary_nutrition.get("nutrients", {}) if primary_nutrition else {}
+            gi = primary_nutrition.get("glycemicIndex", 50) if primary_nutrition else 50
+            gl = primary_nutrition.get("glycemicLoad", 0.0) if primary_nutrition else 0.0
+            gl_category = primary_nutrition.get("glycemicLoadCategory", "Low") if primary_nutrition else "Low"
+            serving_size = primary_nutrition.get("standardServing", "1 standard portion") if primary_nutrition else "1 standard portion"
+            serving_unit = primary_nutrition.get("servingUnit", "portion") if primary_nutrition else "portion"
+            serving_weight = primary_nutrition.get("servingWeightGrams", 100) if primary_nutrition else 100
+            category = primary_item["category"]
+            primary_name = primary_item["itemName"]
 
         # Parse patient vitals & run Digital Twin Pareto Ranker
         vitals_dict = {}
@@ -413,11 +440,11 @@ async def analyze_frame_legacy(
                 pass
 
         twin = MetabolicDigitalTwin.from_vitals_dict(vitals_dict)
-        candidate_pool = [{"itemName": primary_item["itemName"]}]
+        candidate_pool = [{"itemName": primary_name}]
         for cand in primary_item.get("candidates", []):
-            if cand.get("name") and cand["name"] != primary_item["itemName"]:
+            if cand.get("name") and cand["name"] != primary_name:
                 candidate_pool.append({"itemName": cand["name"]})
-        for other in inspection_result["items"][1:]:
+        for other in items[1:]:
             candidate_pool.append({"itemName": other["itemName"]})
 
         ranking_result = clinical_ranker.rank_candidates(candidate_pool, twin)
@@ -428,13 +455,35 @@ async def analyze_frame_legacy(
                 if (
                     r.get("canonicalKey") == primary_item.get("normalizedKey")
                     or r.get("displayName") == primary_item["itemName"]
+                    or r.get("displayName") == primary_name
                 ):
                     primary_ranked = r
                     break
             if not primary_ranked:
                 primary_ranked = ranking_result["rankedItems"][0]
 
-        doctor_hacks = primary_ranked.get("doctorHacks", []) if primary_ranked else []
+        doctor_hacks = list(primary_ranked.get("doctorHacks", [])) if primary_ranked else []
+
+        # Add food sequencing harm-reduction hack for multi-item plates
+        if len(items) > 1:
+            has_fiber = any("salad" in it["itemName"].lower() or "broccoli" in it["itemName"].lower() or "spinach" in it["itemName"].lower() for it in items)
+            if has_fiber:
+                seq_hack = {
+                    "type": "Food Sequencing Hack",
+                    "title": "Consume Greens / Fiber First",
+                    "action": "Consume the fresh greens/salad portion first to stimulate GLP-1 and blunt postprandial glucose spike from starches."
+                }
+                doctor_hacks.insert(0, seq_hack)
+
+            walk_hack = {
+                "type": "Biochemical Movement Hack",
+                "title": "15-Minute Post-Meal Stroll",
+                "action": "A brisk 10-15 minute walk after this meal activates GLUT4 transporters to clear blood glucose without insulin demand."
+            }
+            has_walk = any("walk" in (h.get("action", "") if isinstance(h, dict) else str(h)).lower() for h in doctor_hacks)
+            if not has_walk:
+                doctor_hacks.append(walk_hack)
+
         personalized_insight = ranking_result.get(
             "clinicalRationale",
             "Normal metabolic response expected."
@@ -447,8 +496,8 @@ async def analyze_frame_legacy(
             "success": True,
             "identified": True,
             "data": {
-                "recognizedItemName": primary_item["itemName"],
-                "category": primary_item["category"],
+                "recognizedItemName": primary_name,
+                "category": category,
                 "confidenceScore": primary_item["confidenceScore"],
                 "confidenceLevel": primary_item["confidenceLevel"],
                 "brand": primary_item.get("brand"),
@@ -458,7 +507,7 @@ async def analyze_frame_legacy(
                 "servingWeightGrams": serving_weight,
                 "glycemicIndex": gi,
                 "glycemicLoad": gl,
-                "glycemicLoadCategory": primary_nutrition.get("glycemicLoadCategory", "Low") if primary_nutrition else "Low",
+                "glycemicLoadCategory": gl_category,
                 "nutrients": nutrients,
                 "personalizedInsight": personalized_insight,
                 "suggestedAlternative": suggested_alternative,

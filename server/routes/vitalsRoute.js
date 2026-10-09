@@ -10,7 +10,8 @@ import {
   getAIFeatureVector,
   calibrateWeeklyVitals,
   getLiveIoTTelemetryStream,
-  getLatestIoTReading
+  getLatestIoTReading,
+  ingestIoTTelemetry
 } from '../controllers/vitalsController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { memoryUpload } from '../configs/multer.js'; 
@@ -20,6 +21,7 @@ const vitalsRouter = express.Router();
 // Real-Time 1-Second Biometric IoT Watch / Wearable Telemetry
 vitalsRouter.get('/iot-stream', authUser, getLiveIoTTelemetryStream);
 vitalsRouter.get('/iot-latest', authUser, getLatestIoTReading);
+vitalsRouter.post('/iot-telemetry', ingestIoTTelemetry);
 
 // Weekly adaptive digital twin calibration via EKF
 vitalsRouter.post('/calibrate-weekly', authUser, calibrateWeeklyVitals);

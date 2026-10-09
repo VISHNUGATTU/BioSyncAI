@@ -1,0 +1,37 @@
+{
+  "name": "biosync-ai",
+  "version": "2.0.0",
+  "description": "Next-Generation Autonomous Diagnostic Intelligence & Home Phlebotomy Logistics Platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "audit": "node scripts/verify_ecosystem_integrity.mjs",
+    "simulate:watch": "node scripts/iot_watch_simulator.js",
+    "simulate:watch:push": "node scripts/iot_watch_simulator.js --push",
+    "simulate:watch:exercise": "node scripts/iot_watch_simulator.js --push --mode=exercise",
+    "simulate:watch:walking": "node scripts/iot_watch_simulator.js --push --mode=walking",
+    "server": "cd server && npm run server",
+    "ai-engine": "cd ai-engine && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "admin-panel": "cd admin-panel && npm run dev",
+    "staff-panel": "cd staff-panel && npx expo start -c --port 8081",
+    "user-panel": "cd user-panel && npx expo start -c --port 8082",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "biosync",
+    "digital-twin",
+    "telemetry",
+    "cgm",
+    "phlebotomy",
+    "ekf",
+    "fastapi",
+    "react-native",
+    "expo",
+    "vite"
+  ],
+  "author": "BioSync AI Engineering",
+  "license": "ISC"
+}

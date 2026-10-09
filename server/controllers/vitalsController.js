@@ -844,6 +844,40 @@ export const generateRealisticIoTTelemetry = (baseVitalsDoc, stepIndex = 0) => {
   };
 };
 
+// In-memory cache for live IoT watch telemetry pushed by physical smartwatches or simulator
+const liveIoTDeviceTelemetryCache = new Map();
+
+// @desc    Ingest 1-Second Biometric IoT Telemetry Packet from Smartwatch / Wearable Simulator
+// @route   POST /api/vitals/iot-telemetry
+// @access  Public / Device (supports optional token or user ID)
+export const ingestIoTTelemetry = asyncHandler(async (req, res) => {
+  const { metrics, device, timestamp, userId, deviceId } = req.body;
+  const targetUser = req.user?._id?.toString() || userId || 'default';
+
+  const packet = {
+    timestamp: timestamp || new Date().toISOString(),
+    epochMs: Date.now(),
+    device: device || {
+      deviceName: 'BioSync Medical Smartwatch',
+      cgmSensor: 'Continuous Subcutaneous Sensor',
+      batteryLevel: 95,
+      connectionStatus: 'ACTIVE_HARDWARE_STREAMING',
+    },
+    metrics: metrics || {},
+  };
+
+  liveIoTDeviceTelemetryCache.set(targetUser, {
+    packet,
+    receivedAt: Date.now(),
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'IoT biometric telemetry packet ingested successfully',
+    epochMs: Date.now(),
+  });
+});
+
 // @desc    Real-time 1-Second Server-Sent Events (SSE) Biometric IoT Telemetry Stream
 // @route   GET /api/vitals/iot-stream
 // @access  Private (User)
@@ -862,7 +896,12 @@ export const getLiveIoTTelemetryStream = asyncHandler(async (req, res) => {
   let step = Math.floor(Date.now() / 1000);
   const intervalId = setInterval(() => {
     step += 1;
-    const packet = generateRealisticIoTTelemetry(latestVitals, step);
+    const userId = req.user?._id?.toString() || 'default';
+    const cached = liveIoTDeviceTelemetryCache.get(userId) || liveIoTDeviceTelemetryCache.get('default');
+    const packet = (cached && (Date.now() - cached.receivedAt < 4000))
+      ? cached.packet
+      : generateRealisticIoTTelemetry(latestVitals, step);
+
     res.write(`data: ${JSON.stringify(packet)}\n\n`);
   }, 1000);
 
@@ -876,6 +915,18 @@ export const getLiveIoTTelemetryStream = asyncHandler(async (req, res) => {
 // @route   GET /api/vitals/iot-latest
 // @access  Private (User)
 export const getLatestIoTReading = asyncHandler(async (req, res) => {
+  const userId = req.user?._id?.toString() || 'default';
+  const cached = liveIoTDeviceTelemetryCache.get(userId) || liveIoTDeviceTelemetryCache.get('default');
+
+  // If a live hardware reading was received within the last 5 seconds, return it
+  if (cached && (Date.now() - cached.receivedAt < 5000)) {
+    return res.status(200).json({
+      success: true,
+      source: 'LIVE_HARDWARE_WATCH',
+      reading: cached.packet,
+    });
+  }
+
   const latestVitals = await Vitals.findOne({ user: req.user._id })
     .sort({ recordedAt: -1, createdAt: -1 })
     .lean();
@@ -885,6 +936,7 @@ export const getLatestIoTReading = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
+    source: 'DIGITAL_TWIN_SIMULATION',
     reading,
   });
 });

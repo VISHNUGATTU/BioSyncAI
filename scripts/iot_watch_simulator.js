@@ -8,15 +8,24 @@
  * 
  * Usage:
  *   node scripts/iot_watch_simulator.js
- *   node scripts/iot_watch_simulator.js --mode=walking
- *   node scripts/iot_watch_simulator.js --mode=exercise
+ *   node scripts/iot_watch_simulator.js --push
+ *   node scripts/iot_watch_simulator.js --push --mode=walking
+ *   node scripts/iot_watch_simulator.js --push --mode=exercise --url=http://localhost:6446
  */
 
 import http from 'http';
+import https from 'https';
 
 const args = process.argv.slice(2);
 const modeArg = args.find((a) => a.startsWith('--mode='));
 const activityMode = modeArg ? modeArg.split('=')[1].toLowerCase() : 'resting';
+
+const shouldPush = args.includes('--push') || args.includes('--live') || args.some((a) => a.startsWith('--url='));
+const urlArg = args.find((a) => a.startsWith('--url='));
+const targetServerUrl = urlArg ? urlArg.split('=')[1] : 'http://localhost:6446';
+
+const userArg = args.find((a) => a.startsWith('--userId='));
+const targetUserId = userArg ? userArg.split('=')[1] : 'default';
 
 // ANSI terminal colors
 const RESET = '\x1b[0m';
@@ -33,6 +42,11 @@ console.clear();
 console.log(`${BOLD}${CYAN}======================================================================${RESET}`);
 console.log(`${BOLD}${CYAN}   BIOSYNC AI - REAL-TIME 1-SECOND BIOMETRIC IOT WATCH SIMULATOR      ${RESET}`);
 console.log(`${BOLD}${CYAN}   Continuous 1Hz Telemetry Streaming • Mode: [ ${activityMode.toUpperCase()} ]          ${RESET}`);
+if (shouldPush) {
+  console.log(`${BOLD}${GREEN}   Live Cloud Sync: [ ENABLED ] -> ${targetServerUrl}/api/vitals/iot-telemetry${RESET}`);
+} else {
+  console.log(`${BOLD}${YELLOW}   Live Cloud Sync: [ STANDALONE ] (Add --push to stream to BioSync Server)${RESET}`);
+}
 console.log(`${BOLD}${CYAN}======================================================================${RESET}\n`);
 
 const modeMultiplier = activityMode === 'exercise' ? 1.45 : activityMode === 'walking' ? 1.15 : 1.0;
@@ -90,6 +104,7 @@ function generate1SecTelemetry(t) {
   return {
     t,
     timestamp: new Date().toLocaleTimeString(),
+    isoTimestamp: new Date().toISOString(),
     heartRate: currentHeartRate,
     hrv: currentHRV,
     glucose: currentGlucose,
@@ -105,18 +120,83 @@ function generate1SecTelemetry(t) {
   };
 }
 
-// 1-Second Interval (1000ms)
+function pushTelemetryToServer(data) {
+  if (!shouldPush) return;
+
+  const payload = JSON.stringify({
+    userId: targetUserId,
+    timestamp: data.isoTimestamp,
+    device: {
+      deviceName: 'BioSync Medical Smartwatch Ultra',
+      cgmSensor: 'Dexcom G7 Continuous Subcutaneous Sensor',
+      batteryLevel: Math.max(50, 99 - Math.floor(data.t / 120)),
+      connectionStatus: 'ACTIVE_HARDWARE_STREAMING',
+      activityMode,
+    },
+    metrics: {
+      heartRate: data.heartRate,
+      hrvMs: data.hrv,
+      spO2Percent: data.spO2,
+      glucoseCgm: data.glucose,
+      glucoseTrend: data.glucoseTrend.includes('RISING') ? 'RISING_STEADY' : data.glucoseTrend.includes('FALLING') ? 'FALLING_STEADY' : 'STABLE',
+      systolicBP: data.systolic,
+      diastolicBP: data.diastolic,
+      meanArterialPressure: data.map,
+      stressIndex: data.stress,
+      respirationRate: data.respiration,
+      skinTemperatureCelsius: data.skinTemp,
+      perfusionIndexPercent: data.perfusionIndex,
+    },
+  });
+
+  try {
+    const parsedUrl = new URL(`${targetServerUrl}/api/vitals/iot-telemetry`);
+    const isHttps = parsedUrl.protocol === 'https:';
+    const client = isHttps ? https : http;
+
+    const req = client.request(
+      parsedUrl,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+        timeout: 900,
+      },
+      (res) => {
+        res.resume(); // Consume stream
+      }
+    );
+
+    req.on('error', () => {
+      // Graceful silence on network drop
+    });
+
+    req.write(payload);
+    req.end();
+  } catch (err) {
+    // Graceful error recovery
+  }
+}
+
+// 1-Second Interval (1000ms Real-Time Clock)
 setInterval(() => {
   step += 1;
   const data = generate1SecTelemetry(step);
+
+  if (shouldPush) {
+    pushTelemetryToServer(data);
+  }
 
   const heartIcon = data.heartRate > 100 ? `${RED}♥${RESET}` : `${RED}❤${RESET}`;
   const hrColor = data.heartRate > 100 ? RED : data.heartRate < 60 ? YELLOW : GREEN;
   const gluColor = data.glucose > 140 ? RED : data.glucose < 70 ? YELLOW : GREEN;
   const spColor = data.spO2 < 95 ? RED : GREEN;
+  const syncBadge = shouldPush ? `${GREEN}[SYNC ON]${RESET} ` : '';
 
   process.stdout.write(
-    `[${GRAY}${data.timestamp}${RESET}] ` +
+    `${syncBadge}[${GRAY}${data.timestamp}${RESET}] ` +
     `Step: ${BOLD}${data.t}s${RESET} | ` +
     `${heartIcon} HR: ${hrColor}${BOLD}${data.heartRate} bpm${RESET} | ` +
     `CGM: ${gluColor}${BOLD}${data.glucose} mg/dL${RESET} (${data.glucoseTrend}) | ` +

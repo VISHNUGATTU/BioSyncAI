@@ -80,7 +80,9 @@ export const scanAndAnalyzeFood = asyncHandler(async (req, res) => {
     try {
       const ai = new GoogleGenAI({ apiKey: geminiKey });
       const prompt = `You are an expert clinical nutrition AI for BioSync AI.
-Analyze this food image. Identify the dish, estimate its nutritional composition, portion size, and alternative options.
+Analyze this food image. Examine the ENTIRE frame and plate carefully to identify ALL individual eatable items present (e.g. rice, dal, curries, sabzi, roti/breads, paneer, chicken, salads, beverages).
+Do NOT collapse a multi-item meal into a single item; identify every distinct food component present.
+
 User's Clinical Context:
 - Fasting Glucose: ${userFastingGlucose} mg/dL
 - Systolic BP: ${userSystolicBP} mmHg
@@ -88,11 +90,29 @@ User's Clinical Context:
 
 Return STRICTLY a JSON object with this exact schema:
 {
-  "recognizedItemName": string,
-  "servingSize": string (e.g., "1 bowl (approx 200g)" or "1 plate"),
-  "servingUnit": string (e.g., "bowl", "plate", "piece", "cup"),
+  "recognizedItemName": string (e.g. if multiple items: "Meal Plate: Steamed Rice, Dal Tadka & Salad"; if single item: "Fresh Apple"),
+  "servingSize": string (e.g., "1 plate (approx 450g)" or "1 standard portion"),
+  "servingUnit": string (e.g., "plate", "bowl", "piece", "cup"),
+  "servingWeightGrams": number,
   "confidenceScore": number (between 0.0 and 1.0),
   "confidenceLevel": "High" | "Medium" | "Low",
+  "allDetectedItems": [
+    {
+      "id": "item_1",
+      "itemName": string,
+      "category": string (e.g., "Cooked_Dish", "Raw_Produce", "Beverage_Dairy", "Packaged_Product"),
+      "portionSize": string,
+      "confidenceScore": number,
+      "nutrients": {
+        "calories": number,
+        "carbohydrates": number,
+        "proteins": number,
+        "fats": number,
+        "fiber": number,
+        "sodium": number
+      }
+    }
+  ],
   "candidates": [
     { "name": string, "confidence": number }
   ],
@@ -106,8 +126,12 @@ Return STRICTLY a JSON object with this exact schema:
     "sodium": number,
     "cholesterol": number
   },
+  "glycemicIndex": number,
+  "glycemicLoad": number,
+  "glycemicLoadCategory": "Low" | "Medium" | "High",
   "personalizedInsight": string (1-2 sentences explaining metabolic impact based on the user's vitals),
-  "suggestedAlternative": string (healthy alternative dish recommendation)
+  "suggestedAlternative": string (healthy alternative dish recommendation),
+  "doctorHacks": [string]
 }
 Return only JSON.`;
 

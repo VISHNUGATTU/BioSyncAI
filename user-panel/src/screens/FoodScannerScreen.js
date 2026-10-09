@@ -135,7 +135,7 @@ export const FoodScannerScreen = ({ navigation }) => {
 
     const detected = foodLogData.allDetectedItems || [];
     setAllDetectedItems(detected);
-    setActiveItemIndex(0);
+    setActiveItemIndex(-1);
 
     const initialName =
       foodLogData.recognizedItemName ||
@@ -264,8 +264,10 @@ export const FoodScannerScreen = ({ navigation }) => {
   // Base metrics
   const baseGlucose = latestVitals?.metabolicHealth?.glucoseFasting || 92;
 
-  // Nutrients
-  const currentNutrients = scannedFood?.nutrients || {
+  // Nutrients (supports Entire Plate aggregated view or individual item inspection)
+  const activeItem = activeItemIndex >= 0 && allDetectedItems[activeItemIndex] ? allDetectedItems[activeItemIndex] : null;
+  const activeItemNutrients = activeItem?.nutritionProfile?.nutrients || activeItem?.nutrients;
+  const currentNutrients = activeItemNutrients || scannedFood?.nutrients || {
     calories: 380,
     carbohydrates: 42,
     netCarbohydrates: 36,
@@ -550,8 +552,27 @@ export const FoodScannerScreen = ({ navigation }) => {
               {/* Multi-item selector pills if multiple items detected */}
               {allDetectedItems && allDetectedItems.length > 1 && (
                 <View style={styles.multiPlateBox}>
-                  <Text style={styles.multiPlateLabel}>Detected in plate:</Text>
+                  <Text style={styles.multiPlateLabel}>Detected in plate ({allDetectedItems.length} items):</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
+                    <TouchableOpacity
+                      style={[
+                        styles.plateChip,
+                        activeItemIndex === -1 && [styles.plateChipActive, { borderColor: colors.primary }],
+                      ]}
+                      onPress={() => {
+                        setActiveItemIndex(-1);
+                        setCustomDishName(scannedFood?.recognizedItemName || 'Meal Plate');
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.plateChipText,
+                          activeItemIndex === -1 && { color: colors.primary, fontWeight: '800' },
+                        ]}
+                      >
+                        Entire Plate
+                      </Text>
+                    </TouchableOpacity>
                     {allDetectedItems.map((item, idx) => (
                       <TouchableOpacity
                         key={idx}
