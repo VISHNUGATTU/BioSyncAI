@@ -254,14 +254,14 @@ export const LiveIoTWatchSyncCard = ({
           </View>
           <View>
             <View style={styles.brandRow}>
-              <Text style={styles.deviceTitle}>BioSync Medical Watch Ultra</Text>
+              <Text style={styles.deviceTitle}>BioSync Smartwatch Stream</Text>
               <View style={styles.hzPill}>
                 <Radio size={9} color="#06b6d4" />
-                <Text style={styles.hzText}>1Hz Real-Time</Text>
+                <Text style={styles.hzText}>Real-Time</Text>
               </View>
             </View>
             <Text style={styles.deviceSubtitle}>
-              Continuous BLE Sync • CGM Subcutaneous Sensor
+              Continuous Wireless Sensor Sync
             </Text>
           </View>
         </View>
@@ -282,7 +282,7 @@ export const LiveIoTWatchSyncCard = ({
               { color: isStreaming ? '#10b981' : '#94a3b8' },
             ]}
           >
-            {isStreaming ? 'Live Sync' : 'Paused'}
+            {isStreaming ? 'Live' : 'Paused'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -295,7 +295,7 @@ export const LiveIoTWatchSyncCard = ({
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
               <Heart size={14} color="#ef4444" fill="#ef4444" />
             </Animated.View>
-            <Text style={styles.metricLabel}>PULSE (HR)</Text>
+            <Text style={styles.metricLabel}>PULSE</Text>
           </View>
           <View style={styles.metricValueRow}>
             <Text style={[styles.metricValue, { color: '#ef4444' }]}>
@@ -303,14 +303,14 @@ export const LiveIoTWatchSyncCard = ({
             </Text>
             <Text style={styles.metricUnit}>BPM</Text>
           </View>
-          <Text style={styles.metricSub}>Arrhythmia: Sinus</Text>
+          <Text style={styles.metricSub}>Normal Rhythm</Text>
         </View>
 
         {/* Metric 2: Continuous Glucose Monitor (CGM) */}
         <View style={styles.metricTile}>
           <View style={styles.metricHeader}>
             <Activity size={14} color="#f59e0b" />
-            <Text style={styles.metricLabel}>CGM GLUCOSE</Text>
+            <Text style={styles.metricLabel}>GLUCOSE</Text>
           </View>
           <View style={styles.metricValueRow}>
             <Text style={[styles.metricValue, { color: '#f59e0b' }]}>
@@ -320,14 +320,14 @@ export const LiveIoTWatchSyncCard = ({
               {getGlucoseTrendIcon(metrics.glucoseTrend)}
             </View>
           </View>
-          <Text style={styles.metricSub}>mg/dL • 1s Interstitial</Text>
+          <Text style={styles.metricSub}>mg/dL • Continuous</Text>
         </View>
 
         {/* Metric 3: Blood Pressure Waveform */}
         <View style={styles.metricTile}>
           <View style={styles.metricHeader}>
             <Gauge size={14} color="#3b82f6" />
-            <Text style={styles.metricLabel}>ARTERIAL BP</Text>
+            <Text style={styles.metricLabel}>PRESSURE</Text>
           </View>
           <View style={styles.metricValueRow}>
             <Text style={[styles.metricValue, { color: '#3b82f6' }]}>
@@ -335,14 +335,14 @@ export const LiveIoTWatchSyncCard = ({
             </Text>
             <Text style={styles.metricUnit}>mmHg</Text>
           </View>
-          <Text style={styles.metricSub}>MAP: {metrics.meanArterialPressure} mmHg</Text>
+          <Text style={styles.metricSub}>Optimal Range</Text>
         </View>
 
         {/* Metric 4: Pulse Oximetry (SpO2) */}
         <View style={styles.metricTile}>
           <View style={styles.metricHeader}>
             <Wind size={14} color="#06b6d4" />
-            <Text style={styles.metricLabel}>SPO2 OXIMETRY</Text>
+            <Text style={styles.metricLabel}>OXYGEN</Text>
           </View>
           <View style={styles.metricValueRow}>
             <Text style={[styles.metricValue, { color: '#06b6d4' }]}>
@@ -350,16 +350,16 @@ export const LiveIoTWatchSyncCard = ({
             </Text>
             <Text style={styles.metricUnit}>%</Text>
           </View>
-          <Text style={styles.metricSub}>PI: {metrics.perfusionIndexPercent}%</Text>
+          <Text style={styles.metricSub}>SpO2 In Range</Text>
         </View>
       </View>
 
       {/* Real-Time 1-Second ECG / Arterial Wave Visualizer */}
       <View style={styles.waveformContainer}>
         <View style={styles.waveformHeader}>
-          <Text style={styles.waveformLabel}>1-SECOND ARTERIAL SINUS RHYTHM (1000ms ECG)</Text>
+          <Text style={styles.waveformLabel}>LIVE PULSE WAVE</Text>
           <Text style={styles.waveformTime}>
-            T={stepCount}s • Δt=1.0s
+            Streaming Live
           </Text>
         </View>
         <Svg width="100%" height={36} viewBox="0 0 280 36">

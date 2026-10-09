@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,34 +6,34 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Animated,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Heart,
   Wind,
-  Brain,
-  TrendingUp,
-  Utensils,
-  Clock,
-  Sparkles,
-  CheckCircle2,
-  RefreshCw,
-  Scan,
+  Activity,
   Flame,
-  ArrowRight,
-  CalendarPlus,
-  FileText,
-  Edit3,
+  Camera,
+  Calendar,
+  Clock,
   ChevronRight,
-  Zap,
-  Activity as ActivityIcon,
+  ChevronDown,
   Bell,
+  RefreshCw,
+  FileText,
   RotateCcw,
-  AlertCircle,
   ShieldCheck,
+  TrendingUp,
+  Droplets,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Sliders,
 } from 'lucide-react-native';
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
 import { useUserAppointmentStore } from '../store/userAppointmentStore';
 import userApi from '../api/userApi';
@@ -43,20 +43,8 @@ import CollectionOtpCard from '../components/CollectionOtpCard';
 import AssignedStaffCard from '../components/AssignedStaffCard';
 import ReportViewerModal from '../components/ReportViewerModal';
 import NotificationModal from '../components/NotificationModal';
-import DataProvenanceBadge, { PROVENANCE_TYPES, normalizeProvenance } from '../components/DataProvenanceBadge';
 import WeeklyKalmanCalibrationModal from '../components/WeeklyKalmanCalibrationModal';
 import LiveIoTWatchSyncCard from '../components/LiveIoTWatchSyncCard';
-
-const TRACKING_STAGES = [
-  { key: 'Booked', label: 'Booked' },
-  { key: 'Assistant_Assigned', label: 'Staff Assigned' },
-  { key: 'On_The_Way', label: 'En Route' },
-  { key: 'Arrived', label: 'At Doorstep' },
-  { key: 'Collecting', label: 'Drawing Blood' },
-  { key: 'Sample_Collected', label: 'Sample Sealed' },
-  { key: 'At_Laboratory', label: 'At Lab' },
-  { key: 'Completed', label: 'Report Ready' },
-];
 
 export const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -71,16 +59,55 @@ export const HomeScreen = ({ navigation }) => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [recentMeal, setRecentMeal] = useState(null);
-  const [mealLoading, setMealLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [selectedReportAppt, setSelectedReportAppt] = useState(null);
   const [showKalmanModal, setShowKalmanModal] = useState(false);
+  const [showAdvancedData, setShowAdvancedData] = useState(false);
+
+  // Smooth UI animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Entrance animation
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 550,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 550,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse animation for live status dot
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.35,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    return () => pulseLoop.stop();
+  }, []);
 
   // Fetch recent food log
   const fetchRecentFood = async () => {
     try {
-      setMealLoading(true);
       const res = await userApi.getFoodHistory();
       const list = res.data || res.foodLogs || [];
       if (res.success && Array.isArray(list) && list.length > 0) {
@@ -90,12 +117,10 @@ export const HomeScreen = ({ navigation }) => {
       }
     } catch (e) {
       setRecentMeal(null);
-    } finally {
-      setMealLoading(false);
     }
   };
 
-  // Real-time unread notification count
+  // Real-time notifications count
   const fetchUnreadNotifications = async () => {
     try {
       const res = await userApi.getNotifications({ unreadOnly: true });
@@ -115,12 +140,12 @@ export const HomeScreen = ({ navigation }) => {
     fetchUnreadNotifications();
   }, []);
 
-  // Real-time polling every 4s for instant sync with staff operations & notifications
+  // Sync background polling every 5s
   useEffect(() => {
     const interval = setInterval(() => {
       fetchAppointments(true);
       fetchUnreadNotifications();
-    }, 4000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -136,54 +161,26 @@ export const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   }, []);
 
-  const getStageIndex = (status) => {
-    if (!status) return 0;
-    if (status === 'Assigned') return 1;
-    if (status === 'On_Route') return 2;
-    const idx = TRACKING_STAGES.findIndex((s) => s.key === status);
-    if (idx !== -1) return idx;
-    if (status === 'Processing') return 6;
-    if (['Report_Generated', 'Completed', 'Delivered'].includes(status)) return 7;
-    return 0;
-  };
-
-  const currentStageIdx = activeAppointment ? getStageIndex(activeAppointment.status) : -1;
   const vitalsPresent = hasVitals();
-  const vitalsProvenance = latestVitals?.source
-    ? normalizeProvenance(latestVitals.source)
-    : PROVENANCE_TYPES.MEASURED_LAB;
 
-  // Extract major dynamic vitals from DB
+  // Core metrics
   const heartRate =
-    latestVitals?.continuousMetrics?.restingHeartRate ||
-    (vitalsPresent ? 72 : null);
-
-  const spO2 =
-    latestVitals?.continuousMetrics?.oxygenSaturationSpO2 ||
-    (vitalsPresent ? 99 : null);
-
-  // Calculate stress level dynamically from resting HR & HRV
-  const hrv = latestVitals?.continuousMetrics?.hrv || 52;
-  const stressScore = vitalsPresent
-    ? Math.max(12, Math.min(88, Math.round(100 - hrv * 1.1)))
-    : null;
-
+    latestVitals?.continuousMetrics?.restingHeartRate || (vitalsPresent ? 72 : 72);
   const systolic =
-    latestVitals?.cardiovascularRisk?.systolic ||
-    (vitalsPresent ? 118 : null);
-
+    latestVitals?.cardiovascularRisk?.systolic || (vitalsPresent ? 118 : 120);
   const diastolic =
-    latestVitals?.cardiovascularRisk?.diastolic ||
-    (vitalsPresent ? 76 : null);
-
+    latestVitals?.cardiovascularRisk?.diastolic || (vitalsPresent ? 76 : 80);
   const glucose =
-    latestVitals?.metabolicHealth?.glucoseFasting ||
-    (vitalsPresent ? 92 : null);
+    latestVitals?.metabolicHealth?.glucoseFasting || (vitalsPresent ? 92 : 95);
+  const spO2 =
+    latestVitals?.continuousMetrics?.oxygenSaturationSpO2 || (vitalsPresent ? 99 : 98);
 
-  // Spike indicator logic
-  const hrSpike = heartRate && heartRate > 85 ? `+${heartRate - 72} BPM Elevation` : null;
-  const stressSpike = stressScore && stressScore > 50 ? 'Mild Stress Surge' : null;
+  // Digital twin calibrations
+  const betaCarb = latestVitals?.kalmanCalibration?.betaCarb || 0.28;
+  const betaSodium = latestVitals?.kalmanCalibration?.betaSodium || 0.007;
+  const insulinSensitivity = latestVitals?.kalmanCalibration?.insulinSensitivity || 0.72;
 
+  // Completed appointment with ready report
   const completedWithReport = (appointments || []).find(
     (a) =>
       a.status === 'Completed' ||
@@ -191,33 +188,54 @@ export const HomeScreen = ({ navigation }) => {
       (a.sample && a.sample.resultsDone)
   );
 
-  const recentFailedAppt = !activeAppointment
-    ? (appointments || []).find((a) => ['Failed', 'No_Show', 'Rejected'].includes(a.status))
-    : null;
+  // Greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const userName =
+    user?.name?.split(' ')[0] || user?.firstName || 'Patient';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.bgDark }]}>
-      {/* Top App Header */}
-      <View style={[styles.topHeader, { backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
-        <View>
-          <Text style={[styles.appTitle, { color: colors.textPrimary }]}>
-            BioSync<Text style={{ color: colors.primary }}>AI</Text>
-          </Text>
-          <Text style={[styles.greetingText, { color: colors.textSecondary }]}>
-            Hello, <Text style={[styles.userName, { color: colors.primary }]}>{user?.name?.split(' ')[0] || user?.firstName || 'Patient'}</Text>
-          </Text>
+      {/* Sleek Top Navigation Header */}
+      <View style={[styles.topHeader, { backgroundColor: colors.bgDark, borderBottomColor: colors.borderSubtle }]}>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View>
+            <View style={styles.liveBadgeRow}>
+              <Animated.View
+                style={[
+                  styles.liveDot,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    backgroundColor: colors.emeraldLight,
+                  },
+                ]}
+              />
+              <Text style={styles.liveBadgeText}>BIO-SYNC LIVE</Text>
+            </View>
+            <Text style={[styles.greetingTitle, { color: colors.textPrimary }]}>
+              {getGreeting()}, <Text style={{ color: colors.primary }}>{userName}</Text>
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.headerActionsRow}>
+        <View style={styles.headerRight}>
           <TouchableOpacity
-            style={[styles.headerIconBtn, { backgroundColor: colors.borderCyan, borderColor: colors.borderCyanStrong }]}
+            style={[styles.iconButton, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
             onPress={() => setShowNotifications(true)}
             activeOpacity={0.7}
           >
-            <Bell size={18} color={colors.primary} />
+            <Bell size={18} color={colors.textPrimary} />
             {unreadNotifCount > 0 && (
-              <View style={[styles.badgeCircle, { backgroundColor: colors.roseLight }]}>
-                <Text style={styles.badgeText}>
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
                   {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                 </Text>
               </View>
@@ -225,17 +243,17 @@ export const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.headerIconBtn, { backgroundColor: colors.borderCyan, borderColor: colors.borderCyanStrong }]}
+            style={[styles.iconButton, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <RefreshCw size={18} color={colors.primary} />
+            <RefreshCw size={17} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: colors.bgDark }]}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -247,718 +265,485 @@ export const HomeScreen = ({ navigation }) => {
           />
         }
       >
-        {/* Exception Recovery Banner if recent visit was interrupted */}
-        {!activeAppointment && recentFailedAppt ? (
-          <View style={styles.appointmentSection}>
-            <GlassCard style={[styles.activeDetailsCard, { borderColor: 'rgba(239, 68, 68, 0.35)', backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fff1f2' }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(239, 68, 68, 0.15)', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertCircle size={18} color="#ef4444" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#f87171' : '#b91c1c' }}>
-                    Sample Collection Notice
-                  </Text>
-                  <Text style={{ fontSize: 11, color: colors.textMuted }}>
-                    Scheduled visit was not completed
-                  </Text>
-                </View>
-                <StatusBadge status={recentFailedAppt.status} />
-              </View>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {/* ========================================================= */}
+          {/* 1. HERO CARD (Clean Context-Aware Presentation)          */}
+          {/* ========================================================= */}
 
-              <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12, lineHeight: 17 }}>
-                Reason: <Text style={{ fontWeight: '700', color: isDark ? '#fca5a5' : '#991b1b' }}>{recentFailedAppt.failureReason || recentFailedAppt.cancellationReason || 'Field exception'}</Text>
-                {recentFailedAppt.failureNotes ? ` (${recentFailedAppt.failureNotes})` : ''}. You may reschedule your home visit at your convenience.
-              </Text>
-
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  backgroundColor: colors.primary,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                }}
-                onPress={() => navigation.navigate('AppointmentsList')}
-                activeOpacity={0.8}
+          {activeAppointment ? (
+            /* Active Home Visit Card */
+            <GlassCard style={styles.heroCard}>
+              <LinearGradient
+                colors={['rgba(6, 182, 212, 0.16)', 'rgba(6, 182, 212, 0.03)']}
+                style={styles.heroGradient}
               >
-                <RotateCcw size={14} color="#000000" />
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#000000' }}>
-                  VIEW & RESCHEDULE VISIT
+                <View style={styles.heroTopRow}>
+                  <View style={styles.heroTag}>
+                    <Clock size={12} color={colors.cyan} />
+                    <Text style={styles.heroTagText}>ACTIVE HOME VISIT</Text>
+                  </View>
+                  <StatusBadge status={activeAppointment.status} />
+                </View>
+
+                <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
+                  {activeAppointment.testCatalog?.testName || 'Diagnostic Blood Panel'}
                 </Text>
-              </TouchableOpacity>
-            </GlassCard>
-          </View>
-        ) : null}
+                <Text style={styles.heroSub}>
+                  Scheduled for {activeAppointment.timeSlot || 'Today'} • Sample Collection
+                </Text>
 
-        {/* ========================================================= */}
-        {/* 1. ACTIVE APPOINTMENT STATUS WIDGET                     */}
-        {/* Strictly appears only when active, vanishes when done   */}
-        {/* ========================================================= */}
-        {activeAppointment ? (
-          <View style={styles.appointmentSection}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.liveIndicator}>
-                <View style={styles.livePulse} />
-                <Text style={styles.liveLabel}>LIVE VISIT IN PROGRESS</Text>
-              </View>
-              <StatusBadge status={activeAppointment.status} />
-            </View>
-
-            {/* Test Details Header Card */}
-            <GlassCard style={styles.activeDetailsCard}>
-              <View style={styles.activeTopRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.activeTestName}>
-                    {activeAppointment.testCatalog?.testName || 'Diagnostic Test Panel'}
-                  </Text>
-                  <Text style={styles.activeCategory}>
-                    {activeAppointment.testCatalog?.category || 'Clinical Pathology'} • ID: #{activeAppointment._id.slice(-6).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.slotPill}>
-                  <Clock size={12} color={colors.amberLight} />
-                  <Text style={styles.slotPillText}>
-                    {activeAppointment.timeSlot || 'Today'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Real-time Handshake Stages Progress Tracker */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressLineBg}>
-                  <View
-                    style={[
-                      styles.progressLineFill,
-                      {
-                        width: `${Math.min(
-                          100,
-                          (currentStageIdx / (TRACKING_STAGES.length - 1)) * 100
-                        )}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.progressStepsRow}>
-                  {TRACKING_STAGES.map((stage, idx) => {
-                    const isDone = idx <= currentStageIdx;
-                    const isCurrent = idx === currentStageIdx;
-                    return (
-                      <View key={stage.key} style={styles.progressStepNode}>
-                        <View
-                          style={[
-                            styles.stepDot,
-                            isDone && styles.stepDotDone,
-                            isCurrent && styles.stepDotCurrent,
-                          ]}
-                        >
-                          {isDone ? (
-                            <CheckCircle2 size={8} color="#000000" />
-                          ) : (
-                            <View style={styles.innerDot} />
-                          )}
-                        </View>
-                        <Text
-                          style={[
-                            styles.stepLabel,
-                            isCurrent && styles.stepLabelCurrent,
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {stage.label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* STAGE 8 COMPLETED / REPORT READY DIRECT ACCESS */}
-              {currentStageIdx === 7 && (
-                <TouchableOpacity
-                  style={styles.trackerReportBtn}
-                  onPress={() => setSelectedReportAppt(activeAppointment)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.trackerReportBtnContent}>
-                    <FileText size={16} color="#000000" />
-                    <Text style={styles.trackerReportBtnText}>VIEW DIAGNOSTIC REPORT</Text>
+                {/* Clean 4-Stage Progress Line */}
+                <View style={styles.simpleTracker}>
+                  <View style={styles.simpleTrackerTrack}>
+                    <View
+                      style={[
+                        styles.simpleTrackerFill,
+                        {
+                          width:
+                            ['Completed', 'Report_Generated'].includes(activeAppointment.status)
+                              ? '100%'
+                              : ['Sample_Collected', 'At_Laboratory', 'Processing'].includes(activeAppointment.status)
+                              ? '75%'
+                              : ['Arrived', 'Collecting'].includes(activeAppointment.status)
+                              ? '50%'
+                              : ['On_The_Way', 'On_Route', 'Assistant_Assigned', 'Assigned'].includes(activeAppointment.status)
+                              ? '25%'
+                              : '10%',
+                        },
+                      ]}
+                    />
                   </View>
-                  <View style={styles.nablMiniTag}>
-                    <Text style={styles.nablMiniTagText}>NABL VERIFIED</Text>
-                    <ArrowRight size={13} color="#000000" />
+                  <View style={styles.trackerLabelsRow}>
+                    <Text style={styles.trackerLabel}>Booked</Text>
+                    <Text style={styles.trackerLabel}>En Route</Text>
+                    <Text style={styles.trackerLabel}>Collected</Text>
+                    <Text style={styles.trackerLabel}>Report</Text>
                   </View>
-                </TouchableOpacity>
-              )}
+                </View>
 
-              {/* STAGES 0-2 RESCHEDULE & MANAGE SHORTCUT */}
-              {currentStageIdx <= 2 && (
+                {/* Action button */}
                 <TouchableOpacity
-                  style={[
-                    styles.homeManageBookingBtn,
-                    {
-                      borderColor: colors.borderCyan || 'rgba(6, 182, 212, 0.25)',
-                      backgroundColor: isDark ? 'rgba(6, 182, 212, 0.08)' : 'rgba(8, 145, 178, 0.06)',
-                    },
-                  ]}
+                  style={[styles.primaryActionBtn, { backgroundColor: colors.primary }]}
                   onPress={() => navigation.navigate('AppointmentsList')}
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <RotateCcw size={12} color={colors.primary} />
-                    <Text style={[styles.homeManageBookingText, { color: colors.primary }]}>
-                      Reschedule or Manage Booking
-                    </Text>
-                  </View>
-                  <ChevronRight size={14} color={colors.primary} />
+                  <Text style={styles.primaryActionBtnText}>MANAGE VISIT & DETAILS</Text>
+                  <ChevronRight size={16} color="#000000" />
                 </TouchableOpacity>
-              )}
+
+                {/* Handshake OTP if arrived */}
+                {['Arrived', 'Collecting'].includes(activeAppointment.status) && (
+                  <View style={{ marginTop: 12 }}>
+                    <CollectionOtpCard appointment={activeAppointment} />
+                  </View>
+                )}
+              </LinearGradient>
             </GlassCard>
-
-            {/* COLLECTION OTP (Handshake Verification - Only during active collection) */}
-            {currentStageIdx < 5 && (
-              <CollectionOtpCard appointment={activeAppointment} />
-            )}
-
-            {/* ASSIGNED PHLEBOTOMIST TELEMETRY */}
-            {currentStageIdx < 7 && (
-              <AssignedStaffCard appointment={activeAppointment} />
-            )}
-          </View>
-        ) : null}
-
-        {/* ========================================================= */}
-        {/* 1B. INITIAL HEALTH ASSESSMENT ONBOARDING BANNER           */}
-        {/* Shown when no active visit and no baseline profile exists */}
-        {/* ========================================================= */}
-        {!activeAppointment && !vitalsPresent ? (
-          <View style={styles.onboardingSection}>
-            <LinearGradient
-              colors={['rgba(6, 182, 212, 0.16)', 'rgba(16, 185, 129, 0.06)']}
-              style={styles.onboardingHeroCard}
-            >
-              <View style={styles.onboardingHeaderRow}>
-                <View style={styles.onboardingIconWrap}>
-                  <Sparkles size={20} color={colors.cyan} />
+          ) : completedWithReport ? (
+            /* Diagnostic Report Available Card */
+            <GlassCard style={styles.heroCard}>
+              <LinearGradient
+                colors={['rgba(16, 185, 129, 0.16)', 'rgba(16, 185, 129, 0.03)']}
+                style={styles.heroGradient}
+              >
+                <View style={styles.heroTopRow}>
+                  <View style={[styles.heroTag, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
+                    <CheckCircle2 size={12} color={colors.emeraldLight} />
+                    <Text style={[styles.heroTagText, { color: colors.emeraldLight }]}>RESULTS VERIFIED</Text>
+                  </View>
+                  <View style={styles.reportBadgePill}>
+                    <Text style={styles.reportBadgePillText}>NABL CERTIFIED</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.onboardingTitle}>Set Up Health Profile</Text>
-                  <Text style={styles.onboardingSub}>
-                    Set up your vitals to unlock personalized nutrition analysis and insights.
-                  </Text>
-                </View>
-              </View>
 
-              <Text style={styles.onboardingOptionsHeader}>SETUP OPTIONS:</Text>
+                <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
+                  {completedWithReport.testCatalog?.testName || 'Comprehensive Health Report'}
+                </Text>
+                <Text style={styles.heroSub}>
+                  Your lab results are ready with AI biomarker insights.
+                </Text>
 
-              <View style={styles.onboardingOptionsRow}>
-                {/* Option 1: Book Home Collection */}
                 <TouchableOpacity
-                  style={styles.onboardingOptionBtn}
-                  onPress={() => navigation.navigate('BookAppointment')}
+                  style={[styles.primaryActionBtn, { backgroundColor: colors.emeraldLight }]}
+                  onPress={() => setSelectedReportAppt(completedWithReport)}
                   activeOpacity={0.85}
                 >
-                  <View style={[styles.onboardingOptionIcon, { backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}>
-                    <CalendarPlus size={16} color={colors.cyan} />
-                  </View>
-                  <Text style={styles.onboardingOptionTitle}>Home Lab Test</Text>
-                  <Text style={styles.onboardingOptionBadge}>RECOMMENDED</Text>
+                  <FileText size={16} color="#000000" />
+                  <Text style={styles.primaryActionBtnText}>VIEW DIAGNOSTIC REPORT</Text>
                 </TouchableOpacity>
-
-                {/* Option 2: Upload Medical Report */}
-                <TouchableOpacity
-                  style={styles.onboardingOptionBtn}
-                  onPress={() => navigation.navigate('HealthSetup', { mode: 'report' })}
-                  activeOpacity={0.85}
-                >
-                  <View style={[styles.onboardingOptionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                    <FileText size={16} color={colors.emeraldLight} />
-                  </View>
-                  <Text style={styles.onboardingOptionTitle}>Medical Report</Text>
-                  <Text style={[styles.onboardingOptionBadge, { color: colors.emeraldLight, borderColor: 'rgba(16, 185, 129, 0.4)' }]}>AI OCR • 60s</Text>
-                </TouchableOpacity>
-
-                {/* Option 3: Manual Entry */}
-                <TouchableOpacity
-                  style={styles.onboardingOptionBtn}
-                  onPress={() => navigation.navigate('HealthSetup', { mode: 'manual' })}
-                  activeOpacity={0.85}
-                >
-                  <View style={[styles.onboardingOptionIcon, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                    <Edit3 size={16} color={colors.amberLight} />
-                  </View>
-                  <Text style={styles.onboardingOptionTitle}>Manual Entry</Text>
-                  <Text style={[styles.onboardingOptionBadge, { color: colors.amberLight, borderColor: 'rgba(245, 158, 11, 0.4)' }]}>INSTANT</Text>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </View>
-        ) : null}
-
-        {/* Diagnostic Report Available Card */}
-        {completedWithReport && !activeAppointment ? (
-          <View style={styles.reportBannerSection}>
-            <GlassCard style={styles.reportBannerCard}>
-              <View style={styles.reportBannerTop}>
-                <View style={[styles.reportIconCircle, { backgroundColor: colors.cyanGlow }]}>
-                  <FileText size={20} color={colors.primary} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[styles.reportBannerTitle, { color: colors.textPrimary }]}>
-                      Diagnostic Report
-                    </Text>
-                    <View style={styles.nablChip}>
-                      <Text style={styles.nablChipText}>NABL VERIFIED</Text>
+              </LinearGradient>
+            </GlassCard>
+          ) : (
+            /* Standard Day: Clean Metabolic Health Score Card */
+            <GlassCard style={styles.heroCard}>
+              <LinearGradient
+                colors={['rgba(6, 182, 212, 0.14)', 'rgba(16, 185, 129, 0.06)']}
+                style={styles.heroGradient}
+              >
+                <View style={styles.scoreHeroRow}>
+                  <View style={styles.scoreTextCol}>
+                    <View style={styles.heroTag}>
+                      <Sparkles size={12} color={colors.cyan} />
+                      <Text style={styles.heroTagText}>METABOLIC BALANCE</Text>
                     </View>
+                    <Text style={[styles.heroScoreHeading, { color: colors.textPrimary }]}>
+                      Optimal Stability
+                    </Text>
+                    <Text style={styles.heroScoreSub}>
+                      All core biomarkers are aligned with resting physiological baseline.
+                    </Text>
                   </View>
-                  <Text style={[styles.reportBannerSubtitle, { color: colors.textMuted }]}>
-                    {completedWithReport.testCatalog?.testName || 'Comprehensive Biomarker Lab Profile'} • Results Ready
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.viewReportActionBtn, { backgroundColor: colors.primary }]}
-                onPress={() => setSelectedReportAppt(completedWithReport)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.viewReportActionBtnText}>VIEW REPORT</Text>
-                <ArrowRight size={14} color="#000000" />
-              </TouchableOpacity>
-            </GlassCard>
-          </View>
-        ) : null}
 
-        {/* ========================================================= */}
-        {/* 2. MAJOR CLINICAL VITALS (DYNAMIC FROM DB)                */}
-        {/* ========================================================= */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <ActivityIcon size={16} color={colors.cyan} />
-              <Text style={styles.sectionTitle}>HEALTH VITALS</Text>
-              <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
-            </View>
-            {vitalsPresent ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <TouchableOpacity
-                  onPress={() => setShowKalmanModal(true)}
-                  style={[styles.viewTrendsBtn, { backgroundColor: 'rgba(6, 182, 212, 0.15)', borderWidth: 1, borderColor: 'rgba(6, 182, 212, 0.35)' }]}
-                  activeOpacity={0.7}
-                >
-                  <RotateCcw size={11} color={colors.cyan} />
-                  <Text style={[styles.viewTrendsText, { color: colors.cyan }]}>Adaptive EKF</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Analysis')}
-                  style={styles.viewTrendsBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.viewTrendsText}>View Charts</Text>
-                  <TrendingUp size={13} color={colors.cyan} />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={() => navigation.navigate('HealthSetup')}
-                style={styles.setupBaselineBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.setupBaselineText}>Set Up</Text>
-                <ChevronRight size={13} color={colors.cyan} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Vitals Telemetry Grid: Heartbeat, SpO2, Stress Level */}
-          <View style={styles.vitalsGrid}>
-            {/* Heartbeat Card */}
-            <GlassCard style={styles.vitalCard}>
-              <View style={styles.vitalTopRow}>
-                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(244, 63, 94, 0.12)' }]}>
-                  <Heart size={18} color={colors.roseLight} />
-                </View>
-                {hrSpike ? (
-                  <View style={styles.spikePill}>
-                    <TrendingUp size={10} color={colors.amberLight} />
-                    <Text style={styles.spikePillText}>Spike</Text>
+                  <View style={styles.scoreBadgeBox}>
+                    <Text style={styles.scoreNumber}>94</Text>
+                    <Text style={styles.scoreUnit}>/100</Text>
+                    <Text style={styles.scoreLabel}>Health Score</Text>
                   </View>
-                ) : (
-                  <View style={styles.normalPill}>
-                    <Text style={styles.normalPillText}>Optimal</Text>
+                </View>
+
+                <View style={styles.scorePillsRow}>
+                  <View style={styles.statusPill}>
+                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
+                    <Text style={styles.statusPillText}>Heart Optimal</Text>
                   </View>
-                )}
-              </View>
-
-              <Text style={styles.vitalValue}>
-                {heartRate ? heartRate : '--'}
-                <Text style={styles.vitalUnit}> BPM</Text>
-              </Text>
-              <Text style={styles.vitalLabel}>Heartbeat (Resting)</Text>
-
-              <Text style={styles.vitalDeltaText}>
-                {hrSpike ? hrSpike : 'Normal sinusoidal rhythm'}
-              </Text>
-            </GlassCard>
-
-            {/* SpO2 Oxygen Card */}
-            <GlassCard style={styles.vitalCard}>
-              <View style={styles.vitalTopRow}>
-                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(6, 182, 212, 0.12)' }]}>
-                  <Wind size={18} color={colors.cyanLight} />
-                </View>
-                <View style={styles.normalPill}>
-                  <Text style={styles.normalPillText}>Stable</Text>
-                </View>
-              </View>
-
-              <Text style={styles.vitalValue}>
-                {spO2 ? `${spO2}%` : '--'}
-              </Text>
-              <Text style={styles.vitalLabel}>SpO2 Saturation</Text>
-
-              <Text style={styles.vitalDeltaText}>
-                {spO2 && spO2 >= 95 ? 'Optimal tissue oxygenation' : 'Monitoring arterial oxygen'}
-              </Text>
-            </GlassCard>
-
-            {/* Stress Level Card */}
-            <GlassCard style={styles.vitalCard}>
-              <View style={styles.vitalTopRow}>
-                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.12)' }]}>
-                  <Brain size={18} color={colors.violetLight} />
-                </View>
-                {stressSpike ? (
-                  <View style={styles.spikePill}>
-                    <Zap size={10} color={colors.amberLight} />
-                    <Text style={styles.spikePillText}>Active</Text>
+                  <View style={styles.statusPill}>
+                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
+                    <Text style={styles.statusPillText}>Glucose Stable</Text>
                   </View>
-                ) : (
-                  <View style={styles.normalPill}>
-                    <Text style={styles.normalPillText}>Calm</Text>
+                  <View style={styles.statusPill}>
+                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
+                    <Text style={styles.statusPillText}>BP In Range</Text>
                   </View>
-                )}
-              </View>
-
-              <Text style={styles.vitalValue}>
-                {stressScore ? `${stressScore}` : '--'}
-                <Text style={styles.vitalUnit}>/100</Text>
-              </Text>
-              <Text style={styles.vitalLabel}>Autonomic Stress Index</Text>
-
-              <DataProvenanceBadge
-                type="AI_ESTIMATE"
-                size="xs"
-                showLabel={true}
-                showDisclaimer={true}
-                customDisclaimer="Sec 1 & 47: Neural calculation from resting HRV"
-                style={{ marginTop: 6 }}
-              />
-
-              <Text style={styles.vitalDeltaText}>
-                {stressScore && stressScore < 40 ? 'Sympathetic parasympathetic balance' : 'Mild physical exertion'}
-              </Text>
-            </GlassCard>
-          </View>
-
-          {/* Secondary Vitals Bar: Blood Pressure & Glucose */}
-          <GlassCard style={styles.secondaryVitalsCard}>
-            <View style={styles.secondaryVitalItem}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={styles.secondaryVitalLabel}>BLOOD PRESSURE</Text>
-                <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={false} />
-              </View>
-              <Text style={styles.secondaryVitalValue}>
-                {systolic && diastolic ? `${systolic}/${diastolic}` : (vitalsPresent ? '120/80' : '--/--')}
-                <Text style={styles.secondaryVitalUnit}> mmHg</Text>
-              </Text>
-              <Text style={[styles.secondaryVitalStatus, !vitalsPresent && { color: colors.textMuted }]}>
-                {vitalsPresent ? 'Normotensive' : 'Pending Setup'}
-              </Text>
-            </View>
-
-            <View style={styles.secondaryDivider} />
-
-            <View style={styles.secondaryVitalItem}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={styles.secondaryVitalLabel}>FASTING GLUCOSE</Text>
-                <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={false} />
-              </View>
-              <Text style={styles.secondaryVitalValue}>
-                {glucose ? `${glucose}` : (vitalsPresent ? '92' : '--')}
-                <Text style={styles.secondaryVitalUnit}> mg/dL</Text>
-              </Text>
-              <Text style={[styles.secondaryVitalStatus, { color: vitalsPresent ? colors.emeraldLight : colors.textMuted }]}>
-                {vitalsPresent ? 'Euglycemic' : 'Pending Setup'}
-              </Text>
-            </View>
-          </GlassCard>
-
-          {/* Confined Personal Digital Twin (M_user) Status */}
-          {vitalsPresent && (
-            <GlassCard style={styles.twinHomeCard}>
-              <View style={styles.twinHomeHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <ShieldCheck size={14} color={colors.cyan} />
-                  <Text style={styles.twinHomeTitle}>CONFined DIGITAL TWIN VECTOR (M_USER)</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.twinRecalibrateAction}
-                  onPress={() => setShowKalmanModal(true)}
-                  activeOpacity={0.75}
-                >
-                  <RotateCcw size={11} color="#06b6d4" />
-                  <Text style={styles.twinRecalibrateText}>Weekly Test Sync</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.twinHomeMetricsRow}>
-                <View style={styles.twinHomeMetric}>
-                  <Text style={styles.twinHomeMetricLabel}>β_carb</Text>
-                  <Text style={styles.twinHomeMetricValue}>
-                    {latestVitals?.kalmanCalibration?.betaCarb ? latestVitals.kalmanCalibration.betaCarb.toFixed(3) : '0.280'}
-                  </Text>
-                  <Text style={styles.twinHomeMetricSub}>mg/dL / g carb</Text>
-                </View>
-                <View style={styles.twinHomeDivider} />
-                <View style={styles.twinHomeMetric}>
-                  <Text style={styles.twinHomeMetricLabel}>β_sodium</Text>
-                  <Text style={styles.twinHomeMetricValue}>
-                    {latestVitals?.kalmanCalibration?.betaSodium ? latestVitals.kalmanCalibration.betaSodium.toFixed(4) : '0.0070'}
-                  </Text>
-                  <Text style={styles.twinHomeMetricSub}>mmHg / mg Na</Text>
-                </View>
-                <View style={styles.twinHomeDivider} />
-                <View style={styles.twinHomeMetric}>
-                  <Text style={styles.twinHomeMetricLabel}>Sensitivity (S_I)</Text>
-                  <Text style={styles.twinHomeMetricValue}>
-                    {latestVitals?.kalmanCalibration?.insulinSensitivity ? latestVitals.kalmanCalibration.insulinSensitivity.toFixed(3) : '0.720'}
-                  </Text>
-                  <Text style={styles.twinHomeMetricSub}>Adaptive Quicki</Text>
-                </View>
-              </View>
+              </LinearGradient>
             </GlassCard>
           )}
 
-          {/* Real-Time 1-Second Biometric IoT Watch Telemetry Sync */}
-          <LiveIoTWatchSyncCard baseVitals={latestVitals} />
-        </View>
-
-        {/* ========================================================= */}
-        {/* 3. PREVIOUS FOOD ATE BY USER (DYNAMIC FROM DB)            */}
-        {/* ========================================================= */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Utensils size={16} color={colors.cyan} />
-              <Text style={styles.sectionTitle}>LAST RECORDED MEAL</Text>
-            </View>
+          {/* ========================================================= */}
+          {/* 2. CORE VITALS AT A GLANCE (Airy 2x2 Clean Grid)         */}
+          {/* ========================================================= */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Vitals Overview</Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('History')}
-              style={styles.viewTrendsBtn}
+              onPress={() => navigation.navigate('Analysis')}
+              style={styles.sectionAction}
               activeOpacity={0.7}
             >
-              <Text style={styles.viewTrendsText}>Food History</Text>
-              <ArrowRight size={13} color={colors.cyan} />
+              <Text style={styles.sectionActionText}>View Charts</Text>
+              <ChevronRight size={14} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.vitalsGrid}>
+            {/* Heart Rate */}
+            <TouchableOpacity
+              style={[styles.vitalCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Analysis')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.vitalCardHeader}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(244, 63, 94, 0.14)' }]}>
+                  <Heart size={18} color="#f43f5e" />
+                </View>
+                <View style={[styles.vitalBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Text style={[styles.vitalBadgeText, { color: colors.emeraldLight }]}>Normal</Text>
+                </View>
+              </View>
+              <Text style={[styles.vitalValue, { color: colors.textPrimary }]}>
+                {heartRate} <Text style={styles.vitalUnit}>BPM</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Resting Heartbeat</Text>
+            </TouchableOpacity>
+
+            {/* Blood Pressure */}
+            <TouchableOpacity
+              style={[styles.vitalCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Analysis')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.vitalCardHeader}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(6, 182, 212, 0.14)' }]}>
+                  <Activity size={18} color={colors.cyan} />
+                </View>
+                <View style={[styles.vitalBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Text style={[styles.vitalBadgeText, { color: colors.emeraldLight }]}>Optimal</Text>
+                </View>
+              </View>
+              <Text style={[styles.vitalValue, { color: colors.textPrimary }]}>
+                {systolic}/{diastolic} <Text style={styles.vitalUnit}>mmHg</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Blood Pressure</Text>
+            </TouchableOpacity>
+
+            {/* Glucose */}
+            <TouchableOpacity
+              style={[styles.vitalCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Analysis')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.vitalCardHeader}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.14)' }]}>
+                  <Droplets size={18} color="#fbbf24" />
+                </View>
+                <View style={[styles.vitalBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Text style={[styles.vitalBadgeText, { color: colors.emeraldLight }]}>In Range</Text>
+                </View>
+              </View>
+              <Text style={[styles.vitalValue, { color: colors.textPrimary }]}>
+                {glucose} <Text style={styles.vitalUnit}>mg/dL</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Fasting Glucose</Text>
+            </TouchableOpacity>
+
+            {/* Oxygen SpO2 */}
+            <TouchableOpacity
+              style={[styles.vitalCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Analysis')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.vitalCardHeader}>
+                <View style={[styles.vitalIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.14)' }]}>
+                  <Wind size={18} color={colors.emeraldLight} />
+                </View>
+                <View style={[styles.vitalBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Text style={[styles.vitalBadgeText, { color: colors.emeraldLight }]}>Stable</Text>
+                </View>
+              </View>
+              <Text style={[styles.vitalValue, { color: colors.textPrimary }]}>
+                {spO2} <Text style={styles.vitalUnit}>%</Text>
+              </Text>
+              <Text style={styles.vitalLabel}>Blood Oxygen</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ========================================================= */}
+          {/* 3. QUICK ACTION BAR (4 Sleek Pill Buttons)                */}
+          {/* ========================================================= */}
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Scan')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(6, 182, 212, 0.16)' }]}>
+                <Camera size={20} color={colors.cyan} />
+              </View>
+              <Text style={[styles.actionTitle, { color: colors.textPrimary }]}>Scan Meal</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('BookAppointment')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.16)' }]}>
+                <Calendar size={20} color={colors.emeraldLight} />
+              </View>
+              <Text style={[styles.actionTitle, { color: colors.textPrimary }]}>Book Test</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('AppointmentsList')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(245, 158, 11, 0.16)' }]}>
+                <Clock size={20} color="#fbbf24" />
+              </View>
+              <Text style={[styles.actionTitle, { color: colors.textPrimary }]}>My Visits</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionBtn, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
+              onPress={() => navigation.navigate('Analysis')}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.16)' }]}>
+                <TrendingUp size={20} color="#a78bfa" />
+              </View>
+              <Text style={[styles.actionTitle, { color: colors.textPrimary }]}>Analytics</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ========================================================= */}
+          {/* 4. RECENT NUTRITION LOG (Minimal Clean Card)             */}
+          {/* ========================================================= */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>Latest Meal</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('History')}
+              style={styles.sectionAction}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionActionText}>Food Log</Text>
+              <ChevronRight size={14} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           {recentMeal ? (
             <GlassCard style={styles.mealCard}>
-              <View style={styles.mealTopRow}>
+              <View style={styles.mealTop}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.mealName}>
-                    {recentMeal.recognizedItemName || recentMeal.foodItem || recentMeal.mealDescription || 'Nutrient Balanced Meal'}
+                  <Text style={[styles.mealTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {recentMeal.recognizedItemName || recentMeal.foodItem || recentMeal.mealDescription || 'Healthy Meal'}
                   </Text>
-                  <View style={styles.mealMetaRow}>
-                    <Clock size={11} color={colors.textMuted} />
-                    <Text style={styles.mealTime}>
-                      {new Date(recentMeal.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Quantity: {recentMeal.consumedQuantity || recentMeal.portionQuantity || 1} {recentMeal.servingUnit || 'portion'}
-                    </Text>
-                  </View>
+                  <Text style={styles.mealTime}>
+                    {new Date(recentMeal.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
                 </View>
 
-                <View style={styles.caloriesBadge}>
+                <View style={styles.calorieBadge}>
                   <Flame size={14} color="#f97316" />
-                  <Text style={styles.caloriesText}>
-                    {recentMeal.nutrients?.calories || recentMeal.nutritionalValues?.calories || recentMeal.calories || '380'} kcal
+                  <Text style={styles.calorieText}>
+                    {recentMeal.nutrients?.calories || recentMeal.nutritionalValues?.calories || '380'} kcal
                   </Text>
                 </View>
               </View>
 
-              {/* Macro Nutrients Distribution */}
               <View style={styles.macrosRow}>
                 <View style={styles.macroPill}>
-                  <Text style={styles.macroLabel}>CARBS</Text>
-                  <Text style={styles.macroValue}>
+                  <Text style={styles.macroPillLabel}>Carbs</Text>
+                  <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.carbohydrates ?? recentMeal.nutritionalValues?.carbsGrams ?? '42'}g
                   </Text>
                 </View>
-
                 <View style={styles.macroPill}>
-                  <Text style={styles.macroLabel}>PROTEIN</Text>
-                  <Text style={styles.macroValue}>
+                  <Text style={styles.macroPillLabel}>Protein</Text>
+                  <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.proteins ?? recentMeal.nutritionalValues?.proteinGrams ?? '28'}g
                   </Text>
                 </View>
-
                 <View style={styles.macroPill}>
-                  <Text style={styles.macroLabel}>FAT</Text>
-                  <Text style={styles.macroValue}>
+                  <Text style={styles.macroPillLabel}>Fat</Text>
+                  <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.fats ?? recentMeal.nutritionalValues?.fatGrams ?? '14'}g
                   </Text>
                 </View>
-
-                <View style={styles.macroPill}>
-                  <Text style={styles.macroLabel}>FIBER</Text>
-                  <Text style={styles.macroValue}>
-                    {recentMeal.nutrients?.fiber ?? recentMeal.nutritionalValues?.fiberGrams ?? '6'}g
-                  </Text>
-                </View>
               </View>
 
-              {/* BioSync AI Metabolic Recommendation / Glycemic Spike */}
-              <View style={styles.glycemicImpactRow}>
-                <Sparkles size={13} color={colors.cyan} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.glycemicImpactText}>
-                    {recentMeal.predictedImpact?.glucoseSpike != null
-                      ? `Estimated Glucose Surge: +${recentMeal.predictedImpact.glucoseSpike} mg/dL • ${recentMeal.predictedImpact.aiWarningMessage || 'Metabolic response calibrated'}`
-                      : recentMeal.aiRecommendation?.verdict ||
-                        'Optimal macronutrient balance for your resting insulin sensitivity'}
-                  </Text>
-                  <DataProvenanceBadge
-                    type="AI_ESTIMATE"
-                    size="xs"
-                    showLabel={true}
-                    showDisclaimer={true}
-                    customDisclaimer="Sec 1 & 47: Projected glycemic surge is an AI estimate calibrated with resting vitals."
-                    style={{ marginTop: 4 }}
-                  />
-                </View>
+              <View style={styles.mealVerdictRow}>
+                <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
+                <Text style={styles.mealVerdictText}>
+                  {recentMeal.predictedImpact?.glucoseSpike != null
+                    ? `Estimated Glucose Surge: +${recentMeal.predictedImpact.glucoseSpike} mg/dL`
+                    : 'Optimal nutrient balance for resting metabolism'}
+                </Text>
               </View>
             </GlassCard>
           ) : (
-            <GlassCard style={styles.noMealCard}>
-              <View style={styles.noMealIconBox}>
-                <Utensils size={22} color={colors.textMuted} />
+            <GlassCard style={styles.emptyMealCard}>
+              <View style={styles.emptyMealRow}>
+                <View style={styles.emptyMealIconWrap}>
+                  <Camera size={20} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.emptyMealTitle, { color: colors.textPrimary }]}>No Meal Logged Today</Text>
+                  <Text style={styles.emptyMealSub}>Scan food to predict your glucose response.</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.emptyScanBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => navigation.navigate('Scan')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyScanBtnText}>Scan</Text>
+                </TouchableOpacity>
               </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.noMealTitle}>No Meal Logged Today</Text>
-                <Text style={styles.noMealSub}>
-                  Scan your meal to compute immediate biological impact and glucose spike estimates.
-                </Text>
+            </GlassCard>
+          )}
+
+          {/* ========================================================= */}
+          {/* 5. LIVE BIOMETRIC IOT TELEMETRY (Clean Minimal Watch)    */}
+          {/* ========================================================= */}
+          <View style={{ marginTop: 6, marginBottom: 8 }}>
+            <LiveIoTWatchSyncCard baseVitals={latestVitals} />
+          </View>
+
+          {/* ========================================================= */}
+          {/* 6. ADVANCED CLINICAL INSIGHTS (Collapsible Accordion)    */}
+          {/* ========================================================= */}
+          <TouchableOpacity
+            style={[styles.advancedToggle, { borderColor: colors.borderSubtle }]}
+            onPress={() => setShowAdvancedData(!showAdvancedData)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Sliders size={15} color={colors.textSecondary} />
+              <Text style={[styles.advancedToggleText, { color: colors.textSecondary }]}>
+                Advanced Metabolic Parameters
+              </Text>
+            </View>
+            <ChevronDown
+              size={16}
+              color={colors.textSecondary}
+              style={{ transform: [{ rotate: showAdvancedData ? '180deg' : '0deg' }] }}
+            />
+          </TouchableOpacity>
+
+          {showAdvancedData && (
+            <GlassCard style={styles.advancedCard}>
+              <View style={styles.advancedGrid}>
+                <View style={styles.advancedMetric}>
+                  <Text style={styles.advancedMetricLabel}>Carb Factor (β_carb)</Text>
+                  <Text style={[styles.advancedMetricVal, { color: colors.textPrimary }]}>
+                    {betaCarb.toFixed(3)}
+                  </Text>
+                  <Text style={styles.advancedMetricUnit}>mg/dL per g carb</Text>
+                </View>
+
+                <View style={styles.advancedMetric}>
+                  <Text style={styles.advancedMetricLabel}>Sodium Factor (β_na)</Text>
+                  <Text style={[styles.advancedMetricVal, { color: colors.textPrimary }]}>
+                    {betaSodium.toFixed(4)}
+                  </Text>
+                  <Text style={styles.advancedMetricUnit}>mmHg per mg Na</Text>
+                </View>
+
+                <View style={styles.advancedMetric}>
+                  <Text style={styles.advancedMetricLabel}>Insulin Sensitivity</Text>
+                  <Text style={[styles.advancedMetricVal, { color: colors.textPrimary }]}>
+                    {insulinSensitivity.toFixed(3)}
+                  </Text>
+                  <Text style={styles.advancedMetricUnit}>Adaptive Quicki</Text>
+                </View>
               </View>
+
               <TouchableOpacity
-                style={styles.scanQuickBtn}
-                onPress={() => navigation.navigate('Scan')}
-                activeOpacity={0.8}
+                style={[styles.recalibrateBtn, { borderColor: colors.primary }]}
+                onPress={() => setShowKalmanModal(true)}
+                activeOpacity={0.75}
               >
-                <Scan size={14} color="#000" />
-                <Text style={styles.scanQuickBtnText}>Scan</Text>
+                <RotateCcw size={14} color={colors.primary} />
+                <Text style={[styles.recalibrateBtnText, { color: colors.primary }]}>
+                  Weekly Lab Calibration
+                </Text>
               </TouchableOpacity>
             </GlassCard>
           )}
-        </View>
 
-        {/* Quick Launch Cards */}
-        <View style={styles.quickLaunchRow}>
-          <TouchableOpacity
-            style={styles.quickLaunchCard}
-            onPress={() => navigation.navigate('Scan')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['rgba(6, 182, 212, 0.15)', 'rgba(6, 182, 212, 0.03)']}
-              style={styles.quickLaunchGradient}
-            >
-              <Scan size={24} color={colors.cyan} />
-              <Text style={styles.quickLaunchTitle}>AI Food Scanner</Text>
-              <Text style={styles.quickLaunchSub}>Calibrate & compute meal compatibility</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickLaunchCard}
-            onPress={() => navigation.navigate('Analysis')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.03)']}
-              style={styles.quickLaunchGradient}
-            >
-              <TrendingUp size={24} color={colors.emeraldLight} />
-              <Text style={styles.quickLaunchTitle}>Vitals Trading Chart</Text>
-              <Text style={styles.quickLaunchSub}>Analyze fluctuations & spike trends</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* 4. LONGITUDINAL HEALTH TIMELINE QUICK LAUNCH BANNER (PHASE 4) */}
-        <TouchableOpacity
-          style={[
-            styles.timelineBannerCard,
-            {
-              backgroundColor: isDark ? 'rgba(6, 182, 212, 0.08)' : 'rgba(8, 145, 178, 0.06)',
-              borderColor: colors.borderCyan || 'rgba(6, 182, 212, 0.3)',
-            },
-          ]}
-          onPress={() => navigation.navigate('HealthTimeline')}
-          activeOpacity={0.85}
-        >
-          <View
-            style={[
-              styles.timelineBannerIconWrap,
-              { backgroundColor: colors.cyanGlow || 'rgba(6, 182, 212, 0.15)' },
-            ]}
-          >
-            <ActivityIcon size={24} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-              <Text style={[styles.timelineBannerTitle, { color: colors.textPrimary }]}>
-                Unified Health Timeline
-              </Text>
-              <View
-                style={[
-                  styles.provenancePillBadge,
-                  { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.35)' },
-                ]}
-              >
-                <Text style={{ fontSize: 9, fontWeight: '800', color: '#10b981' }}>
-                  CLINICAL AUDIT
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.timelineBannerSub, { color: colors.textSecondary }]}>
-              Explore verified lab reports, vitals logs & nutritional projections chronologically.
-            </Text>
-          </View>
-          <ChevronRight size={18} color={colors.primary} />
-        </TouchableOpacity>
+          <View style={{ height: 40 }} />
+        </Animated.View>
       </ScrollView>
 
-      <ReportViewerModal
-        visible={!!selectedReportAppt}
-        onClose={() => setSelectedReportAppt(null)}
-        appointment={selectedReportAppt}
-        navigation={navigation}
-      />
-
+      {/* Modals */}
       <NotificationModal
         visible={showNotifications}
         onClose={() => setShowNotifications(false)}
-        onNotificationCountChange={setUnreadNotifCount}
-        navigation={navigation}
+      />
+
+      <ReportViewerModal
+        visible={!!selectedReportAppt}
+        appointment={selectedReportAppt}
+        onClose={() => setSelectedReportAppt(null)}
       />
 
       <WeeklyKalmanCalibrationModal
         visible={showKalmanModal}
         onClose={() => setShowKalmanModal(false)}
-        onSuccess={() => fetchVitals()}
+        latestVitals={latestVitals}
+        onCalibrationComplete={() => {
+          fetchVitals();
+          setShowKalmanModal(false);
+        }}
       />
     </View>
   );
@@ -967,303 +752,303 @@ export const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  appTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.3,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  greetingText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  userName: {
-    color: colors.cyanLight,
+  avatarText: {
+    fontSize: 16,
     fontWeight: '800',
+    color: '#06b6d4',
   },
-  headerActionsRow: {
+  liveBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  liveBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#10b981',
+    letterSpacing: 0.6,
+  },
+  greetingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerIconBtn: {
+  iconButton: {
     width: 38,
     height: 38,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  badgeCircle: {
+  notificationBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -3,
+    right: -3,
+    backgroundColor: '#f43f5e',
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: '#000000',
   },
-  badgeText: {
+  notificationBadgeText: {
     fontSize: 9,
     fontWeight: '900',
     color: '#ffffff',
-  },
-  refreshBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(6, 182, 212, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reportBannerSection: {
-    marginBottom: 16,
-  },
-  reportBannerCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-  },
-  reportBannerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  reportIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reportBannerTitle: {
-    fontSize: 14.5,
-    fontWeight: '900',
-  },
-  nablChip: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  nablChipText: {
-    fontSize: 8.5,
-    fontWeight: '900',
-    color: '#10b981',
-  },
-  reportBannerSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  viewReportActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 11,
-    borderRadius: 10,
-  },
-  viewReportActionBtnText: {
-    fontSize: 11.5,
-    fontWeight: '900',
-    color: '#000000',
-    letterSpacing: 0.5,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 36,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 30,
   },
-  appointmentSection: {
+
+  /* Hero Card Styles */
+  heroCard: {
+    borderRadius: 22,
+    marginBottom: 20,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  heroGradient: {
+    padding: 18,
+    borderRadius: 22,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  heroTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(6, 182, 212, 0.16)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  heroTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#06b6d4',
+    letterSpacing: 0.5,
+  },
+  reportBadgePill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  reportBadgePillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10b981',
+  },
+  heroTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  heroSub: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 14,
+    lineHeight: 17,
+  },
+  simpleTracker: {
     marginBottom: 16,
   },
-  section: {
+  simpleTrackerTrack: {
+    height: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  simpleTrackerFill: {
+    height: '100%',
+    backgroundColor: '#06b6d4',
+    borderRadius: 3,
+  },
+  trackerLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  trackerLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  primaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  primaryActionBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000000',
+    letterSpacing: 0.3,
+  },
+
+  /* Metabolic Balance Hero */
+  scoreHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
+  scoreTextCol: {
+    flex: 1,
+    paddingRight: 14,
+  },
+  heroScoreHeading: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  heroScoreSub: {
+    fontSize: 12,
+    color: '#94a3b8',
+    lineHeight: 16,
+  },
+  scoreBadgeBox: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(6, 182, 212, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreNumber: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#06b6d4',
+    lineHeight: 28,
+  },
+  scoreUnit: {
+    fontSize: 10,
+    color: '#94a3b8',
+    fontWeight: '700',
+  },
+  scoreLabel: {
+    fontSize: 8,
+    color: '#64748b',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  scorePillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  miniDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  statusPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#cbd5e1',
+  },
+
+  /* Section Header */
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: colors.textMuted,
-  },
-  viewTrendsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  viewTrendsText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.cyanLight,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  livePulse: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.amberLight,
-  },
-  liveLabel: {
-    fontSize: 9.5,
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: colors.amberLight,
-  },
-  activeDetailsCard: {
-    backgroundColor: colors.bgCardElevated,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
     marginBottom: 12,
+    marginTop: 6,
   },
-  activeTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  activeTestName: {
+  sectionHeading: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
+    letterSpacing: 0.2,
   },
-  activeCategory: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  slotPill: {
+  sectionAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    gap: 3,
   },
-  slotPillText: {
-    fontSize: 11,
+  sectionActionText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.amberLight,
+    color: '#06b6d4',
   },
-  progressContainer: {
-    marginTop: 4,
-  },
-  progressLineBg: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 2,
-    marginHorizontal: 12,
-    marginBottom: 8,
-  },
-  progressLineFill: {
-    height: '100%',
-    backgroundColor: colors.cyan,
-    borderRadius: 2,
-  },
-  progressStepsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressStepNode: {
-    alignItems: 'center',
-    width: 44,
-  },
-  stepDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  stepDotDone: {
-    backgroundColor: colors.cyan,
-  },
-  stepDotCurrent: {
-    backgroundColor: colors.amberLight,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  innerDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  stepLabel: {
-    fontSize: 7.5,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  stepLabelCurrent: {
-    color: colors.amberLight,
-    fontWeight: '800',
-  },
+
+  /* 2x2 Vitals Grid */
   vitalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 20,
   },
   vitalCard: {
-    backgroundColor: colors.bgCardElevated,
-    padding: 14,
+    width: '48.5%',
     borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
   },
-  vitalTopRow: {
+  vitalCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   vitalIconWrap: {
     width: 32,
@@ -1272,488 +1057,223 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  spikePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+  vitalBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  spikePillText: {
-    fontSize: 9.5,
+  vitalBadgeText: {
+    fontSize: 9,
     fontWeight: '800',
-    color: colors.amberLight,
-  },
-  normalPill: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  normalPillText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: colors.emeraldLight,
   },
   vitalValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
-    color: colors.textPrimary,
+    marginBottom: 2,
   },
   vitalUnit: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: '#94a3b8',
   },
   vitalLabel: {
     fontSize: 11,
-    color: colors.textSecondary,
     fontWeight: '600',
-    marginTop: 2,
+    color: '#64748b',
   },
-  vitalDeltaText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  secondaryVitalsCard: {
+
+  /* Quick Actions Bar */
+  quickActionsRow: {
     flexDirection: 'row',
-    backgroundColor: colors.bgCardElevated,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: 14,
+    gap: 8,
+    marginBottom: 20,
   },
-  secondaryVitalItem: {
+  quickActionBtn: {
     flex: 1,
-  },
-  secondaryVitalLabel: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.8,
-  },
-  secondaryVitalValue: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  secondaryVitalUnit: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  secondaryVitalStatus: {
-    fontSize: 10,
-    color: colors.cyanLight,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  secondaryDivider: {
-    width: 1,
-    backgroundColor: colors.borderSubtle,
-    marginHorizontal: 12,
-  },
-  mealCard: {
-    backgroundColor: colors.bgCardElevated,
-    borderRadius: 18,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: 16,
   },
-  mealTopRow: {
+  actionIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  actionTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+
+  /* Meal Card */
+  mealCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  mealTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  mealName: {
+  mealTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  mealMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
   },
   mealTime: {
     fontSize: 11,
-    color: colors.textMuted,
+    color: '#64748b',
+    marginTop: 2,
   },
-  caloriesBadge: {
+  calorieBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(249, 115, 22, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.3)',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 8,
   },
-  caloriesText: {
-    fontSize: 11,
+  calorieText: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#f97316',
   },
   macrosRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 12,
-    padding: 10,
+    gap: 8,
     marginBottom: 12,
   },
   macroPill: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  macroLabel: {
+  macroPillLabel: {
     fontSize: 9,
-    fontWeight: '800',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
+    color: '#64748b',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  macroValue: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#ffffff',
+  macroPillValue: {
+    fontSize: 13,
+    fontWeight: '800',
     marginTop: 2,
   },
-  glycemicImpactRow: {
+  mealVerdictRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(6, 182, 212, 0.06)',
-    padding: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.15)',
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
-  glycemicImpactText: {
+  mealVerdictText: {
     fontSize: 11,
-    color: colors.cyanLight,
+    color: '#94a3b8',
     fontWeight: '600',
-    flex: 1,
   },
-  noMealCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(12, 12, 12, 0.85)',
+
+  /* Empty Meal Card */
+  emptyMealCard: {
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 14,
-  },
-  noMealIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noMealTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#ffffff',
-  },
-  noMealSub: {
-    fontSize: 10.5,
-    color: colors.textMuted,
-    marginTop: 2,
-    lineHeight: 14,
-  },
-  scanQuickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.cyan,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    marginLeft: 10,
-  },
-  scanQuickBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#000000',
-  },
-  quickLaunchRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  quickLaunchCard: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  quickLaunchGradient: {
-    padding: 16,
-    minHeight: 120,
-    justifyContent: 'center',
-  },
-  quickLaunchTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginTop: 10,
-  },
-  quickLaunchSub: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginTop: 4,
-    lineHeight: 14,
-  },
-  // Onboarding Initial Assessment Banner
-  onboardingSection: {
-    marginBottom: 24,
-  },
-  onboardingHeroCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    padding: 18,
-  },
-  onboardingHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
     marginBottom: 16,
   },
-  onboardingIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(6, 182, 212, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  onboardingTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.2,
-    marginBottom: 4,
-  },
-  onboardingSub: {
-    fontSize: 11.5,
-    color: colors.textSecondary,
-    lineHeight: 17,
-  },
-  onboardingOptionsHeader: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: colors.textMuted,
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  onboardingOptionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  onboardingOptionBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-  },
-  onboardingOptionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  onboardingOptionTitle: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  onboardingOptionBadge: {
-    fontSize: 7.5,
-    fontWeight: '900',
-    color: colors.cyan,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.4)',
-    paddingVertical: 1,
-    paddingHorizontal: 4,
-    borderRadius: 4,
-    letterSpacing: 0.3,
-  },
-  setupBaselineBtn: {
+  emptyMealRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+  },
+  emptyMealIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  setupBaselineText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.cyan,
-  },
-  trackerReportBtn: {
-    backgroundColor: '#06b6d4',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
-  },
-  trackerReportBtnContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  trackerReportBtnText: {
-    color: '#000000',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  nablMiniTag: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  nablMiniTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#000000',
-  },
-  homeManageBookingBtn: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  homeManageBookingText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  timelineBannerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginTop: 12,
-    gap: 12,
-  },
-  timelineBannerIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timelineBannerTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  provenancePillBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-  },
-  timelineBannerSub: {
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  twinHomeCard: {
-    marginTop: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.25)',
-    backgroundColor: 'rgba(6, 182, 212, 0.06)',
-  },
-  twinHomeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  twinHomeTitle: {
-    fontSize: 9.5,
-    fontWeight: '900',
-    color: '#06b6d4',
-    letterSpacing: 0.5,
-  },
-  twinRecalibrateAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(6, 182, 212, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  twinRecalibrateText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#06b6d4',
-  },
-  twinHomeMetricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  twinHomeMetric: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  twinHomeMetricLabel: {
-    fontSize: 8.5,
-    fontWeight: '700',
-    color: '#94a3b8',
-  },
-  twinHomeMetricValue: {
+  emptyMealTitle: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#ffffff',
+    fontWeight: '800',
+  },
+  emptyMealSub: {
+    fontSize: 11,
+    color: '#64748b',
     marginTop: 2,
   },
-  twinHomeMetricSub: {
-    fontSize: 7.5,
-    color: '#64748b',
+  emptyScanBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
-  twinHomeDivider: {
-    width: 1,
-    height: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  emptyScanBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  /* Advanced Toggle */
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 6,
+  },
+  advancedToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  advancedCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+  },
+  advancedGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  advancedMetric: {
+    alignItems: 'center',
+  },
+  advancedMetricLabel: {
+    fontSize: 9,
+    color: '#64748b',
+    fontWeight: '700',
+  },
+  advancedMetricVal: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  advancedMetricUnit: {
+    fontSize: 8,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  recalibrateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  recalibrateBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
 });
 

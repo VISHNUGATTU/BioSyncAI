@@ -85,18 +85,18 @@ export const FoodHistoryScreen = ({ navigation }) => {
       <View style={[styles.header, { borderBottomColor: colors.borderSubtle }]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            {activeSegment === 'timeline' ? 'Longitudinal Health Records' : 'Food Intelligence History'}
+            {activeSegment === 'timeline' ? 'Health Records' : 'Meal History'}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {activeSegment === 'timeline'
-              ? 'Unified clinical timeline across vitals, labs & nutrition'
-              : 'Longitudinal food intake, portion telemetry & glycemic impact'}
+              ? 'Timeline of vitals, test results & nutrition'
+              : 'Past meals, nutrition & glucose impact'}
           </Text>
         </View>
 
         {activeSegment === 'food' && (
           <TouchableOpacity
-            style={styles.scanHeaderBtn}
+            style={[styles.scanHeaderBtn, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('Scan')}
             activeOpacity={0.8}
           >
@@ -140,7 +140,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
               },
             ]}
           >
-            Unified Health Timeline
+            Timeline
           </Text>
         </TouchableOpacity>
 
@@ -168,7 +168,7 @@ export const FoodHistoryScreen = ({ navigation }) => {
               },
             ]}
           >
-            Food Intelligence
+            Meals
           </Text>
         </TouchableOpacity>
       </View>
