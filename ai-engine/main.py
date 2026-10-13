@@ -14,6 +14,10 @@ from metabolic_twin import MetabolicDigitalTwin
 from clinical_ranker import clinical_ranker
 from vital_simulator import vital_simulator
 from adaptive_calibration import kalman_engine
+from pharmacodynamics import pharmacodynamics_engine
+from cgm_analytics import cgm_analytics_engine
+from micronutrient_synergy import micronutrient_synergy_engine
+from omni_twin_engine import omni_twin_engine
 
 app = FastAPI(
     title="BioSync AI Engine",
@@ -36,12 +40,16 @@ app.add_middleware(
 async def root():
     return {
         "status": "online",
-        "service": "BioSync AI Engine",
-        "version": "2.0.0",
-        "description": "Edge Metabolic Perception, Bio-Nutritional Decomposition & Digital Twin Microservice",
+        "service": "BioSync AI Engine - Omni-Twin Physiology Suite v3.0",
+        "version": "3.0.0",
+        "description": "Multi-Compartment Metabolic Digital Twin, Clinical Incretin Dynamics & Continuous Telemetry Microservice",
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
+            "omniTwinSimulate": "/api/v1/omni-twin/simulate",
+            "cgmStream": "/api/v1/omni-twin/cgm-stream",
+            "pharmacodynamics": "/api/v1/omni-twin/pharmacodynamics",
+            "micronutrientSynergy": "/api/v1/omni-twin/micronutrient-synergy",
             "decompose": "/api/v1/nutrition/decompose",
             "foodCatalog": "/api/v1/nutrition/catalog",
             "clinicalRank": "/api/v1/twin/clinical-rank",
@@ -55,11 +63,17 @@ async def root():
 async def health_check():
     return {
         "status": "healthy",
+        "service": "BioSync AI Engine",
+        "version": "3.0.0",
         "models": {
             "yolo": vision_pipeline.yolo_model is not None,
             "ocr": vision_pipeline.ocr_reader is not None,
             "nutritionCatalogItems": len(nutrition_db.NUTRITION_CATALOG),
-            "kalmanEngine": True
+            "kalmanEngine": True,
+            "omniTwinEngine": True,
+            "cgmAnalyticsEngine": True,
+            "pharmacodynamicsEngine": True,
+            "micronutrientSynergyEngine": True
         }
     }
 
@@ -103,6 +117,39 @@ class VitalSurgeSimulateRequest(BaseModel):
     applyDoctorHacks: Optional[bool] = Field(False, description="Whether to simulate with doctor hacks applied")
 
 
+class OmniTwinSimulateRequest(BaseModel):
+    itemName: Optional[str] = Field(None, description="Food item name or canonical key")
+    netCarbs: Optional[float] = Field(None, description="Net digestible carbohydrates in grams")
+    sodium: Optional[float] = Field(None, description="Sodium content in milligrams")
+    fatGrams: Optional[float] = Field(None, description="Dietary fat content in grams")
+    fiberGrams: Optional[float] = Field(None, description="Dietary soluble fiber in grams")
+    potassiumMg: Optional[float] = Field(0.0, description="Dietary potassium in milligrams")
+    glycemicIndex: Optional[int] = Field(None, description="Glycemic Index (0-100)")
+    consumedQuantity: Optional[float] = Field(1.0, ge=0.05, le=50.0, description="Portion multiplier")
+    mealTimeHour: Optional[float] = Field(None, description="Hour of day (0.0 - 24.0) for circadian chrono-biology")
+    medications: Optional[List[str]] = Field(default_factory=list, description="Patient's active medications")
+    foodNames: Optional[List[str]] = Field(default_factory=list, description="List of food items")
+    vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Patient's baseline metabolic vitals")
+    applyDoctorHacks: Optional[bool] = Field(False, description="Whether to simulate with clinical bio-hacks applied")
+    enableCgmStream: Optional[bool] = Field(True, description="Whether to synthesize 5-min CGM stream and AGP metrics")
+
+
+class PharmacodynamicsRequest(BaseModel):
+    medications: List[str] = Field(..., description="List of medications to evaluate")
+    foodItems: Optional[List[str]] = Field(default_factory=list, description="Optional meal foods to check for food-drug interactions")
+
+
+class MicronutrientSynergyRequest(BaseModel):
+    nutrients: Dict[str, Any] = Field(..., description="Nutrient map (sodium, potassium, calcium, magnesium, iron, vitaminC, etc.)")
+    foodNames: Optional[List[str]] = Field(default_factory=list, description="Meal components")
+
+
+class CGMGenerateRequest(BaseModel):
+    plasmaTrajectory: List[Dict[str, float]] = Field(..., description="Discrete plasma glucose trajectory points")
+    samplingIntervalMinutes: Optional[int] = Field(5, description="CGM sampling interval in minutes")
+    diffusionLagMinutes: Optional[float] = Field(10.0, description="Interstitial subcutaneous diffusion lag constant")
+
+
 class WeeklyCalibrationRequest(BaseModel):
     userId: Optional[str] = Field(None, description="Patient User ID")
     previousVitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Previous baseline vitals / twin state")
@@ -112,23 +159,123 @@ class WeeklyCalibrationRequest(BaseModel):
     adaptiveNoise: Optional[bool] = Field(False, description="Whether to use Sage-Husa adaptive innovation noise covariance")
 
 
-@app.get("/health")
-def health_check():
+@app.post("/api/v1/omni-twin/simulate")
+async def simulate_omni_twin_endpoint(payload: OmniTwinSimulateRequest = Body(...)):
+    """
+    Omni-Twin v3.0 Core Endpoint:
+    Executes UVA-Padova / Dalla-Man 7-compartment metabolic integration,
+    Windkessel baroreflex hemodynamics, circadian chrono-biology,
+    pharmacodynamic medication modulation, Bayesian credible intervals,
+    and continuous CGM telemetry stream synthesis.
+    """
+    carbs = payload.netCarbs
+    sodium = payload.sodium
+    fat = payload.fatGrams
+    fiber = payload.fiberGrams
+    potassium = payload.potassiumMg or 0.0
+    gi = payload.glycemicIndex
+    food_names = list(payload.foodNames or [])
+
+    if payload.itemName:
+        if payload.itemName not in food_names:
+            food_names.append(payload.itemName)
+        if carbs is None or sodium is None or gi is None:
+            data = nutrition_db.decompose(payload.itemName, quantity=1.0)
+            if data:
+                if carbs is None:
+                    carbs = data["nutrients"].get("netCarbohydrates", data["nutrients"].get("carbohydrates", 25.0))
+                if sodium is None:
+                    sodium = data["nutrients"].get("sodium", 150.0)
+                if fat is None:
+                    fat = data["nutrients"].get("fat", 0.0)
+                if fiber is None:
+                    fiber = data["nutrients"].get("fiber", 0.0)
+                if potassium <= 0.0:
+                    potassium = data["nutrients"].get("potassium", 200.0)
+                if gi is None:
+                    gi = data.get("glycemicIndex", 50)
+
+    carbs = max(0.0, float(carbs if carbs is not None else 25.0))
+    sodium = max(0.0, float(sodium if sodium is not None else 200.0))
+    fat = max(0.0, float(fat if fat is not None else 0.0))
+    fiber = max(0.0, float(fiber if fiber is not None else 0.0))
+    potassium = max(0.0, float(potassium))
+    gi = int(gi if gi is not None else 50)
+    q = float(payload.consumedQuantity if payload.consumedQuantity is not None else 1.0)
+
+    twin = MetabolicDigitalTwin.from_vitals_dict(payload.vitals or {})
+
+    res = omni_twin_engine.simulate_omni_dynamics(
+        net_carbs=carbs,
+        sodium_mg=sodium,
+        glycemic_index=gi,
+        twin=twin,
+        consumed_quantity=q,
+        fat_grams=fat,
+        fiber_grams=fiber,
+        potassium_mg=potassium,
+        meal_time_hour=payload.mealTimeHour,
+        medications=payload.medications,
+        food_names=food_names,
+        apply_doctor_hacks=bool(payload.applyDoctorHacks),
+        enable_cgm_stream=bool(payload.enableCgmStream)
+    )
+    return res
+
+
+@app.post("/api/v1/omni-twin/cgm-stream")
+async def generate_cgm_stream_endpoint(payload: CGMGenerateRequest = Body(...)):
+    """
+    Transforms arbitrary plasma glucose trajectories into continuous subcutaneous
+    CGM sensor streams with interstitial lag and clinical AGP metrics.
+    """
+    return cgm_analytics_engine.generate_cgm_stream(
+        plasma_glucose_trajectory=payload.plasmaTrajectory,
+        sampling_interval_min=payload.samplingIntervalMinutes or 5,
+        tau_lag_min=payload.diffusionLagMinutes or 10.0
+    )
+
+
+@app.post("/api/v1/omni-twin/pharmacodynamics")
+async def evaluate_pharmacodynamics_endpoint(payload: PharmacodynamicsRequest = Body(...)):
+    """
+    Evaluates multi-drug cardiometabolic pharmacodynamic modulation and food-drug interactions.
+    """
+    profile = pharmacodynamics_engine.resolve_profile(
+        medications=payload.medications,
+        food_items=payload.foodItems
+    )
     return {
-        "status": "healthy",
-        "service": "BioSync AI Engine",
-        "version": "2.0.0",
-        "models": {
-            "yolo_detector": vision_pipeline.yolo_model is not None,
-            "scene_ocr": vision_pipeline.ocr_reader is not None,
-            "barcode_detector": vision_pipeline.barcode_detector is not None,
-            "nutrition_catalog_entries": len(nutrition_db.NUTRITION_CATALOG),
-            "digital_twin_engine": True,
-            "clinical_pareto_ranker": True,
-            "vital_surge_simulator": True,
-            "adaptive_kalman_engine": True,
-        }
+        "success": True,
+        "activeMedications": profile.active_medications,
+        "egpSuppressionFactor": float(np.round(profile.egp_suppression_factor, 3)),
+        "renalThresholdMgDl": profile.renal_threshold_mg_dl,
+        "gastricDelayFactor": float(np.round(profile.gastric_delay_factor, 2)),
+        "incretinInsulinBoost": float(np.round(profile.incretin_insulin_boost, 2)),
+        "peripheralSensitivityBoost": float(np.round(profile.peripheral_sensitivity_boost, 3)),
+        "vascularSodiumBluntFactor": float(np.round(profile.vascular_sodium_blunt_factor, 2)),
+        "baroreflexHrAttenuation": float(np.round(profile.baroreflex_hr_attenuation, 2)),
+        "clinicalAlerts": profile.clinical_alerts,
+        "foodDrugInteractions": profile.food_drug_interactions
     }
+
+
+@app.post("/api/v1/omni-twin/micronutrient-synergy")
+async def evaluate_micronutrient_synergy_endpoint(payload: MicronutrientSynergyRequest = Body(...)):
+    """
+    Evaluates dietary electrolyte ratios (Na:K, Ca:Mg) and biochemical absorption synergies.
+    """
+    synergy = micronutrient_synergy_engine.evaluate_meal_synergies(
+        nutrients=payload.nutrients,
+        detected_food_names=payload.foodNames
+    )
+    return {
+        "success": True,
+        "data": synergy
+    }
+
+
+
 
 
 @app.post("/api/v1/calibrate-twin")
