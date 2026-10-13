@@ -23,6 +23,7 @@ services:
     env_file:
       - ./server/.env
     environment:
+      - PORT=6446
       - AI_ENGINE_URL=http://ai-engine:8000/api/v1/analyze
     volumes:
       - biosync_uploads:/app/uploads
