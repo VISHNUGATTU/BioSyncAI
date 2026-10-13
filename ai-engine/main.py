@@ -32,6 +32,43 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "BioSync AI Engine",
+        "version": "2.0.0",
+        "description": "Edge Metabolic Perception, Bio-Nutritional Decomposition & Digital Twin Microservice",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "decompose": "/api/v1/nutrition/decompose",
+            "foodCatalog": "/api/v1/nutrition/catalog",
+            "clinicalRank": "/api/v1/twin/clinical-rank",
+            "simulateVitalSurge": "/api/v1/twin/simulate-vital-surge",
+            "calibrateTwin": "/api/v1/twin/calibrate"
+        }
+    }
+
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "models": {
+            "yolo": vision_pipeline.yolo_model is not None,
+            "ocr": vision_pipeline.ocr_reader is not None,
+            "nutritionCatalogItems": len(nutrition_db.catalog),
+            "kalmanEngine": True
+        }
+    }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return JSONResponse(status_code=204, content={})
+
+
 # ---------------------------------------------------------------------------
 # Pydantic Schemas for Bio-Nutrition & Clinical Digital Twin
 # ---------------------------------------------------------------------------

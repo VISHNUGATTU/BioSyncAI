@@ -22,7 +22,8 @@ const vitalsRouter = express.Router();
 // Real-Time 1-Second Biometric IoT Watch / Wearable Telemetry & Downsampled History
 vitalsRouter.get('/iot-stream', authUser, getLiveIoTTelemetryStream);
 vitalsRouter.get('/iot-latest', authUser, getLatestIoTReading);
-vitalsRouter.get('/iot-history/:userId?', authUser, getDownsampledTelemetryHistory);
+vitalsRouter.get('/iot-history', authUser, getDownsampledTelemetryHistory);
+vitalsRouter.get('/iot-history/:userId', authUser, getDownsampledTelemetryHistory);
 vitalsRouter.post('/iot-telemetry', ingestIoTTelemetry);
 
 // Weekly adaptive digital twin calibration via EKF
