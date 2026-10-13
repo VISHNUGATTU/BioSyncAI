@@ -28,6 +28,7 @@ appointmentRouter.get('/', getUserAppointments);
 appointmentRouter.get('/:id/report', getAppointmentReportDetails);
 appointmentRouter.get('/:id/live-tracking', getAppointmentLiveTracking);
 appointmentRouter.get('/:id/tracking/stream', streamAppointmentLiveTracking);
+appointmentRouter.get('/:id/live-tracking/stream', streamAppointmentLiveTracking);
 
 appointmentRouter.post('/book', auditLogger('Appointment'), bookAppointment);
 

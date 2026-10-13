@@ -132,6 +132,7 @@ def health_check():
 
 
 @app.post("/api/v1/calibrate-twin")
+@app.post("/api/v1/twin/calibrate")
 async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...)):
     """
     Phase 5 Core Endpoint:
@@ -150,6 +151,7 @@ async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...))
 
 
 @app.post("/api/v1/simulate-vital-surge")
+@app.post("/api/v1/twin/simulate-vital-surge")
 async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Body(...)):
     """
     Phase 4 Core Endpoint:
@@ -225,6 +227,7 @@ async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Bod
 
 
 @app.post("/api/v1/clinical-rank")
+@app.post("/api/v1/twin/clinical-rank")
 async def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
     """
     Phase 3 Core Endpoint:
@@ -239,6 +242,7 @@ async def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
 
 
 @app.get("/api/v1/nutrition-catalog")
+@app.get("/api/v1/nutrition/catalog")
 def get_nutrition_catalog():
     """
     Returns verified clinical food catalog items for frontend search and auto-completion.
@@ -254,6 +258,7 @@ def get_nutrition_catalog():
 
 
 @app.post("/api/v1/nutrition-decompose")
+@app.post("/api/v1/nutrition/decompose")
 async def decompose_nutrition(payload: NutritionDecomposeRequest = Body(...)):
     """
     Phase 2 Core Endpoint:

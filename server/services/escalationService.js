@@ -111,7 +111,10 @@ export const scanForPanicAnomalies = ({ testResults = [], vitals = {} }) => {
       const val = parseFloat(item.value);
       if (isNaN(val)) continue;
 
-      const normName = item.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rawName = item.name || item.parameterName || item.biomarker || '';
+      const normName = rawName ? rawName.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+      if (!normName) continue;
+
       const match = CLINICAL_PANIC_THRESHOLDS.find(t =>
         t.biomarkers.some(b => b.toLowerCase() === normName || normName.includes(b.toLowerCase()))
       );
