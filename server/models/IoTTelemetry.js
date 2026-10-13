@@ -79,8 +79,19 @@ const ioTTelemetrySchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+  ...(process.env.USE_TIMESERIES === 'true' ? {
+    timeseries: {
+      timeField: 'bucketStartTime',
+      metaField: 'user',
+      granularity: 'minutes'
+    }
+  } : {})
 });
 
+// High-Throughput Columnar and Biometric Query Indexes
 ioTTelemetrySchema.index({ user: 1, bucketStartTime: -1 });
+ioTTelemetrySchema.index({ user: 1, 'glucose.mean': 1, bucketStartTime: -1 });
+ioTTelemetrySchema.index({ user: 1, 'heartRate.mean': 1, bucketStartTime: -1 });
+ioTTelemetrySchema.index({ bucketStartTime: -1 });
 
 export default mongoose.model('IoTTelemetry', ioTTelemetrySchema);

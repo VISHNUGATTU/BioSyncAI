@@ -147,8 +147,30 @@ class TestPhase4VitalSurgeSimulator(unittest.TestCase):
         sim_zero = self.simulator.simulate_meal_surge(net_carbs=0.0, sodium_mg=0.0)
         self.assertAlmostEqual(sim_zero["peakProjections"]["glucoseSpike"], 0.0, places=1)
         self.assertAlmostEqual(sim_zero["peakProjections"]["bpSpikeSystolic"], 0.0, places=1)
-        print("PASSED: Zero-intake homeostasis stability verified.")
+    def test_09_macronutrient_delayed_absorption(self):
+        """Verifies dietary fat and soluble fiber delay gastric emptying and smooth peak glucose."""
+        sim_pure_carb = self.simulator.simulate_meal_surge(
+            net_carbs=50.0,
+            sodium_mg=200.0,
+            glycemic_index=70,
+            fat_grams=0.0,
+            fiber_grams=0.0
+        )
+        sim_fiber_fat = self.simulator.simulate_meal_surge(
+            net_carbs=50.0,
+            sodium_mg=200.0,
+            glycemic_index=70,
+            fat_grams=25.0,
+            fiber_grams=12.0
+        )
+        # Adding fat & fiber should smooth peak glucose spike
+        self.assertLessEqual(
+            sim_fiber_fat["peakProjections"]["glucoseSpike"],
+            sim_pure_carb["peakProjections"]["glucoseSpike"]
+        )
+        print("PASSED: Macronutrient-modulated dynamic gastric emptying verified.")
 
 
 if __name__ == "__main__":
     unittest.main()
+

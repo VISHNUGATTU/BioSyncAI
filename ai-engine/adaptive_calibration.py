@@ -60,10 +60,13 @@ class ExtendedKalmanCalibrationEngine:
         current_twin: MetabolicDigitalTwin,
         new_vitals: Dict[str, Any],
         weekly_meal_stats: Optional[Dict[str, float]] = None,
-        prior_covariance: Optional[List[List[float]]] = None
+        prior_covariance: Optional[List[List[float]]] = None,
+        adaptive_noise: bool = False
     ) -> Dict[str, Any]:
         """
         Executes EKF recursive update using new lab test biomarkers.
+        Supports Sage-Husa adaptive measurement noise covariance estimation
+        and wearable activity-modulated process noise scaling.
         """
         # 1. Extract Prior State: theta = [beta_carb, beta_sodium, S_I]^T
         theta_prior = np.array([
@@ -78,8 +81,16 @@ class ExtendedKalmanCalibrationEngine:
             else self.P_default.copy()
         )
 
+        # Activity-modulated Process Noise Q (physical conditioning or metabolic flux)
+        Q_effective = self.Q.copy()
+        activity = str(new_vitals.get("activityLevel", new_vitals.get("physicalActivity", ""))).lower()
+        if "high" in activity or "intense" in activity or "active" in activity:
+            Q_effective = Q_effective * 1.30
+        elif "sedentary" in activity:
+            Q_effective = Q_effective * 0.85
+
         # Time update (Predict step)
-        P_pred = P_prior + self.Q
+        P_pred = P_prior + Q_effective
         theta_pred = theta_prior.copy()
 
         # 2. Extract New Measurement Vector: z = [G_0, HbA1c, BP_sys]^T
@@ -130,8 +141,20 @@ class ExtendedKalmanCalibrationEngine:
         # Innovation residual
         y_k = z_k - h_pred
 
+        # Measurement Noise R (Optional Sage-Husa Adaptive Estimation)
+        R_effective = self.R.copy()
+        if adaptive_noise:
+            # Sage-Husa innovation residual adaptation bounded by physiological analyzer variance
+            alpha = 0.20
+            residual_cov = np.outer(y_k, y_k) - (H @ P_pred @ H.T)
+            diag_update = np.maximum(
+                np.diag(self.R) * 0.5,
+                np.diag(R_effective) * (1.0 - alpha) + np.diag(residual_cov) * alpha
+            )
+            R_effective = np.diag(diag_update)
+
         # Innovation covariance
-        S_k = H @ P_pred @ H.T + self.R
+        S_k = H @ P_pred @ H.T + R_effective
 
         # Optimal Kalman Gain K_k = P_pred * H^T * inv(S_k)
         K_k = P_pred @ H.T @ np.linalg.inv(S_k)
@@ -142,7 +165,7 @@ class ExtendedKalmanCalibrationEngine:
         # Posterior error covariance (Joseph form for numerical stability)
         I_mat = np.eye(3)
         I_KH = I_mat - (K_k @ H)
-        P_post = (I_KH @ P_pred @ I_KH.T) + (K_k @ self.R @ K_k.T)
+        P_post = (I_KH @ P_pred @ I_KH.T) + (K_k @ R_effective @ K_k.T)
 
         # 7. Physiological Guardrails & Clipping
         calibrated_beta_carb = float(np.clip(theta_post[0], 0.15, 0.75))

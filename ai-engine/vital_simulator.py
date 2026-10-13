@@ -37,10 +37,13 @@ class VitalSurgeSimulator:
         glycemic_index: int = 50,
         twin: Optional[MetabolicDigitalTwin] = None,
         consumed_quantity: float = 1.0,
-        apply_doctor_hacks: bool = False
+        apply_doctor_hacks: bool = False,
+        fat_grams: float = 0.0,
+        fiber_grams: float = 0.0
     ) -> Dict[str, Any]:
         """
         Executes RK4 integration of the Bergman Minimal Model and Windkessel BP dynamics.
+        Includes macronutrient-modulated dynamic gastric emptying delays (fats and soluble fibers).
         """
         if twin is None:
             twin = MetabolicDigitalTwin()
@@ -49,6 +52,8 @@ class VitalSurgeSimulator:
         q = max(0.05, float(consumed_quantity))
         effective_carbs = max(0.0, float(net_carbs) * q)
         effective_sodium = max(0.0, float(sodium_mg) * q)
+        effective_fat = max(0.0, float(fat_grams) * q)
+        effective_fiber = max(0.0, float(fiber_grams) * q)
         gi = max(10, min(100, int(glycemic_index)))
 
         # Patient baseline parameters
@@ -71,7 +76,9 @@ class VitalSurgeSimulator:
         # Gastric absorption rate R_a(t) parameters:
         # High GI -> fast sharp absorption (tau ~ 32 min)
         # Low GI -> delayed smooth absorption (tau ~ 55 min)
-        base_tau = float(np.interp(gi, [15, 85], [55.0, 32.0]))
+        # Modulated by dietary fat and soluble fiber (Brener / Jenkins dynamic emptying):
+        macronutrient_delay_factor = 1.0 + (0.015 * min(effective_fat, 80.0)) + (0.030 * min(effective_fiber, 35.0))
+        base_tau = float(np.interp(gi, [15, 85], [55.0, 32.0])) * macronutrient_delay_factor
 
         if apply_doctor_hacks:
             # Doctor hacks (fibers first, protein pairing, 10 min stroll)
@@ -213,7 +220,9 @@ class VitalSurgeSimulator:
         sodium_mg: float,
         glycemic_index: int = 50,
         twin: Optional[MetabolicDigitalTwin] = None,
-        consumed_quantity: float = 1.0
+        consumed_quantity: float = 1.0,
+        fat_grams: float = 0.0,
+        fiber_grams: float = 0.0
     ) -> Dict[str, Any]:
         """
         Produces side-by-side simulation: Standard Intake vs. With Doctor Hacks.
@@ -225,7 +234,9 @@ class VitalSurgeSimulator:
             glycemic_index=glycemic_index,
             twin=twin,
             consumed_quantity=consumed_quantity,
-            apply_doctor_hacks=False
+            apply_doctor_hacks=False,
+            fat_grams=fat_grams,
+            fiber_grams=fiber_grams
         )
 
         with_hacks = cls.simulate_meal_surge(
@@ -234,7 +245,9 @@ class VitalSurgeSimulator:
             glycemic_index=glycemic_index,
             twin=twin,
             consumed_quantity=consumed_quantity,
-            apply_doctor_hacks=True
+            apply_doctor_hacks=True,
+            fat_grams=fat_grams,
+            fiber_grams=fiber_grams
         )
 
         glucose_reduction = float(np.round(

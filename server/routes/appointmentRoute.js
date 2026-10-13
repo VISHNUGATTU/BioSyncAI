@@ -7,7 +7,9 @@ import {
   getAppointmentReportDetails,
   getShareableReportHtml,
   getAppointmentReportShareData,
-  downloadAppointmentReportPdf
+  downloadAppointmentReportPdf,
+  getAppointmentLiveTracking,
+  streamAppointmentLiveTracking
 } from '../controllers/appointmentController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { auditLogger } from '../middlewares/auditMiddleware.js';
@@ -24,6 +26,8 @@ appointmentRouter.use(authUser);
 
 appointmentRouter.get('/', getUserAppointments);
 appointmentRouter.get('/:id/report', getAppointmentReportDetails);
+appointmentRouter.get('/:id/live-tracking', getAppointmentLiveTracking);
+appointmentRouter.get('/:id/tracking/stream', streamAppointmentLiveTracking);
 
 appointmentRouter.post('/book', auditLogger('Appointment'), bookAppointment);
 

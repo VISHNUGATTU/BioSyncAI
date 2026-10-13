@@ -95,6 +95,8 @@ class VitalSurgeSimulateRequest(BaseModel):
     itemName: Optional[str] = Field(None, description="Food item name or canonical key")
     netCarbs: Optional[float] = Field(None, description="Net digestible carbohydrates in grams")
     sodium: Optional[float] = Field(None, description="Sodium content in milligrams")
+    fatGrams: Optional[float] = Field(None, description="Dietary fat content in grams (slows gastric emptying)")
+    fiberGrams: Optional[float] = Field(None, description="Dietary soluble fiber in grams (blunts peak glucose absorption)")
     glycemicIndex: Optional[int] = Field(None, description="Glycemic Index (0-100)")
     consumedQuantity: Optional[float] = Field(1.0, ge=0.05, le=50.0, description="Portion quantity multiplier")
     vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Patient's active metabolic vitals")
@@ -107,6 +109,7 @@ class WeeklyCalibrationRequest(BaseModel):
     newTestVitals: Dict[str, Any] = Field(..., description="Newly submitted weekly lab test biomarkers")
     weeklyMealStats: Optional[Dict[str, float]] = Field(None, description="Aggregated weekly meal stats (avgDailyCarbs, avgDailySodium)")
     covarianceMatrix: Optional[List[List[float]]] = Field(None, description="Previous error covariance matrix P")
+    adaptiveNoise: Optional[bool] = Field(False, description="Whether to use Sage-Husa adaptive innovation noise covariance")
 
 
 @app.get("/health")
@@ -140,7 +143,8 @@ async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...))
         current_twin=twin,
         new_vitals=payload.newTestVitals,
         weekly_meal_stats=payload.weeklyMealStats,
-        prior_covariance=payload.covarianceMatrix
+        prior_covariance=payload.covarianceMatrix,
+        adaptive_noise=bool(payload.adaptiveNoise)
     )
     return calibration_result
 
@@ -156,6 +160,8 @@ async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Bod
     """
     carbs = payload.netCarbs
     sodium = payload.sodium
+    fat = payload.fatGrams
+    fiber = payload.fiberGrams
     gi = payload.glycemicIndex
     display_name = payload.itemName or "Custom Meal"
 
@@ -168,11 +174,17 @@ async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Bod
                 carbs = data["nutrients"].get("netCarbohydrates", data["nutrients"].get("carbohydrates", 20.0))
             if sodium is None:
                 sodium = data["nutrients"].get("sodium", 150.0)
+            if fat is None:
+                fat = data["nutrients"].get("fat", 0.0)
+            if fiber is None:
+                fiber = data["nutrients"].get("fiber", 0.0)
             if gi is None:
                 gi = data.get("glycemicIndex", 50)
 
     carbs = max(0.0, float(carbs if carbs is not None else 25.0))
     sodium = max(0.0, float(sodium if sodium is not None else 200.0))
+    fat = max(0.0, float(fat if fat is not None else 0.0))
+    fiber = max(0.0, float(fiber if fiber is not None else 0.0))
     gi = int(gi if gi is not None else 50)
     q = float(payload.consumedQuantity if payload.consumedQuantity is not None else 1.0)
 
@@ -183,7 +195,9 @@ async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Bod
         sodium_mg=sodium,
         glycemic_index=gi,
         twin=twin,
-        consumed_quantity=q
+        consumed_quantity=q,
+        fat_grams=fat,
+        fiber_grams=fiber
     )
 
     std_sim = comparison["standardIntake"]

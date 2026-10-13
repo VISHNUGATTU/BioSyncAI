@@ -58,6 +58,11 @@ export const userApi = {
     return res.data;
   },
 
+  getLiveTracking: async (appointmentId) => {
+    const res = await api.get(`/appointments/${appointmentId}/live-tracking`);
+    return res.data;
+  },
+
   // Diagnostic Catalog
   getTestCatalog: async () => {
     const res = await api.get('/tests');

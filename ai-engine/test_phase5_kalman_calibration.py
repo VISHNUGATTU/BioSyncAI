@@ -269,3 +269,26 @@ def test_fastapi_calibrate_twin_endpoint(client):
     assert "parameterShiftsPercent" in data
     assert "clinicalAdaptationReport" in data
     assert data["clinicalAdaptationReport"]["status"] == "CALIBRATED_ACTIVE"
+
+
+def test_sage_husa_adaptive_noise_calibration(base_twin):
+    """
+    Test 9: Verifies Sage-Husa adaptive innovation noise covariance estimation
+    and physical activity scaling converge stably within clinical limits.
+    """
+    engine = ExtendedKalmanCalibrationEngine()
+    result = engine.calibrate(
+        current_twin=base_twin,
+        new_vitals={
+            "fastingGlucose": 112.0,
+            "hba1c": 5.9,
+            "systolicBP": 126.0,
+            "activityLevel": "high"
+        },
+        weekly_meal_stats={"avgDailyCarbs": 200.0, "avgDailySodium": 2300.0},
+        adaptive_noise=True
+    )
+    assert result["success"] is True
+    assert "calibratedParameters" in result
+    assert 0.15 <= result["calibratedParameters"]["betaCarb"] <= 0.75
+    assert 0.20 <= result["calibratedParameters"]["insulinSensitivity"] <= 1.20
