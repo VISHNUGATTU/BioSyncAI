@@ -58,7 +58,7 @@ async def health_check():
         "models": {
             "yolo": vision_pipeline.yolo_model is not None,
             "ocr": vision_pipeline.ocr_reader is not None,
-            "nutritionCatalogItems": len(nutrition_db.catalog),
+            "nutritionCatalogItems": len(nutrition_db.NUTRITION_CATALOG),
             "kalmanEngine": True
         }
     }
