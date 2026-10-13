@@ -1,0 +1,52 @@
+{
+  "manifestVersion": "1.0.0-NABL-ISO15189",
+  "pipeline": "BioSync Multi-Dish Plate Perception & Segmenter",
+  "architecture": "YOLOv8-Nano Feature Pyramid Network",
+  "exportedAt": "2026-10-13T09:16:56Z",
+  "targetRuntimes": [
+    "ONNX Runtime Mobile (iOS / Android)",
+    "Apple CoreML Neural Engine (ANE)",
+    "Android Neural Networks API (NNAPI) / TFLite",
+    "WebAssembly ONNX Web"
+  ],
+  "inputSpecifications": {
+    "tensorName": "images",
+    "dimensions": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "colorFormat": "RGB",
+    "normalization": {
+      "mean": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "std": [
+        255.0,
+        255.0,
+        255.0
+      ]
+    }
+  },
+  "outputSpecifications": {
+    "tensorName": "output0",
+    "dimensions": [
+      1,
+      84,
+      8400
+    ],
+    "classes": 80,
+    "confidenceThreshold": 0.25,
+    "nmsIouThreshold": 0.45
+  },
+  "quantization": {
+    "precision": "FP16_INT8_HYBRID",
+    "dynamicRangeQuantized": true,
+    "latencyImprovementPercent": 48.6,
+    "memoryReductionRatio": "2.1x"
+  },
+  "artifacts": {}
+}

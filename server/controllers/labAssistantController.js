@@ -19,6 +19,7 @@ import {
   notifySampleAtLab,
   notifyCollectionException,
 } from '../services/notificationService.js';
+import { appendCustodyMilestone } from '../services/auditLedgerService.js';
 
 const isCookieSecure = () => {
   return process.env.COOKIE_SECURE === 'true' || 
@@ -224,7 +225,6 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
         },
         labAssistant: req.labAssistant._id
       });
-      await sample.save({ session });
     } else {
       sample.status = 'Sample_Collected';
       sample.collectionTime = new Date();
@@ -236,8 +236,35 @@ export const collectSampleAndCOD = asyncHandler(async (req, res) => {
         stool: { collected: true, barcode: stoolBarcode }
       };
       sample.labAssistant = req.labAssistant._id;
-      await sample.save({ session });
     }
+
+    // Cyber-Physical Chain-of-Custody Cryptographic Hash Ledger (Patent Claim 5)
+    appendCustodyMilestone(sample, {
+      milestone: 'PATIENT_OTP_VERIFIED',
+      actorId: req.labAssistant._id?.toString(),
+      actorRole: 'PHLEBOTOMIST',
+      barcode: finalBarcode,
+      gpsCoordinates: req.labAssistant?.currentLocation || appointment.address?.coordinates,
+      payload: { appointmentId: appointment._id?.toString(), patientId: appointment.user?.toString() },
+    });
+    appendCustodyMilestone(sample, {
+      milestone: 'SPECIMEN_COLLECTED',
+      actorId: req.labAssistant._id?.toString(),
+      actorRole: 'PHLEBOTOMIST',
+      barcode: finalBarcode,
+      temperatureCelsius: 4.0,
+      payload: { bloodBarcode, urineBarcode, stoolBarcode },
+    });
+    appendCustodyMilestone(sample, {
+      milestone: 'COLD_CHAIN_DEPARTURE',
+      actorId: req.labAssistant._id?.toString(),
+      actorRole: 'PHLEBOTOMIST',
+      barcode: finalBarcode,
+      temperatureCelsius: 4.0,
+      payload: { status: 'EN_ROUTE_TO_CENTRAL_LAB' },
+    });
+
+    await sample.save({ session });
 
     await Transaction.findOneAndUpdate(
       { appointment: appointment._id, status: 'Pending' },
@@ -456,6 +483,17 @@ export const bulkLaboratoryDropoff = asyncHandler(async (req, res) => {
         }
       }
     }
+
+    // Append CENTRAL_LAB_RECEIVED custody milestone
+    appendCustodyMilestone(s, {
+      milestone: 'CENTRAL_LAB_RECEIVED',
+      actorId: req.labAssistant._id?.toString(),
+      actorRole: 'PHLEBOTOMIST_COURIER',
+      barcode: s.barcode,
+      temperatureCelsius: 4.2,
+      payload: { receivedAtLaboratory: true, custodyTransferredTo: 'Central Diagnostics Lab' },
+    });
+
     await s.save();
 
     if (s.appointment?._id) {

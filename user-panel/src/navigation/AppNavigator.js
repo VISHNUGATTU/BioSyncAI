@@ -13,6 +13,8 @@ import AppointmentsListScreen from '../screens/AppointmentsListScreen';
 import HealthSetupScreen from '../screens/HealthSetupScreen';
 import SupportScreen from '../screens/SupportScreen';
 import HealthTimelineScreen from '../screens/HealthTimelineScreen';
+import WearableSyncScreen from '../screens/WearableSyncScreen';
+import ChatbotScreen from '../screens/ChatbotScreen';
 import TabNavigator from './TabNavigator';
 import pushNotificationService from '../services/pushNotificationService';
 
@@ -114,6 +116,14 @@ export default function AppNavigator() {
           <Stack.Screen
             name="HealthTimeline"
             component={HealthTimelineScreen}
+          />
+          <Stack.Screen
+            name="WearableSync"
+            component={WearableSyncScreen}
+          />
+          <Stack.Screen
+            name="Chatbot"
+            component={ChatbotScreen}
           />
         </>
       )}

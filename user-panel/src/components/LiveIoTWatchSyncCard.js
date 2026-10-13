@@ -8,6 +8,7 @@ import {
   Easing,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Svg, {
   Path,
   Defs,
@@ -32,6 +33,8 @@ import {
   Flame,
   ShieldCheck,
   RefreshCw,
+  Bluetooth,
+  ChevronRight,
 } from 'lucide-react-native';
 import userApi from '../api/userApi';
 import GlassCard from './GlassCard';
@@ -121,6 +124,7 @@ export const LiveIoTWatchSyncCard = ({
   onTelemetryUpdate = null,
   containerStyle = null,
 }) => {
+  const navigation = useNavigation();
   const [isStreaming, setIsStreaming] = useState(true);
   const [activityMode, setActivityMode] = useState('resting'); // 'resting' | 'walking' | 'exercise'
   const [stepCount, setStepCount] = useState(0);
@@ -243,7 +247,11 @@ export const LiveIoTWatchSyncCard = ({
     <GlassCard style={[styles.cardContainer, containerStyle]}>
       {/* Top Header: Device Name & 1Hz Status Indicator */}
       <View style={styles.topHeader}>
-        <View style={styles.deviceInfoRow}>
+        <TouchableOpacity
+          style={styles.deviceInfoRow}
+          onPress={() => navigation?.navigate?.('WearableSync')}
+          activeOpacity={0.7}
+        >
           <View style={styles.liveIndicatorRing}>
             <View
               style={[
@@ -261,10 +269,10 @@ export const LiveIoTWatchSyncCard = ({
               </View>
             </View>
             <Text style={styles.deviceSubtitle}>
-              Continuous Wireless Sensor Sync
+              Continuous Wireless Sensor Sync • Manage
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Live Streaming Toggle Button */}
         <TouchableOpacity
@@ -487,6 +495,24 @@ export const LiveIoTWatchSyncCard = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* BLE GATT Wearables Device Management Banner */}
+      <TouchableOpacity
+        style={styles.blePairBanner}
+        onPress={() => navigation?.navigate?.('WearableSync')}
+        activeOpacity={0.8}
+      >
+        <View style={styles.bleBannerLeft}>
+          <View style={styles.bleIconCircle}>
+            <Bluetooth size={12} color="#06b6d4" />
+          </View>
+          <View>
+            <Text style={styles.bleBannerTitle}>BLE GATT Wearable Sync & Radar</Text>
+            <Text style={styles.bleBannerSub}>Dexcom CGM • Apple Watch • WHOOP 4.0</Text>
+          </View>
+        </View>
+        <ChevronRight size={14} color="#06b6d4" />
+      </TouchableOpacity>
     </GlassCard>
   );
 };
@@ -709,6 +735,42 @@ const styles = StyleSheet.create({
   modePillTextActive: {
     color: '#06b6d4',
     fontWeight: '800',
+  },
+  blePairBanner: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(6, 182, 212, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.22)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  bleBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bleIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(6, 182, 212, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bleBannerTitle: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#e2e8f0',
+  },
+  bleBannerSub: {
+    fontSize: 7.5,
+    fontWeight: '500',
+    color: '#94a3b8',
+    marginTop: 1,
   },
 });
 

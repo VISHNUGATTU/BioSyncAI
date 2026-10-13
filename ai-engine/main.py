@@ -302,10 +302,11 @@ async def detect_items_in_frame(
         decomposed_for_aggregation = []
         for item in inspection_result.get("items", []):
             item_copy = dict(item)
+            q_vol = item_copy.get("volumetricProfile", {}).get("portionScaleFactor", 1.0)
             # Try normalizedKey first, then itemName
-            nutr = nutrition_db.decompose(item_copy.get("normalizedKey", ""), 1.0)
+            nutr = nutrition_db.decompose(item_copy.get("normalizedKey", ""), q_vol)
             if not nutr:
-                nutr = nutrition_db.decompose(item_copy.get("itemName", ""), 1.0)
+                nutr = nutrition_db.decompose(item_copy.get("itemName", ""), q_vol)
 
             item_copy["nutritionProfile"] = nutr
             enriched_items.append(item_copy)
@@ -386,9 +387,10 @@ async def analyze_frame_legacy(
 
         for it in items:
             it_copy = dict(it)
-            n = nutrition_db.decompose(it_copy.get("normalizedKey", ""), 1.0)
+            q_vol = it_copy.get("volumetricProfile", {}).get("portionScaleFactor", 1.0)
+            n = nutrition_db.decompose(it_copy.get("normalizedKey", ""), q_vol)
             if not n:
-                n = nutrition_db.decompose(it_copy.get("itemName", ""), 1.0)
+                n = nutrition_db.decompose(it_copy.get("itemName", ""), q_vol)
             it_copy["nutritionProfile"] = n
             enriched_all_items.append(it_copy)
             if n:
@@ -398,9 +400,10 @@ async def analyze_frame_legacy(
         primary_item = items[0]
         primary_nutrition = primary_item.get("nutritionProfile")
         if not primary_nutrition:
-            primary_nutrition = nutrition_db.decompose(primary_item.get("normalizedKey", ""), 1.0)
+            q_prim = primary_item.get("volumetricProfile", {}).get("portionScaleFactor", 1.0)
+            primary_nutrition = nutrition_db.decompose(primary_item.get("normalizedKey", ""), q_prim)
             if not primary_nutrition:
-                primary_nutrition = nutrition_db.decompose(primary_item.get("itemName", ""), 1.0)
+                primary_nutrition = nutrition_db.decompose(primary_item.get("itemName", ""), q_prim)
 
         # Multi-Item Aggregated Meal vs Single Item Resolution
         if len(items) > 1 and decomposed_for_aggregation:

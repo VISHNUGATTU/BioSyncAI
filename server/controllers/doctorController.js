@@ -5,6 +5,8 @@ import Vitals from '../models/Vitals.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { notifyReportReady } from '../services/notificationService.js';
 import { generatePdfReport } from '../services/pdfReportGenerator.js';
+import { scanForPanicAnomalies } from '../services/escalationService.js';
+import { appendCustodyMilestone, verifyCustodyChain } from '../services/auditLedgerService.js';
 
 // @desc    Get Doctor's Tri-State Samples Dashboard:
 //          1. What they got (At_Laboratory)
@@ -109,6 +111,20 @@ export const doctorStartProcessing = asyncHandler(async (req, res) => {
 
   sample.status = 'Processing';
   sample.labProcessingStartTime = new Date();
+
+  // Append immutable custody block for analyzer induction
+  appendCustodyMilestone(sample, {
+    milestone: 'ANALYZER_INDUCTION',
+    actorId: req.doctor?._id?.toString() || 'doctor-01',
+    actorRole: 'LAB_ANALYST_PATHOLOGIST',
+    barcode: sample.barcode,
+    payload: {
+      analyzerSuite: 'BioSync Automated Biochemical Analyzer',
+      batchId: `BATCH-${Date.now().toString(36).toUpperCase()}`,
+      inductionTime: new Date().toISOString(),
+    },
+  });
+
   await sample.save();
 
   // Update appointment tracking
@@ -166,7 +182,69 @@ export const doctorVerifyReport = asyncHandler(async (req, res) => {
 
   const doctorName = req.doctor?.name || 'Dr. Pathologist';
   const license = req.doctor?.licenseNumber || 'MCI-DOC-77291';
+  const doctorId = req.doctor?._id?.toString() || 'doctor-01';
 
+  // 1. Scan for Biological Panic Thresholds (CLSI / CAP STAT limits)
+  const panicScan = scanForPanicAnomalies({ testResults, vitals });
+
+  if (testResults && Array.isArray(testResults)) {
+    sample.testResults = testResults;
+  }
+
+  // 2. Handle Critical Panic Escalation Protocol
+  if (panicScan.hasPanic) {
+    sample.isCriticalPanic = true;
+    sample.criticalAnomalies = panicScan.anomalies;
+    sample.requiresDualSignoff = panicScan.requiresDualSignoff;
+
+    // Log escalation milestone into cryptographic custody ledger
+    appendCustodyMilestone(sample, {
+      milestone: 'CRITICAL_ANOMALY_ESCALATION',
+      actorId: doctorId,
+      actorRole: 'PRIMARY_PATHOLOGIST',
+      barcode: sample.barcode,
+      payload: {
+        anomalies: panicScan.anomalies,
+        alertType: 'STAT_CRITICAL_PANIC_BREACH',
+      },
+    });
+  }
+
+  // If dual signoff is required and this is the primary doctor signing
+  if (isApproved && sample.requiresDualSignoff && !sample.secondaryVerifiedAt) {
+    sample.status = 'Processing'; // Held in high-priority secondary review queue
+    sample.resultsDone = true;
+    sample.resultsStatus = 'Results Entered';
+    sample.doctorRemarks = remarks || `PRIMARY REVIEW SIGNED: Critical values detected. Awaiting mandatory secondary pathologist authorization.`;
+    sample.verifiedBy = doctorName;
+    sample.verifiedAt = new Date();
+    sample.doctorLicense = license;
+
+    appendCustodyMilestone(sample, {
+      milestone: 'PATHOLOGIST_INITIAL_REVIEW',
+      actorId: doctorId,
+      actorRole: 'PRIMARY_PATHOLOGIST',
+      barcode: sample.barcode,
+      payload: {
+        primaryDoctor: doctorName,
+        license,
+        isPanic: true,
+        pendingSecondarySignoff: true,
+      },
+    });
+
+    await sample.save();
+
+    return res.status(200).json({
+      success: true,
+      requiresDualSignoff: true,
+      criticalAnomalies: panicScan.anomalies,
+      message: 'CRITICAL PANIC LIMITS DETECTED: Report has been placed in STAT priority queue for mandatory secondary pathologist signoff prior to patient release.',
+      data: sample,
+    });
+  }
+
+  // Normal approval (no critical panic or secondary approval already fulfilled)
   sample.status = isApproved ? 'Report_Generated' : 'At_Laboratory';
   sample.resultsDone = isApproved;
   sample.resultsStatus = isApproved ? 'Results Entered' : 'Res yet to be obtained';
@@ -175,9 +253,20 @@ export const doctorVerifyReport = asyncHandler(async (req, res) => {
   sample.verifiedAt = new Date();
   sample.doctorLicense = license;
 
-  if (testResults && Array.isArray(testResults)) {
-    sample.testResults = testResults;
+  if (isApproved) {
+    appendCustodyMilestone(sample, {
+      milestone: 'REPORT_RELEASED',
+      actorId: doctorId,
+      actorRole: 'AUTHORIZING_PATHOLOGIST',
+      barcode: sample.barcode,
+      payload: {
+        authorizedBy: doctorName,
+        license,
+        remarks: sample.doctorRemarks,
+      },
+    });
   }
+
   await sample.save();
 
   if (sample.appointment) {
@@ -251,3 +340,137 @@ export const doctorVerifyReport = asyncHandler(async (req, res) => {
     data: sample
   });
 });
+
+// @desc    Secondary Pathologist signs off on a Critical Panic sample
+// @route   POST /api/doctor/samples/:sampleId/secondary-verify
+// @access  Private (Doctor - Secondary Pathologist)
+export const secondaryDoctorVerifyReport = asyncHandler(async (req, res) => {
+  const { sampleId } = req.params;
+  const { secondaryRemarks, isApproved = true } = req.body;
+
+  const sample = await Sample.findById(sampleId).populate('appointment');
+  if (!sample) {
+    res.status(404);
+    throw new Error('Sample not found');
+  }
+
+  if (!sample.requiresDualSignoff) {
+    res.status(400);
+    throw new Error('This sample does not require dual pathologist sign-off');
+  }
+
+  const secondaryDoctorName = req.doctor?.name || 'Dr. Chief Pathologist';
+  const secondaryLicense = req.doctor?.licenseNumber || 'MCI-DOC-DIRECTOR-9912';
+  const secondaryDoctorId = req.doctor?._id?.toString() || 'secondary-doctor-02';
+
+  if (isApproved) {
+    sample.status = 'Report_Generated';
+    sample.resultsDone = true;
+    sample.resultsStatus = 'Results Entered';
+    sample.secondaryVerifiedBy = secondaryDoctorName;
+    sample.secondaryVerifiedAt = new Date();
+    sample.secondaryDoctorLicense = secondaryLicense;
+    sample.secondaryDoctorRemarks = secondaryRemarks || 'Secondary pathologist reviewed critical panic values. Approved for emergency clinical release.';
+
+    appendCustodyMilestone(sample, {
+      milestone: 'DUAL_PATHOLOGIST_AUTHORIZED',
+      actorId: secondaryDoctorId,
+      actorRole: 'SECONDARY_SUPERVISING_PATHOLOGIST',
+      barcode: sample.barcode,
+      payload: {
+        secondaryDoctor: secondaryDoctorName,
+        secondaryLicense,
+        remarks: sample.secondaryDoctorRemarks,
+      },
+    });
+
+    appendCustodyMilestone(sample, {
+      milestone: 'REPORT_RELEASED',
+      actorId: secondaryDoctorId,
+      actorRole: 'CHIEF_MEDICAL_OFFICER',
+      barcode: sample.barcode,
+      payload: {
+        status: 'EMERGENCY_RELEASE_AUTHORIZED',
+      },
+    });
+
+    await sample.save();
+
+    if (sample.appointment) {
+      await Appointment.findByIdAndUpdate(sample.appointment._id, {
+        $set: { status: 'Completed' },
+        $push: {
+          trackingLogs: {
+            status: 'Completed',
+            timestamp: new Date(),
+            notes: `Dual-pathologist sign-off finalized by ${secondaryDoctorName} (${secondaryLicense})`,
+          },
+        },
+      });
+
+      const targetUserId = sample.user || sample.appointment?.user;
+      if (targetUserId) {
+        await User.findByIdAndUpdate(targetUserId, {
+          $set: { vitalsStatus: 'Lab_Verified' },
+        });
+
+        try {
+          const userDoc = await User.findById(targetUserId).lean();
+          const { relativeUrl } = await generatePdfReport({
+            appointment: sample.appointment,
+            sample,
+            user: userDoc,
+            doctor: req.doctor || { name: secondaryDoctorName, licenseNumber: secondaryLicense },
+          });
+          sample.resultPdfUrl = relativeUrl;
+          await sample.save();
+        } catch (pdfErr) {
+          console.warn('[DoctorController] PDF generation warning:', pdfErr.message);
+        }
+
+        notifyReportReady(sample.appointment, sample, `${sample.verifiedBy} & ${secondaryDoctorName}`);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Dual-pathologist authorization complete. Critical clinical report released.',
+      data: sample,
+    });
+  } else {
+    sample.status = 'Processing';
+    sample.secondaryDoctorRemarks = secondaryRemarks || 'Rejected by secondary reviewer. Rerun assays on alternate analyzer.';
+    await sample.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Sample flagged for analyzer recalibration and assay rerun.',
+      data: sample,
+    });
+  }
+});
+
+// @desc    Verify Cryptographic Custody Chain & Cold-Chain Non-Repudiation for a Sample
+// @route   GET /api/doctor/samples/:sampleId/custody-verification
+// @access  Private (Doctor / Lab / Auditor)
+export const verifySampleCustody = asyncHandler(async (req, res) => {
+  const { sampleId } = req.params;
+
+  const sample = await Sample.findById(sampleId).lean();
+  if (!sample) {
+    res.status(404);
+    throw new Error('Diagnostic sample not found');
+  }
+
+  const verificationResult = verifyCustodyChain(sample.custodyLedger || []);
+
+  res.status(200).json({
+    success: true,
+    sampleId: sample._id,
+    barcode: sample.barcode,
+    status: sample.status,
+    verification: verificationResult,
+    ledger: sample.custodyLedger || [],
+  });
+});
+

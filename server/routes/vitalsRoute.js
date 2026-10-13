@@ -11,16 +11,18 @@ import {
   calibrateWeeklyVitals,
   getLiveIoTTelemetryStream,
   getLatestIoTReading,
-  ingestIoTTelemetry
+  ingestIoTTelemetry,
+  getDownsampledTelemetryHistory
 } from '../controllers/vitalsController.js';
 import { authUser } from '../middlewares/authUser.js';
 import { memoryUpload } from '../configs/multer.js'; 
 
 const vitalsRouter = express.Router();
 
-// Real-Time 1-Second Biometric IoT Watch / Wearable Telemetry
+// Real-Time 1-Second Biometric IoT Watch / Wearable Telemetry & Downsampled History
 vitalsRouter.get('/iot-stream', authUser, getLiveIoTTelemetryStream);
 vitalsRouter.get('/iot-latest', authUser, getLatestIoTReading);
+vitalsRouter.get('/iot-history/:userId?', authUser, getDownsampledTelemetryHistory);
 vitalsRouter.post('/iot-telemetry', ingestIoTTelemetry);
 
 // Weekly adaptive digital twin calibration via EKF

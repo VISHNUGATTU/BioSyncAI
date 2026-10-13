@@ -32,6 +32,7 @@ import {
   Sparkles,
   ArrowRight,
   Sliders,
+  Bot,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -228,6 +229,20 @@ export const HomeScreen = ({ navigation }) => {
 
         <View style={styles.headerRight}>
           <TouchableOpacity
+            style={[
+              styles.iconButton,
+              {
+                backgroundColor: 'rgba(6, 182, 212, 0.12)',
+                borderColor: 'rgba(6, 182, 212, 0.35)',
+              },
+            ]}
+            onPress={() => navigation.navigate('Chatbot')}
+            activeOpacity={0.7}
+          >
+            <Bot size={18} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.iconButton, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}
             onPress={() => setShowNotifications(true)}
             activeOpacity={0.7}
@@ -266,6 +281,31 @@ export const HomeScreen = ({ navigation }) => {
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {/* Quick Launch AI Clinical Health Companion Bar */}
+          <TouchableOpacity
+            style={styles.aiCompanionBar}
+            onPress={() => navigation.navigate('Chatbot')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['rgba(6, 182, 212, 0.15)', 'rgba(8, 145, 178, 0.05)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.aiCompanionGradient}
+            >
+              <View style={styles.aiBarLeft}>
+                <View style={styles.aiAvatarOrb}>
+                  <Sparkles size={14} color="#22d3ee" />
+                </View>
+                <View>
+                  <Text style={styles.aiBarTitle}>BioSync AI Health Companion</Text>
+                  <Text style={styles.aiBarSub}>Ask about glucose spikes, BP trends, or meal impact</Text>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#06b6d4" />
+            </LinearGradient>
+          </TouchableOpacity>
+
           {/* ========================================================= */}
           {/* 1. HERO CARD (Clean Context-Aware Presentation)          */}
           {/* ========================================================= */}
@@ -1274,6 +1314,46 @@ const styles = StyleSheet.create({
   recalibrateBtnText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  aiCompanionBar: {
+    marginBottom: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+  },
+  aiCompanionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  aiBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aiAvatarOrb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(6, 182, 212, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.4)',
+  },
+  aiBarTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#f8fafc',
+  },
+  aiBarSub: {
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#94a3b8',
+    marginTop: 1,
   },
 });
 

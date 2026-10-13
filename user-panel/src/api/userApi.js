@@ -235,6 +235,27 @@ export const userApi = {
     const res = await api.get('/vitals/iot-latest');
     return res.data;
   },
+
+  // Personalized Health AI Conversational Assistant (Gemini 2.5 + Grounded Clinical RAG)
+  sendChatMessage: async (message) => {
+    const res = await api.post('/chat/message', { message });
+    return res.data;
+  },
+
+  getChatHistory: async (params = {}) => {
+    const res = await api.get('/chat/history', { params });
+    return res.data;
+  },
+
+  clearChatHistory: async () => {
+    const res = await api.delete('/chat/history');
+    return res.data;
+  },
+
+  getChatSuggestions: async () => {
+    const res = await api.get('/chat/suggestions');
+    return res.data;
+  },
 };
 
 export default userApi;

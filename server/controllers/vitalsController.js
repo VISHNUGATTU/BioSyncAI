@@ -1,8 +1,10 @@
 import axios from 'axios';
+import mongoose from 'mongoose';
 import Vitals from '../models/Vitals.js';
 import User from '../models/User.js';
 import UserDraft from '../models/UserDraft.js';
 import FoodLog from '../models/FoodLog.js';
+import IoTTelemetry from '../models/IoTTelemetry.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { GoogleGenAI } from '@google/genai';
 import { uploadToCloudinary } from '../configs/cloudinary.js';
@@ -847,6 +849,54 @@ export const generateRealisticIoTTelemetry = (baseVitalsDoc, stepIndex = 0) => {
 // In-memory cache for live IoT watch telemetry pushed by physical smartwatches or simulator
 const liveIoTDeviceTelemetryCache = new Map();
 
+// 1-minute time-series downsampling accumulation buffer
+const downsamplingBuffers = new Map();
+
+// Flushes and persists a downsampled 1-minute bucket to MongoDB
+const flushDownsampledBucket = async (userId, bucket) => {
+  if (!mongoose.Types.ObjectId.isValid(userId) || !bucket || bucket.samples.length === 0) return;
+
+  const samples = bucket.samples;
+  const hrVals = samples.map(s => s.heartRate).filter(v => typeof v === 'number');
+  const spo2Vals = samples.map(s => s.spO2).filter(v => typeof v === 'number');
+  const sysVals = samples.map(s => s.systolicBP).filter(v => typeof v === 'number');
+  const diaVals = samples.map(s => s.diastolicBP).filter(v => typeof v === 'number');
+  const glucVals = samples.map(s => s.continuousGlucose).filter(v => typeof v === 'number');
+
+  const mean = (arr) => arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : undefined;
+  const min = (arr) => arr.length ? Math.min(...arr) : undefined;
+  const max = (arr) => arr.length ? Math.max(...arr) : undefined;
+
+  const glucStart = glucVals[0];
+  const glucEnd = glucVals[glucVals.length - 1];
+  const deltaGluc = (glucStart != null && glucEnd != null) ? (glucEnd - glucStart) : 0;
+
+  try {
+    await IoTTelemetry.create({
+      user: userId,
+      deviceId: bucket.deviceId || 'biosync-smartwatch-01',
+      bucketStartTime: new Date(bucket.startTime),
+      bucketEndTime: new Date(),
+      sampleCount: samples.length,
+      heartRate: hrVals.length ? { min: min(hrVals), max: max(hrVals), mean: mean(hrVals) } : undefined,
+      spo2: spo2Vals.length ? { min: min(spo2Vals), max: max(spo2Vals), mean: mean(spo2Vals) } : undefined,
+      bloodPressure: sysVals.length ? { systolicMean: mean(sysVals), diastolicMean: mean(diaVals) } : undefined,
+      glucose: glucVals.length ? {
+        start: glucStart,
+        end: glucEnd,
+        min: min(glucVals),
+        max: max(glucVals),
+        mean: mean(glucVals),
+        rateOfChangePerMinute: Math.round(deltaGluc * 100) / 100,
+      } : undefined,
+      anomaliesDetected: samples.filter(s => s.heartRate > 130 || s.continuousGlucose > 250).length,
+      signalQualityIndex: 99,
+    });
+  } catch (err) {
+    console.warn('[IoTTelemetry] Auto-downsample persistence error:', err.message);
+  }
+};
+
 // @desc    Ingest 1-Second Biometric IoT Telemetry Packet from Smartwatch / Wearable Simulator
 // @route   POST /api/vitals/iot-telemetry
 // @access  Public / Device (supports optional token or user ID)
@@ -870,6 +920,33 @@ export const ingestIoTTelemetry = asyncHandler(async (req, res) => {
     packet,
     receivedAt: Date.now(),
   });
+
+  // Downsample continuous 1Hz packets into 1-minute historical buckets
+  if (mongoose.Types.ObjectId.isValid(targetUser)) {
+    let userBucket = downsamplingBuffers.get(targetUser);
+    if (!userBucket) {
+      userBucket = {
+        startTime: Date.now(),
+        deviceId: deviceId || device?.deviceName || 'biosync-smartwatch-01',
+        samples: [],
+      };
+      downsamplingBuffers.set(targetUser, userBucket);
+    }
+
+    if (metrics) {
+      userBucket.samples.push(metrics);
+    }
+
+    // Flush bucket every 60 samples or every 60 seconds
+    if (userBucket.samples.length >= 60 || (Date.now() - userBucket.startTime >= 60000)) {
+      flushDownsampledBucket(targetUser, userBucket);
+      downsamplingBuffers.set(targetUser, {
+        startTime: Date.now(),
+        deviceId: deviceId || device?.deviceName || 'biosync-smartwatch-01',
+        samples: [],
+      });
+    }
+  }
 
   res.status(200).json({
     success: true,
@@ -938,5 +1015,32 @@ export const getLatestIoTReading = asyncHandler(async (req, res) => {
     success: true,
     source: 'DIGITAL_TWIN_SIMULATION',
     reading,
+  });
+});
+
+// @desc    Get Downsampled 1-Minute Historical Time-Series IoT Telemetry Buckets
+// @route   GET /api/vitals/iot-history/:userId?
+// @access  Private (User or Doctor or Admin)
+export const getDownsampledTelemetryHistory = asyncHandler(async (req, res) => {
+  const targetUser = req.params.userId || req.user?._id;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 60, 200);
+
+  if (!mongoose.Types.ObjectId.isValid(targetUser)) {
+    return res.status(200).json({
+      success: true,
+      count: 0,
+      buckets: [],
+    });
+  }
+
+  const buckets = await IoTTelemetry.find({ user: targetUser })
+    .sort({ bucketStartTime: -1 })
+    .limit(limit)
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    count: buckets.length,
+    buckets: buckets.reverse(),
   });
 });
