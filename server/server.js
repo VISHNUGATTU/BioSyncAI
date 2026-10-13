@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import connectDB from './configs/db.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
+import { sanitizeInput } from './middlewares/sanitizeMiddleware.js';
 
 // Import All Routers
 import userRouter from './routes/userRoute.js';
@@ -42,15 +43,38 @@ if (!fs.existsSync(uploadsDir)) {
 const app = express();
 
 // ==========================================
-// PRODUCTION SECURITY & SCALABILITY 
+// PRODUCTION SECURITY & HARDENING
 // ==========================================
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
+// Defense-in-depth HTTP Security Headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  frameguard: { action: "deny" },
+  noSniff: true,
+  xssFilter: true,
 }));
+
 app.use(compression());
 
+// Global API rate limiter against scraping, volumetric DDoS, and resource exhaustion
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500, // 500 requests per 15 minutes per IP
+  message: { success: false, message: 'Too many requests from this IP address, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
+
+// Strict rate limiter for authentication endpoints against credential stuffing and brute-force
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 50, // Limit auth attempts specifically to prevent brute force
@@ -59,10 +83,10 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply limiter ONLY to sensitive auth routes to prevent locking out entire mobile CGNAT populations
 app.use('/api/users/request-otp', authLimiter);
 app.use('/api/admin/login', authLimiter);
 app.use('/api/lab-assistant/login', authLimiter);
+app.use('/api/doctor/login', authLimiter);
 
 // ==========================================
 // GLOBAL MIDDLEWARES
@@ -90,10 +114,20 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '2mb' })); 
 
+// Defense against NoSQL injection, prototype pollution, and null-byte poisoning
+app.use(sanitizeInput);
+
 app.use(cookieParser()); 
 
-// Serve static uploads (such as generated PDF clinical reports)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve static uploads with strict execution protection and hidden dotfiles
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  dotfiles: 'ignore',
+  index: false,
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'");
+  }
+}));
 
 // ==========================================
 // API ROUTES MOUNTING

@@ -1,0 +1,104 @@
+services:
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: biosync-ai-engine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Internal localhost binding: blocks external WAN/LAN access while permitting local probes
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - AI_ENGINE_HOST=0.0.0.0
+      - AI_ENGINE_PORT=8000
+      - CORS_ORIGINS=http://localhost:5173,https://biosyncadmin.vercel.app
+    networks:
+      - biosync-internal
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: biosync-server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "6446:6446"
+    env_file:
+      - ./server/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=6446
+      - AI_ENGINE_URL=http://ai-engine:8000/api/v1/analyze
+    volumes:
+      - biosync_uploads:/app/uploads
+    networks:
+      - biosync-internal
+    depends_on:
+      ai-engine:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:6446/api
+    container_name: biosync-admin-panel
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "5173:80"
+    networks:
+      - biosync-internal
+    depends_on:
+      server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  biosync_uploads:
+    name: biosync_uploads
+
+networks:
+  biosync-internal:
+    driver: bridge

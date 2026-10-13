@@ -118,36 +118,36 @@ class VitalSurgeSimulateRequest(BaseModel):
 
 
 class OmniTwinSimulateRequest(BaseModel):
-    itemName: Optional[str] = Field(None, description="Food item name or canonical key")
-    netCarbs: Optional[float] = Field(None, description="Net digestible carbohydrates in grams")
-    sodium: Optional[float] = Field(None, description="Sodium content in milligrams")
-    fatGrams: Optional[float] = Field(None, description="Dietary fat content in grams")
-    fiberGrams: Optional[float] = Field(None, description="Dietary soluble fiber in grams")
-    potassiumMg: Optional[float] = Field(0.0, description="Dietary potassium in milligrams")
-    glycemicIndex: Optional[int] = Field(None, description="Glycemic Index (0-100)")
+    itemName: Optional[str] = Field(None, max_length=200, description="Food item name or canonical key")
+    netCarbs: Optional[float] = Field(None, ge=0.0, le=1000.0, description="Net digestible carbohydrates in grams")
+    sodium: Optional[float] = Field(None, ge=0.0, le=25000.0, description="Sodium content in milligrams")
+    fatGrams: Optional[float] = Field(None, ge=0.0, le=500.0, description="Dietary fat content in grams")
+    fiberGrams: Optional[float] = Field(None, ge=0.0, le=200.0, description="Dietary soluble fiber in grams")
+    potassiumMg: Optional[float] = Field(0.0, ge=0.0, le=15000.0, description="Dietary potassium in milligrams")
+    glycemicIndex: Optional[int] = Field(None, ge=0, le=120, description="Glycemic Index (0-100)")
     consumedQuantity: Optional[float] = Field(1.0, ge=0.05, le=50.0, description="Portion multiplier")
-    mealTimeHour: Optional[float] = Field(None, description="Hour of day (0.0 - 24.0) for circadian chrono-biology")
-    medications: Optional[List[str]] = Field(default_factory=list, description="Patient's active medications")
-    foodNames: Optional[List[str]] = Field(default_factory=list, description="List of food items")
+    mealTimeHour: Optional[float] = Field(None, ge=0.0, le=24.0, description="Hour of day (0.0 - 24.0) for circadian chrono-biology")
+    medications: Optional[List[str]] = Field(default_factory=list, max_items=25, description="Patient's active medications")
+    foodNames: Optional[List[str]] = Field(default_factory=list, max_items=50, description="List of food items")
     vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Patient's baseline metabolic vitals")
     applyDoctorHacks: Optional[bool] = Field(False, description="Whether to simulate with clinical bio-hacks applied")
     enableCgmStream: Optional[bool] = Field(True, description="Whether to synthesize 5-min CGM stream and AGP metrics")
 
 
 class PharmacodynamicsRequest(BaseModel):
-    medications: List[str] = Field(..., description="List of medications to evaluate")
-    foodItems: Optional[List[str]] = Field(default_factory=list, description="Optional meal foods to check for food-drug interactions")
+    medications: List[str] = Field(..., max_items=25, description="List of medications to evaluate")
+    foodItems: Optional[List[str]] = Field(default_factory=list, max_items=50, description="Optional meal foods to check for food-drug interactions")
 
 
 class MicronutrientSynergyRequest(BaseModel):
     nutrients: Dict[str, Any] = Field(..., description="Nutrient map (sodium, potassium, calcium, magnesium, iron, vitaminC, etc.)")
-    foodNames: Optional[List[str]] = Field(default_factory=list, description="Meal components")
+    foodNames: Optional[List[str]] = Field(default_factory=list, max_items=50, description="Meal components")
 
 
 class CGMGenerateRequest(BaseModel):
-    plasmaTrajectory: List[Dict[str, float]] = Field(..., description="Discrete plasma glucose trajectory points")
-    samplingIntervalMinutes: Optional[int] = Field(5, description="CGM sampling interval in minutes")
-    diffusionLagMinutes: Optional[float] = Field(10.0, description="Interstitial subcutaneous diffusion lag constant")
+    plasmaTrajectory: List[Dict[str, float]] = Field(..., max_items=1000, description="Discrete plasma glucose trajectory points")
+    samplingIntervalMinutes: Optional[int] = Field(5, ge=1, le=60, description="CGM sampling interval in minutes")
+    diffusionLagMinutes: Optional[float] = Field(10.0, ge=1.0, le=60.0, description="Interstitial subcutaneous diffusion lag constant")
 
 
 class WeeklyCalibrationRequest(BaseModel):
