@@ -767,19 +767,16 @@ def detect_items_in_frame(
 
         # Honest rejection when nothing eatable is identified
         if not inspection_result.get("identified", False):
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "success": False,
-                    "identified": False,
-                    "message": inspection_result.get("message"),
-                    "confidenceScore": 0.0,
-                    "detectedCount": 0,
-                    "items": [],
-                    "aggregatedMealNutrition": None,
-                    "clinicalRanking": None
-                }
-            )
+            return {
+                "success": False,
+                "identified": False,
+                "message": inspection_result.get("message"),
+                "confidenceScore": 0.0,
+                "detectedCount": 0,
+                "items": [],
+                "aggregatedMealNutrition": None,
+                "clinicalRanking": None
+            }
 
         # Enrich detected items with Phase 2 Bio-Nutritional Decomposition
         enriched_items = []
@@ -854,15 +851,12 @@ def analyze_frame_legacy(
         inspection_result = vision_pipeline.inspect_frame(image_bytes)
 
         if not inspection_result.get("identified", False) or not inspection_result.get("items"):
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "success": False,
-                    "identified": False,
-                    "message": inspection_result.get("message", "I cannot identify any eatable food in this frame."),
-                    "data": None
-                }
-            )
+            return {
+                "success": False,
+                "identified": False,
+                "message": inspection_result.get("message", "I cannot identify any eatable food in this frame."),
+                "data": None
+            }
 
         # Process all detected items
         items = inspection_result["items"]
