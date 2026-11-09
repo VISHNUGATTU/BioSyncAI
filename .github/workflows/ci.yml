@@ -51,7 +51,7 @@ jobs:
         run: |
           cd ai-engine
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt pytest httpx
 
       - name: Run Core Medical Pytest Suite
         run: |

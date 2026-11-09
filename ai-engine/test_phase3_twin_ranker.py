@@ -9,7 +9,6 @@ import numpy as np
 import cv2
 import io
 import json
-from fastapi.testclient import TestClient
 
 from metabolic_twin import MetabolicDigitalTwin
 from clinical_ranker import ClinicalParetoRanker, clinical_ranker
@@ -20,7 +19,6 @@ from starlette.datastructures import UploadFile
 class TestPhase3DigitalTwinAndRanker(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
         cls.ranker = clinical_ranker
 
     def test_01_digital_twin_phenotyping(self):

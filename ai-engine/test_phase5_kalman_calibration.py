@@ -15,16 +15,10 @@ Tests:
 
 import pytest
 import numpy as np
-from fastapi.testclient import TestClient
 
 from metabolic_twin import MetabolicDigitalTwin
 from adaptive_calibration import ExtendedKalmanCalibrationEngine, kalman_engine
 from main import app, calibrate_twin_endpoint, WeeklyCalibrationRequest
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 @pytest.fixture

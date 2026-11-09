@@ -12,7 +12,6 @@ import numpy as np
 import cv2
 import io
 import json
-from fastapi.testclient import TestClient
 
 from main import app, analyze_frame_legacy
 from vision_pipeline import vision_pipeline
@@ -23,7 +22,6 @@ from starlette.datastructures import UploadFile
 class TestMultiItemPerceptionEngine(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
         cls.pipeline = vision_pipeline
 
     def _create_synthetic_multi_item_plate(self) -> bytes:
