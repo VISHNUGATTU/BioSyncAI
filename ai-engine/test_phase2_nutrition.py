@@ -9,6 +9,7 @@ import unittest
 import numpy as np
 import cv2
 import io
+import json
 from nutrition_db import BioNutritionalDatabase, nutrition_db
 from vision_pipeline import vision_pipeline
 from main import get_nutrition_catalog, decompose_nutrition, NutritionDecomposeRequest, DecomposeItemInput, detect_items_in_frame
@@ -132,7 +133,6 @@ class TestBioNutritionalEngine(unittest.TestCase):
         upload_file = UploadFile(filename="frame.jpg", file=io.BytesIO(buf.tobytes()))
         data = detect_items_in_frame(file=upload_file)
         if hasattr(data, 'body'):
-            import json
             data = json.loads(data.body.decode())
         self.assertTrue(data.get("identified"))
         item0 = data["items"][0]
