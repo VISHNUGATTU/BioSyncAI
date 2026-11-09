@@ -68,3 +68,4 @@ services:
         value: "https://biosyncadmin.vercel.app,http://localhost:5173"
       - key: MODEL_DEVICE
         value: cpu
+
