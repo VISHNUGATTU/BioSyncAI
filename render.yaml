@@ -18,6 +18,8 @@ services:
     plan: free
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -57,15 +59,16 @@ services:
     name: biosync-ai-engine
     runtime: python
     rootDir: ai-engine
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --no-cache-dir -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
         value: "https://biosyncadmin.vercel.app,http://localhost:5173"
       - key: MODEL_DEVICE
         value: cpu
-
