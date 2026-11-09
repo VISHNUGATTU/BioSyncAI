@@ -21,9 +21,13 @@ import {
   Utensils,
   Globe
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeContext';
 import { voiceApi } from '../api/voiceApi';
 
 export default function VernacularVoiceScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [isRecording, setIsRecording] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('hi');
   const [transcript, setTranscript] = useState('Maine abhi do methi parathe aur ek katori dahi khayi');
@@ -89,37 +93,71 @@ export default function VernacularVoiceScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bgDark }]}
+      contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}
+    >
       {/* Header Banner */}
       <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Globe size={14} color="#0D9488" />
-          <Text style={styles.headerBadgeText}>Multilingual Indic Voice AI</Text>
+        <View
+          style={[
+            styles.headerBadge,
+            { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#CCFBF1' },
+          ]}
+        >
+          <Globe size={14} color={isDark ? '#34d399' : '#0D9488'} />
+          <Text style={[styles.headerBadgeText, { color: isDark ? '#34d399' : '#0F766E' }]}>
+            Multilingual Indic Voice AI
+          </Text>
         </View>
-        <Text style={styles.title}>Vernacular Voice Assistant</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Vernacular Voice Assistant</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Speak naturally in your mother tongue for ambient food tracking and hands-free kitchen plating guidance.
         </Text>
       </View>
 
       {/* Mode Switcher Tabs */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.bgCardSurface, borderWidth: 1, borderColor: colors.borderSubtle }]}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'FOOD_LOG' && styles.tabButtonActive]}
+          style={[
+            styles.tabButton,
+            activeTab === 'FOOD_LOG' && [
+              styles.tabButtonActive,
+              { backgroundColor: colors.bgCardElevated },
+            ],
+          ]}
           onPress={() => setActiveTab('FOOD_LOG')}
         >
-          <Mic size={16} color={activeTab === 'FOOD_LOG' ? '#0D9488' : '#64748B'} />
-          <Text style={[styles.tabButtonText, activeTab === 'FOOD_LOG' && styles.tabButtonTextActive]}>
+          <Mic size={16} color={activeTab === 'FOOD_LOG' ? '#0D9488' : colors.textMuted} />
+          <Text
+            style={[
+              styles.tabButtonText,
+              { color: colors.textMuted },
+              activeTab === 'FOOD_LOG' && styles.tabButtonTextActive,
+            ]}
+          >
             Voice Meal Logging
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'KITCHEN_COACH' && styles.tabButtonActive]}
+          style={[
+            styles.tabButton,
+            activeTab === 'KITCHEN_COACH' && [
+              styles.tabButtonActive,
+              { backgroundColor: colors.bgCardElevated },
+            ],
+          ]}
           onPress={() => setActiveTab('KITCHEN_COACH')}
         >
-          <Utensils size={16} color={activeTab === 'KITCHEN_COACH' ? '#0D9488' : '#64748B'} />
-          <Text style={[styles.tabButtonText, activeTab === 'KITCHEN_COACH' && styles.tabButtonTextActive]}>
+          <Utensils size={16} color={activeTab === 'KITCHEN_COACH' ? '#0D9488' : colors.textMuted} />
+          <Text
+            style={[
+              styles.tabButtonText,
+              { color: colors.textMuted },
+              activeTab === 'KITCHEN_COACH' && styles.tabButtonTextActive,
+            ]}
+          >
             Kitchen Audio Coach
           </Text>
         </TouchableOpacity>
@@ -136,10 +174,20 @@ export default function VernacularVoiceScreen({ navigation }) {
         ].map((item) => (
           <TouchableOpacity
             key={item.code}
-            style={[styles.langChip, selectedLanguage === item.code && styles.langChipActive]}
+            style={[
+              styles.langChip,
+              { backgroundColor: colors.bgCardElevated, borderWidth: 1, borderColor: colors.borderSubtle },
+              selectedLanguage === item.code && [styles.langChipActive, { borderColor: '#0D9488' }],
+            ]}
             onPress={() => handleLanguageChange(item.code)}
           >
-            <Text style={[styles.langChipText, selectedLanguage === item.code && styles.langChipTextActive]}>
+            <Text
+              style={[
+                styles.langChipText,
+                { color: colors.textSecondary },
+                selectedLanguage === item.code && styles.langChipTextActive,
+              ]}
+            >
               {item.label}
             </Text>
           </TouchableOpacity>
@@ -149,7 +197,7 @@ export default function VernacularVoiceScreen({ navigation }) {
       {activeTab === 'FOOD_LOG' ? (
         <View>
           {/* Main Voice Recording Center */}
-          <View style={styles.micCard}>
+          <View style={[styles.micCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}>
             <TouchableOpacity
               style={[styles.micButton, isRecording && styles.micButtonRecording]}
               onPress={() => setIsRecording(!isRecording)}
@@ -157,17 +205,17 @@ export default function VernacularVoiceScreen({ navigation }) {
               {isRecording ? <MicOff size={36} color="#FFFFFF" /> : <Mic size={36} color="#FFFFFF" />}
             </TouchableOpacity>
 
-            <Text style={styles.micStatusText}>
+            <Text style={[styles.micStatusText, { color: colors.textPrimary }]}>
               {isRecording ? 'Listening in your mother tongue...' : 'Tap microphone to speak'}
             </Text>
-            <Text style={styles.micSubText}>
+            <Text style={[styles.micSubText, { color: colors.textSecondary }]}>
               Supports regional food names (Karela, Ragi Sankati, Sambar, Dahi) & volumetric units (Katori, Chammach)
             </Text>
 
             {/* Transcript Preview Box */}
-            <View style={styles.transcriptBox}>
-              <Text style={styles.transcriptLabel}>SPOKEN TRANSCRIPT:</Text>
-              <Text style={styles.transcriptText}>"{transcript}"</Text>
+            <View style={[styles.transcriptBox, { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle }]}>
+              <Text style={[styles.transcriptLabel, { color: colors.textMuted }]}>SPOKEN TRANSCRIPT:</Text>
+              <Text style={[styles.transcriptText, { color: colors.textPrimary }]}>"{transcript}"</Text>
             </View>
 
             {/* Process Button */}
@@ -189,11 +237,11 @@ export default function VernacularVoiceScreen({ navigation }) {
 
           {/* In-Silico Biophysical Simulation Results */}
           {simulationResult && (
-            <View style={styles.resultCard}>
+            <View style={[styles.resultCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}>
               <View style={styles.resultHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.resultTitle}>Biophysical Impact Analysis</Text>
-                  <Text style={styles.resultSubtitle}>
+                  <Text style={[styles.resultTitle, { color: colors.textPrimary }]}>Biophysical Impact Analysis</Text>
+                  <Text style={[styles.resultSubtitle, { color: colors.textSecondary }]}>
                     {simulationResult.parsedItems?.map((p) => `${p.quantity} ${p.unit} ${p.spokenPhrase}`).join(', ')}
                   </Text>
                 </View>
@@ -216,38 +264,48 @@ export default function VernacularVoiceScreen({ navigation }) {
 
               {/* Peak & Ambulation Grid */}
               <View style={styles.metricGrid}>
-                <View style={styles.metricBox}>
+                <View style={[styles.metricBox, { backgroundColor: colors.bgCardSurface }]}>
                   <TrendingUp size={20} color="#0D9488" />
-                  <Text style={styles.metricVal}>
+                  <Text style={[styles.metricVal, { color: colors.textPrimary }]}>
                     {Math.round(simulationResult.glycemicForecast?.predictedPeakGlucose || 150)} mg/dL
                   </Text>
-                  <Text style={styles.metricLabel}>Predicted Peak</Text>
+                  <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Predicted Peak</Text>
                 </View>
 
-                <View style={styles.metricBox}>
+                <View style={[styles.metricBox, { backgroundColor: colors.bgCardSurface }]}>
                   <Footprints size={20} color="#2563EB" />
-                  <Text style={styles.metricVal}>
+                  <Text style={[styles.metricVal, { color: colors.textPrimary }]}>
                     {simulationResult.ambulationPrescription?.targetStepCount || 1980}
                   </Text>
-                  <Text style={styles.metricLabel}>Target GLUT-4 Steps</Text>
+                  <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Target GLUT-4 Steps</Text>
                 </View>
 
-                <View style={styles.metricBox}>
+                <View style={[styles.metricBox, { backgroundColor: colors.bgCardSurface }]}>
                   <Clock size={20} color="#D97706" />
-                  <Text style={styles.metricVal}>
+                  <Text style={[styles.metricVal, { color: colors.textPrimary }]}>
                     {simulationResult.ambulationPrescription?.recommendedWalkMinutes || 18} min
                   </Text>
-                  <Text style={styles.metricLabel}>Walk Duration</Text>
+                  <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Walk Duration</Text>
                 </View>
               </View>
 
               {/* Spoken Vernacular Audio Feedback Display */}
-              <View style={styles.audioFeedbackCard}>
+              <View
+                style={[
+                  styles.audioFeedbackCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(13, 148, 136, 0.12)' : '#F0FDFA',
+                    borderColor: isDark ? 'rgba(13, 148, 136, 0.35)' : '#CCFBF1',
+                  },
+                ]}
+              >
                 <View style={styles.audioFeedbackHeader}>
-                  <Volume2 size={18} color="#0F766E" />
-                  <Text style={styles.audioFeedbackTitle}>Synthesized Vernacular Voice Directive</Text>
+                  <Volume2 size={18} color={isDark ? '#2dd4bf' : '#0F766E'} />
+                  <Text style={[styles.audioFeedbackTitle, { color: isDark ? '#2dd4bf' : '#0F766E' }]}>
+                    Synthesized Vernacular Voice Directive
+                  </Text>
                 </View>
-                <Text style={styles.audioScriptText}>
+                <Text style={[styles.audioScriptText, { color: colors.textPrimary }]}>
                   "{simulationResult.spokenAudioScript}"
                 </Text>
               </View>
@@ -256,14 +314,14 @@ export default function VernacularVoiceScreen({ navigation }) {
         </View>
       ) : (
         /* Kitchen Audio Coach View */
-        <View style={styles.kitchenCard}>
-          <Text style={styles.kitchenTitle}>Hands-Free Joint Family Kitchen Plating Coach</Text>
-          <Text style={styles.kitchenSub}>
+        <View style={[styles.kitchenCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}>
+          <Text style={[styles.kitchenTitle, { color: colors.textPrimary }]}>Hands-Free Joint Family Kitchen Plating Coach</Text>
+          <Text style={[styles.kitchenSub, { color: colors.textSecondary }]}>
             Directs Mummyji or the home cook step-by-step through voice chimes to safely plate single-pot meals.
           </Text>
 
-          <View style={styles.potRow}>
-            <Text style={styles.potLabel}>Pot Weight: 1000g Hyderabadi Dum Biryani</Text>
+          <View style={[styles.potRow, { backgroundColor: colors.bgCardSurface }]}>
+            <Text style={[styles.potLabel, { color: colors.textPrimary }]}>Pot Weight: 1000g Hyderabadi Dum Biryani</Text>
             <TouchableOpacity style={styles.coachButton} onPress={handleRunKitchenCoach} disabled={loading}>
               <Volume2 size={16} color="#FFFFFF" />
               <Text style={styles.coachButtonText}>Start Voice Coaching</Text>
@@ -272,13 +330,13 @@ export default function VernacularVoiceScreen({ navigation }) {
 
           {kitchenResult && (
             <View style={styles.directivesList}>
-              <Text style={styles.directivesHeading}>Spoken Step-by-Step Instructions:</Text>
+              <Text style={[styles.directivesHeading, { color: colors.textPrimary }]}>Spoken Step-by-Step Instructions:</Text>
               {kitchenResult.spokenStepByStepDirectives?.map((dir, idx) => (
                 <View key={idx} style={styles.directiveItem}>
                   <View style={styles.stepNumBadge}>
                     <Text style={styles.stepNumText}>{idx + 1}</Text>
                   </View>
-                  <Text style={styles.directiveText}>{dir}</Text>
+                  <Text style={[styles.directiveText, { color: colors.textSecondary }]}>{dir}</Text>
                 </View>
               ))}
             </View>

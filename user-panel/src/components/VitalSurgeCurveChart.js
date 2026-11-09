@@ -10,6 +10,7 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 import { Activity, ShieldCheck, Sparkles, TrendingDown, Clock, Zap } from 'lucide-react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - 64;
@@ -112,6 +113,7 @@ export const VitalSurgeCurveChart = ({
   appliedHacksCount = 0,
   twinParams = {},
 }) => {
+  const { colors, isDark } = useTheme();
   const [metricTab, setMetricTab] = useState('glucose'); // 'glucose' | 'bp'
 
   const data = calculateDynamicSurgePoints({
@@ -167,14 +169,25 @@ export const VitalSurgeCurveChart = ({
     <View style={styles.container}>
       {/* Tab Switcher & Metric Summary */}
       <View style={styles.headerRow}>
-        <View style={styles.tabButtons}>
+        <View
+          style={[
+            styles.tabButtons,
+            { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : colors.bgCardSurface },
+          ]}
+        >
           <TouchableOpacity
             style={[styles.tabBtn, isGlucose && styles.tabBtnActive]}
             onPress={() => setMetricTab('glucose')}
             activeOpacity={0.75}
           >
-            <Activity size={13} color={isGlucose ? '#06b6d4' : '#94a3b8'} />
-            <Text style={[styles.tabText, isGlucose && styles.tabTextActive]}>
+            <Activity size={13} color={isGlucose ? colors.cyan : colors.textMuted} />
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.textSecondary },
+                isGlucose && [styles.tabTextActive, { color: colors.cyan }],
+              ]}
+            >
               GLUCOSE SURGE
             </Text>
           </TouchableOpacity>
@@ -184,8 +197,14 @@ export const VitalSurgeCurveChart = ({
             onPress={() => setMetricTab('bp')}
             activeOpacity={0.75}
           >
-            <Zap size={13} color={!isGlucose ? '#f59e0b' : '#94a3b8'} />
-            <Text style={[styles.tabText, !isGlucose && styles.tabTextActive]}>
+            <Zap size={13} color={!isGlucose ? colors.amber : colors.textMuted} />
+            <Text
+              style={[
+                styles.tabText,
+                { color: colors.textSecondary },
+                !isGlucose && [styles.tabTextActive, { color: colors.amber }],
+              ]}
+            >
               BLOOD PRESSURE
             </Text>
           </TouchableOpacity>
@@ -193,8 +212,8 @@ export const VitalSurgeCurveChart = ({
 
         {appliedHacksCount > 0 && (
           <View style={styles.harmReductionBadge}>
-            <TrendingDown size={11} color="#10b981" />
-            <Text style={styles.harmReductionText}>
+            <TrendingDown size={11} color={colors.emerald} />
+            <Text style={[styles.harmReductionText, { color: colors.emerald }]}>
               -{currentMetric.percentReduction}% PEAK
             </Text>
           </View>
@@ -202,32 +221,40 @@ export const VitalSurgeCurveChart = ({
       </View>
 
       {/* Numerical Callout Strip */}
-      <View style={styles.calloutStrip}>
+      <View
+        style={[
+          styles.calloutStrip,
+          {
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : colors.bgCardSurface,
+            borderColor: colors.borderSubtle,
+          },
+        ]}
+      >
         <View style={styles.calloutBox}>
-          <Text style={styles.calloutLabel}>PREDICTED PEAK</Text>
-          <Text style={[styles.calloutVal, { color: isGlucose ? '#f87171' : '#f59e0b' }]}>
+          <Text style={[styles.calloutLabel, { color: colors.textSecondary }]}>PREDICTED PEAK</Text>
+          <Text style={[styles.calloutVal, { color: isGlucose ? '#ef4444' : colors.amber }]}>
             {appliedHacksCount > 0 ? currentMetric.hackedPeak : currentMetric.standardPeak}
-            <Text style={styles.calloutUnit}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
+            <Text style={[styles.calloutUnit, { color: colors.textMuted }]}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
           </Text>
         </View>
 
-        <View style={styles.calloutDivider} />
+        <View style={[styles.calloutDivider, { backgroundColor: colors.borderSubtle }]} />
 
         <View style={styles.calloutBox}>
-          <Text style={styles.calloutLabel}>FASTING BASELINE</Text>
-          <Text style={[styles.calloutVal, { color: '#06b6d4' }]}>
+          <Text style={[styles.calloutLabel, { color: colors.textSecondary }]}>FASTING BASELINE</Text>
+          <Text style={[styles.calloutVal, { color: colors.cyan }]}>
             {currentMetric.baseline}
-            <Text style={styles.calloutUnit}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
+            <Text style={[styles.calloutUnit, { color: colors.textMuted }]}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
           </Text>
         </View>
 
-        <View style={styles.calloutDivider} />
+        <View style={[styles.calloutDivider, { backgroundColor: colors.borderSubtle }]} />
 
         <View style={styles.calloutBox}>
-          <Text style={styles.calloutLabel}>HACKS BUFFER</Text>
-          <Text style={[styles.calloutVal, { color: appliedHacksCount > 0 ? '#10b981' : '#64748b' }]}>
+          <Text style={[styles.calloutLabel, { color: colors.textSecondary }]}>HACKS BUFFER</Text>
+          <Text style={[styles.calloutVal, { color: appliedHacksCount > 0 ? colors.emerald : colors.textMuted }]}>
             {appliedHacksCount > 0 ? `-${currentMetric.harmReduction}` : 'None'}
-            <Text style={styles.calloutUnit}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
+            <Text style={[styles.calloutUnit, { color: colors.textMuted }]}> {isGlucose ? 'mg/dL' : 'mmHg'}</Text>
           </Text>
         </View>
       </View>
@@ -253,7 +280,7 @@ export const VitalSurgeCurveChart = ({
             y1={baselineY}
             x2={CHART_WIDTH}
             y2={baselineY}
-            stroke="rgba(6, 182, 212, 0.3)"
+            stroke="rgba(6, 182, 212, 0.35)"
             strokeDasharray="4 4"
             strokeWidth={1}
           />
@@ -297,7 +324,7 @@ export const VitalSurgeCurveChart = ({
                 cy={y}
                 r={isPeak ? 4.5 : 2.5}
                 fill={appliedHacksCount > 0 ? '#10b981' : '#06b6d4'}
-                stroke="#000000"
+                stroke={isDark ? '#000000' : '#ffffff'}
                 strokeWidth={1.5}
               />
             );
@@ -307,35 +334,35 @@ export const VitalSurgeCurveChart = ({
 
       {/* Time Axis Labels */}
       <View style={styles.timeAxisRow}>
-        <Text style={styles.timeLabel}>0m</Text>
-        <Text style={styles.timeLabel}>30m</Text>
-        <Text style={styles.timeLabel}>60m (Peak)</Text>
-        <Text style={styles.timeLabel}>120m</Text>
-        <Text style={styles.timeLabel}>180m</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>0m</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>30m</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>60m (Peak)</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>120m</Text>
+        <Text style={[styles.timeLabel, { color: colors.textMuted }]}>180m</Text>
       </View>
 
       {/* Legend */}
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#06b6d4' }]} />
-          <Text style={styles.legendText}>Basal Baseline</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>Basal Baseline</Text>
         </View>
 
         {appliedHacksCount > 0 ? (
           <>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#f87171' }]} />
-              <Text style={styles.legendText}>Standard Surge</Text>
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>Standard Surge</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
-              <Text style={styles.legendText}>With Doctor Hacks</Text>
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>With Doctor Hacks</Text>
             </View>
           </>
         ) : (
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: isGlucose ? '#06b6d4' : '#f59e0b' }]} />
-            <Text style={styles.legendText}>Simulated Surge (Bergman RK4 ODE)</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Simulated Surge (Bergman RK4 ODE)</Text>
           </View>
         )}
       </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -9,28 +9,30 @@ import {
   User,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 
-import DashboardScreen  from '../screens/DashboardScreen';
+import DashboardScreen    from '../screens/DashboardScreen';
 import AppointmentsScreen from '../screens/AppointmentsScreen';
-import SamplesScreen    from '../screens/SamplesScreen';
-import EarningsScreen   from '../screens/EarningsScreen';
-import ProfileScreen    from '../screens/ProfileScreen';
+import SamplesScreen      from '../screens/SamplesScreen';
+import EarningsScreen     from '../screens/EarningsScreen';
+import ProfileScreen      from '../screens/ProfileScreen';
 
 import { useAppointmentStore } from '../store/appointmentStore';
 
 const Tab = createBottomTabNavigator();
 
 const TAB_ITEMS = [
-  { name: 'Dashboard',    label: 'Home',      Icon: LayoutDashboard,  component: DashboardScreen },
-  { name: 'Appointments', label: 'Visits',    Icon: CalendarCheck,    component: AppointmentsScreen, badgeType: 'pending' },
-  { name: 'Samples',      label: 'Specimens', Icon: FlaskConical,     component: SamplesScreen,      badgeType: 'samples' },
-  { name: 'Earnings',     label: 'Payouts',   Icon: Wallet,           component: EarningsScreen },
-  { name: 'Profile',      label: 'Staff ID',  Icon: User,             component: ProfileScreen },
+  { name: 'Dashboard',    label: 'Home',      Icon: LayoutDashboard, component: DashboardScreen },
+  { name: 'Appointments', label: 'Visits',    Icon: CalendarCheck,   component: AppointmentsScreen, badgeType: 'pending' },
+  { name: 'Samples',      label: 'Specimens', Icon: FlaskConical,    component: SamplesScreen,      badgeType: 'samples' },
+  { name: 'Earnings',     label: 'Payouts',   Icon: Wallet,          component: EarningsScreen },
+  { name: 'Profile',      label: 'Staff ID',  Icon: User,            component: ProfileScreen },
 ];
 
 export default function TabNavigator() {
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const pendingCount = useAppointmentStore((s) => s.pendingAppointments?.length || 0);
   const sampleCount  = useAppointmentStore((s) => s.collectedSamples?.length || 0);
 
@@ -45,14 +47,8 @@ export default function TabNavigator() {
       initialRouteName="Dashboard"
       screenOptions={{
         headerShown:              false,
-        tabBarStyle:              [
-          styles.tabBar,
-          {
-            backgroundColor: colors.bgCardElevated,
-            borderTopColor: colors.borderSubtle,
-          },
-        ],
-        tabBarActiveTintColor:    colors.primary,
+        tabBarStyle:              styles.tabBar,
+        tabBarActiveTintColor:    isDark ? colors.primaryLight : colors.primary,
         tabBarInactiveTintColor:  colors.textMuted,
         tabBarLabelStyle:         styles.tabLabel,
         tabBarItemStyle:          styles.tabItem,
@@ -74,7 +70,7 @@ export default function TabNavigator() {
                 <Icon
                   size={focused ? size - 1 : size}
                   color={color}
-                  strokeWidth={focused ? 2.5 : 1.8}
+                  strokeWidth={focused ? 2.5 : 1.9}
                 />
               </View>
             ),
@@ -85,70 +81,71 @@ export default function TabNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor:  colors.bgCardElevated,
-    borderTopWidth:   1,
-    borderTopColor:   colors.borderSubtle,
-    height:           Platform.OS === 'ios' ? 86 : 64,
-    paddingTop:       6,
-    paddingBottom:    Platform.OS === 'ios' ? 26 : 6,
-    elevation:        10,
-    shadowColor:      '#000',
-    shadowOffset:     { width: 0, height: -2 },
-    shadowOpacity:    0.30,
-    shadowRadius:     10,
-  },
+const getStyles = (colors, isDark) =>
+  StyleSheet.create({
+    tabBar: {
+      backgroundColor:  isDark ? colors.bgCardElevated : '#FFFFFF',
+      borderTopWidth:   1,
+      borderTopColor:   isDark ? colors.borderDefault : colors.borderSubtle,
+      height:           Platform.OS === 'ios' ? 86 : 66,
+      paddingTop:       6,
+      paddingBottom:    Platform.OS === 'ios' ? 26 : 7,
+      elevation:        12,
+      shadowColor:      isDark ? '#000000' : '#0F172A',
+      shadowOffset:     { width: 0, height: -4 },
+      shadowOpacity:    isDark ? 0.35 : 0.06,
+      shadowRadius:     12,
+    },
 
-  tabLabel: {
-    fontSize:      10,
-    fontWeight:    '700',
-    letterSpacing: 0.1,
-    marginTop:     2,
-  },
+    tabLabel: {
+      fontSize:      10,
+      fontWeight:    '800',
+      letterSpacing: 0.2,
+      marginTop:     2,
+    },
 
-  tabItem: {
-    paddingVertical: 1,
-  },
+    tabItem: {
+      paddingVertical: 1,
+    },
 
-  iconWrap: {
-    minWidth:        44,
-    minHeight:       28,
-    alignItems:      'center',
-    justifyContent:  'center',
-    borderRadius:    12,
-  },
+    iconWrap: {
+      minWidth:        46,
+      minHeight:       28,
+      alignItems:      'center',
+      justifyContent:  'center',
+      borderRadius:    12,
+    },
 
-  activeIconWrap: {
-    backgroundColor:  colors.borderCyan,
-    borderWidth:      1,
-    borderColor:      colors.borderCyanStrong,
-    paddingHorizontal: 10,
-    paddingVertical:   4,
-    borderRadius:     12,
-  },
+    activeIconWrap: {
+      backgroundColor:   colors.borderCyan,
+      borderWidth:       1,
+      borderColor:       colors.borderCyanStrong,
+      paddingHorizontal: 11,
+      paddingVertical:   4,
+      borderRadius:      12,
+    },
 
-  badge: {
-    backgroundColor: colors.amber,
-    color:           colors.textInverse,
-    fontSize:        10,
-    fontWeight:      '800',
-    minWidth:        16,
-    height:          16,
-    borderRadius:    8,
-    lineHeight:      14,
-    textAlign:       'center',
-  },
+    badge: {
+      backgroundColor: colors.amber,
+      color:           '#FFFFFF',
+      fontSize:        10,
+      fontWeight:      '900',
+      minWidth:        17,
+      height:          17,
+      borderRadius:    9,
+      lineHeight:      15,
+      textAlign:       'center',
+    },
 
-  badgeCyan: {
-    backgroundColor: colors.primary,
-    color:           colors.textInverse,
-    fontSize:        10,
-    fontWeight:      '800',
-    minWidth:        16,
-    height:          16,
-    borderRadius:    8,
-    lineHeight:      14,
-    textAlign:       'center',
-  },
-});
+    badgeCyan: {
+      backgroundColor: colors.primary,
+      color:           '#FFFFFF',
+      fontSize:        10,
+      fontWeight:      '900',
+      minWidth:        17,
+      height:          17,
+      borderRadius:    9,
+      lineHeight:      15,
+      textAlign:       'center',
+    },
+  });

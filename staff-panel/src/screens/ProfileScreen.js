@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ import {
   Check,
 } from 'lucide-react-native';
 
-import { colors, gradients, alpha, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import GlassCard from '../components/GlassCard';
 import DutyStatusSwitch from '../components/DutyStatusSwitch';
 import { useAuthStore } from '../store/authStore';
@@ -51,7 +51,8 @@ import {
 import locationService from '../services/locationService';
 
 export default function ProfileScreen({ navigation }) {
-  const { themePreference, mode, isDark, setTheme, colors } = useTheme();
+  const { themePreference, mode, isDark, setTheme, colors, gradients, alpha } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark, alpha), [colors, isDark, alpha]);
   const user = useAuthStore((state) => state.user);
   const staff = useAuthStore((state) => state.staff);
 
@@ -520,10 +521,11 @@ export default function ProfileScreen({ navigation }) {
         {/* PROFILE HERO */}
         <GlassCard style={styles.profileCard}>
           <LinearGradient
-            colors={[
-              'rgba(6, 182, 212, 0.12)',
-              'rgba(10, 10, 10, 0.98)',
-            ]}
+            colors={
+              isDark
+                ? ['rgba(6, 182, 212, 0.14)', 'rgba(12, 18, 32, 0.96)']
+                : ['rgba(8, 145, 178, 0.10)', '#FFFFFF']
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.profileCardGradient}
@@ -1614,7 +1616,7 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark, alpha) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -1674,7 +1676,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1684,6 +1686,7 @@ const styles = StyleSheet.create({
   profileCard: {
     marginBottom: 22,
     overflow: 'hidden',
+    padding: 0,
   },
 
   profileCardGradient: {
@@ -1791,7 +1794,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.34)',
+    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.34)' : colors.bgCardSoft,
     borderRadius: 13,
     padding: 12,
     borderWidth: 1,

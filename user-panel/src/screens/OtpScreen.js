@@ -22,13 +22,16 @@ import {
   CircleAlert,
   ArrowLeft,
   Lock,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import useAuthStore from '../store/authStore';
 import userApi from '../api/userApi';
 import GlassCard from '../components/GlassCard';
 
 export const OtpScreen = ({ navigation, route }) => {
+  const { colors, isDark, setTheme } = useTheme();
   const phoneNumber = route?.params?.phoneNumber || '';
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -176,9 +179,9 @@ export const OtpScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bgDark }]}>
       <LinearGradient
-        colors={['#000000', '#05070a', '#000000']}
+        colors={isDark ? ['#000000', '#05070a', '#000000'] : ['#f8fafc', '#e2e8f0', '#f1f5f9']}
         style={StyleSheet.absoluteFillObject}
       />
 
@@ -193,11 +196,19 @@ export const OtpScreen = ({ navigation, route }) => {
             },
           ]}
         >
-          <View style={styles.toastPill}>
+          <View
+            style={[
+              styles.toastPill,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.emerald,
+              },
+            ]}
+          >
             <View style={styles.toastGreenCircle}>
               <Check size={13} color="#ffffff" strokeWidth={3.5} />
             </View>
-            <Text style={styles.toastText}>{toastText}</Text>
+            <Text style={[styles.toastText, { color: colors.textPrimary }]}>{toastText}</Text>
           </View>
         </Animated.View>
       )}
@@ -205,7 +216,13 @@ export const OtpScreen = ({ navigation, route }) => {
       {/* Top Header Navigation Bar */}
       <View style={styles.topNavRow}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={[
+            styles.backBtn,
+            {
+              backgroundColor: colors.bgCardElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
           onPress={handleChangeNumber}
           activeOpacity={0.7}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -213,12 +230,37 @@ export const OtpScreen = ({ navigation, route }) => {
           <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
 
-        <View style={styles.secureBadge}>
-          <View style={styles.pulseDot} />
-          <Text style={styles.secureBadgeText}>VERIFY OTP</Text>
+        <View
+          style={[
+            styles.secureBadge,
+            {
+              backgroundColor: colors.alphaCyan10,
+              borderColor: colors.borderCyan,
+            },
+          ]}
+        >
+          <View style={[styles.pulseDot, { backgroundColor: colors.emerald }]} />
+          <Text style={[styles.secureBadgeText, { color: colors.primary }]}>VERIFY OTP</Text>
         </View>
 
-        <View style={{ width: 38 }} />
+        <TouchableOpacity
+          style={[
+            styles.backBtn,
+            {
+              backgroundColor: colors.bgCardElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+          onPress={() => setTheme(isDark ? 'light' : 'dark')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {isDark ? (
+            <Sun size={18} color={colors.amberLight} />
+          ) : (
+            <Moon size={18} color={colors.primary} />
+          )}
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
@@ -232,46 +274,79 @@ export const OtpScreen = ({ navigation, route }) => {
         >
           {/* Badge & Screen Title */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoBadge}>
+            <View style={[styles.logoBadge, { borderColor: colors.borderCyan }]}>
               <LinearGradient
-                colors={['rgba(6, 182, 212, 0.25)', 'rgba(6, 182, 212, 0.05)']}
+                colors={
+                  isDark
+                    ? ['rgba(6, 182, 212, 0.25)', 'rgba(6, 182, 212, 0.05)']
+                    : ['rgba(8, 145, 178, 0.18)', 'rgba(8, 145, 178, 0.04)']
+                }
                 style={styles.logoGradient}
               >
-                <KeyRound size={32} color={colors.cyanLight} />
+                <KeyRound size={32} color={colors.primary} />
               </LinearGradient>
             </View>
-            <Text style={styles.screenHeading}>Verification Code</Text>
-            <Text style={styles.screenSub}>
+            <Text style={[styles.screenHeading, { color: colors.textPrimary }]}>Verification Code</Text>
+            <Text style={[styles.screenSub, { color: colors.textSecondary }]}>
               Enter the 6-digit code sent to
             </Text>
 
             {/* Mobile Pill with CHANGE NUMBER option */}
-            <View style={styles.phonePillRow}>
-              <Text style={styles.phonePillText}>+91 {phoneNumber}</Text>
+            <View
+              style={[
+                styles.phonePillRow,
+                {
+                  backgroundColor: colors.bgCardElevated,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <Text style={[styles.phonePillText, { color: colors.textPrimary }]}>+91 {phoneNumber}</Text>
               <TouchableOpacity
                 onPress={handleChangeNumber}
-                style={styles.changeNumberPill}
+                style={[
+                  styles.changeNumberPill,
+                  {
+                    backgroundColor: colors.alphaCyan10,
+                    borderColor: colors.borderCyan,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
-                <Edit2 size={12} color={colors.cyanLight} />
-                <Text style={styles.changeNumberPillText}>Edit</Text>
+                <Edit2 size={12} color={colors.primary} />
+                <Text style={[styles.changeNumberPillText, { color: colors.primary }]}>Edit</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* OTP Input Card */}
-          <GlassCard style={styles.card}>
+          <GlassCard
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>ENTER 6-DIGIT CODE</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>ENTER 6-DIGIT CODE</Text>
               <View
                 style={[
                   styles.otpInputRow,
-                  otpFocused && styles.inputRowFocused,
+                  {
+                    backgroundColor: colors.bgCardSurface,
+                    borderColor: colors.borderSubtle,
+                  },
+                  otpFocused && {
+                    borderColor: colors.primary,
+                    backgroundColor: colors.alphaCyan10,
+                  },
                 ]}
               >
-                <KeyRound size={18} color={colors.cyanLight} style={{ marginLeft: 14 }} />
+                <KeyRound size={18} color={colors.primary} style={{ marginLeft: 14 }} />
                 <TextInput
-                  style={styles.otpTextInput}
+                  style={[styles.otpTextInput, { color: colors.primary }]}
                   value={otp}
                   onChangeText={(t) => {
                     setOtp(t);
@@ -292,8 +367,8 @@ export const OtpScreen = ({ navigation, route }) => {
             {/* Error Banner */}
             {errorMessage ? (
               <View style={styles.errorBanner}>
-                <CircleAlert size={15} color={colors.roseLight} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+                <CircleAlert size={15} color={colors.rose} />
+                <Text style={[styles.errorText, { color: colors.rose }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
@@ -305,20 +380,20 @@ export const OtpScreen = ({ navigation, route }) => {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#10b981', '#059669']}
+                colors={colors.emeraldButtonGradient || ['#10b981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.btnGradient}
               >
                 {loading ? (
                   <View style={styles.btnContentRow}>
-                    <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.primaryBtnText}>Logging in...</Text>
+                    <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                    <Text style={[styles.primaryBtnText, { color: isDark ? '#000' : '#fff' }]}>Logging in...</Text>
                   </View>
                 ) : (
                   <View style={styles.btnContentRow}>
-                    <ShieldCheck size={18} color="#000" />
-                    <Text style={styles.primaryBtnText}>Login</Text>
+                    <ShieldCheck size={18} color={isDark ? '#000' : '#fff'} />
+                    <Text style={[styles.primaryBtnText, { color: isDark ? '#000' : '#fff' }]}>Login</Text>
                   </View>
                 )}
               </LinearGradient>
@@ -327,8 +402,8 @@ export const OtpScreen = ({ navigation, route }) => {
             {/* Resend & Change Number Actions */}
             <View style={styles.resendContainer}>
               {!canResend ? (
-                <Text style={styles.countdownText}>
-                  Resend code in <Text style={{ color: colors.cyanLight, fontWeight: '700' }}>{countdown}s</Text>
+                <Text style={[styles.countdownText, { color: colors.textMuted }]}>
+                  Resend code in <Text style={{ color: colors.primary, fontWeight: '700' }}>{countdown}s</Text>
                 </Text>
               ) : (
                 <TouchableOpacity
@@ -337,8 +412,8 @@ export const OtpScreen = ({ navigation, route }) => {
                   activeOpacity={0.7}
                   disabled={loading}
                 >
-                  <RotateCcw size={13} color={colors.cyanLight} />
-                  <Text style={styles.resendActionText}>Resend Code</Text>
+                  <RotateCcw size={13} color={colors.primary} />
+                  <Text style={[styles.resendActionText, { color: colors.primary }]}>Resend Code</Text>
                 </TouchableOpacity>
               )}
 
@@ -347,7 +422,9 @@ export const OtpScreen = ({ navigation, route }) => {
                 style={styles.changeNumberBottomBtn}
                 activeOpacity={0.7}
               >
-                <Text style={styles.changeNumberBottomText}>Entered wrong number? Change here</Text>
+                <Text style={[styles.changeNumberBottomText, { color: colors.textSecondary }]}>
+                  Entered wrong number? Change here
+                </Text>
               </TouchableOpacity>
             </View>
           </GlassCard>
@@ -356,11 +433,11 @@ export const OtpScreen = ({ navigation, route }) => {
           <View style={styles.trustFooter}>
             <View style={styles.trustBadgeRow}>
               <Lock size={12} color={colors.textMuted} />
-              <Text style={styles.trustBadgeText}>
+              <Text style={[styles.trustBadgeText, { color: colors.textMuted }]}>
                 256-BIT ENCRYPTION · HIPAA COMPLIANT
               </Text>
             </View>
-            <Text style={styles.trustDisclaimer}>
+            <Text style={[styles.trustDisclaimer, { color: colors.textMuted }]}>
               Your clinical biomarkers and health records are encrypted and securely protected.
             </Text>
           </View>

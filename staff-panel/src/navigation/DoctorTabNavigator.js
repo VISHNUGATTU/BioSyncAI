@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   FlaskConical,
   Stethoscope,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 
 import DoctorSamplesScreen from '../screens/DoctorSamplesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -15,30 +15,19 @@ const Tab = createBottomTabNavigator();
 
 export default function DoctorTabNavigator() {
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   return (
     <Tab.Navigator
       initialRouteName="DoctorSamples"
       screenOptions={{
         headerShown: false,
-
-        tabBarStyle: [
-          styles.tabBar,
-          {
-            backgroundColor: colors.bgSurface,
-            borderTopColor: colors.borderSubtle,
-          },
-        ],
-
-        tabBarActiveTintColor: colors.cyan,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: isDark ? colors.primaryLight : colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-
         tabBarLabelStyle: styles.tabLabel,
-
         tabBarItemStyle: styles.tabItem,
-
         tabBarHideOnKeyboard: true,
-
         tabBarAllowFontScaling: false,
       }}
     >
@@ -47,7 +36,6 @@ export default function DoctorTabNavigator() {
         component={DoctorSamplesScreen}
         options={{
           tabBarLabel: 'Specimen Oversight',
-
           tabBarIcon: ({ color, size, focused }) => (
             <View
               style={[
@@ -58,7 +46,7 @@ export default function DoctorTabNavigator() {
               <FlaskConical
                 size={size}
                 color={color}
-                strokeWidth={focused ? 2.4 : 2}
+                strokeWidth={focused ? 2.5 : 1.9}
               />
             </View>
           ),
@@ -70,7 +58,6 @@ export default function DoctorTabNavigator() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Doctor Credentials',
-
           tabBarIcon: ({ color, size, focused }) => (
             <View
               style={[
@@ -81,7 +68,7 @@ export default function DoctorTabNavigator() {
               <Stethoscope
                 size={size}
                 color={color}
-                strokeWidth={focused ? 2.4 : 2}
+                strokeWidth={focused ? 2.5 : 1.9}
               />
             </View>
           ),
@@ -91,61 +78,50 @@ export default function DoctorTabNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.bgSurface,
-
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-
-    height: 64,
-
-    paddingTop: 5,
-    paddingBottom: 7,
-
-    elevation: 12,
-
-    shadowColor: colors.shadow,
-    shadowOffset: {
-      width: 0,
-      height: -3,
+const getStyles = (colors, isDark) =>
+  StyleSheet.create({
+    tabBar: {
+      backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
+      borderTopWidth: 1,
+      borderTopColor: isDark ? colors.borderDefault : colors.borderSubtle,
+      height: Platform.OS === 'ios' ? 86 : 66,
+      paddingTop: 6,
+      paddingBottom: Platform.OS === 'ios' ? 26 : 7,
+      elevation: 12,
+      shadowColor: isDark ? '#000000' : '#0F172A',
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+      shadowOpacity: isDark ? 0.35 : 0.06,
+      shadowRadius: 12,
     },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-  },
 
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    tabLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      marginTop: 2,
+      letterSpacing: 0.2,
+    },
 
-    marginTop: 2,
+    tabItem: {
+      paddingVertical: 1,
+    },
 
-    letterSpacing: 0.15,
-  },
+    iconWrap: {
+      minWidth: 46,
+      minHeight: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+    },
 
-  tabItem: {
-    paddingVertical: 1,
-  },
-
-  iconWrap: {
-    minWidth: 46,
-    minHeight: 28,
-
-    alignItems: 'center',
-    justifyContent: 'center',
-
-    borderRadius: 14,
-  },
-
-  activeIconWrap: {
-    backgroundColor: colors.borderCyan,
-
-    borderWidth: 1,
-    borderColor: colors.borderCyanStrong,
-
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-
-    borderRadius: 14,
-  },
-});
+    activeIconWrap: {
+      backgroundColor: colors.borderCyan,
+      borderWidth: 1,
+      borderColor: colors.borderCyanStrong,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 14,
+    },
+  });

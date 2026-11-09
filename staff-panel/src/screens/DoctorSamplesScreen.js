@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,8 +29,10 @@ import {
   X,
   Sparkles,
   CheckCircle2,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import GlassCard from '../components/GlassCard';
 import StatusBadge from '../components/StatusBadge';
 import VitalsFormSection from '../components/VitalsFormSection';
@@ -38,7 +40,8 @@ import { useAuthStore } from '../store/authStore';
 import staffApi from '../api/staffApi';
 
 export default function DoctorSamplesScreen({ navigation }) {
-  const { isDark } = useTheme();
+  const { isDark, colors, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
@@ -588,6 +591,13 @@ export default function DoctorSamplesScreen({ navigation }) {
               {user?.specialty || 'Pathologist'} • {user?.licenseNumber || 'MCI-88219'}
             </Text>
           </View>
+          <TouchableOpacity style={styles.themeToggleBtn} onPress={toggleTheme}>
+            {isDark ? (
+              <Sun size={18} color={colors.amberLight} />
+            ) : (
+              <Moon size={18} color={colors.primaryLight} />
+            )}
+          </TouchableOpacity>
           <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
             <LogOut size={18} color={colors.roseLight} />
           </TouchableOpacity>
@@ -1089,7 +1099,7 @@ export default function DoctorSamplesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -1099,12 +1109,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
+    borderBottomColor: isDark ? colors.borderDefault : colors.borderSubtle,
+    backgroundColor: isDark ? colors.bgSurface : '#FFFFFF',
   },
   headerProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     marginBottom: 14,
   },
   doctorAvatar: {
@@ -1119,18 +1130,28 @@ const styles = StyleSheet.create({
   },
   doctorName: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
   },
   doctorRole: {
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
+    fontWeight: '600',
+  },
+  themeToggleBtn: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: isDark ? colors.bgCardElevated : '#F1F5F9',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   logoutBtn: {
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   kpiRow: {
     flexDirection: 'row',
@@ -1497,7 +1518,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   resultsDecisionBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.25)' : colors.bgCardSoft,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
@@ -1525,7 +1546,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
   },
   toggleOptionBtnActiveNo: {
     backgroundColor: colors.amber + '18',

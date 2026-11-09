@@ -12,8 +12,10 @@ import {
   Zap,
 } from 'lucide-react-native';
 import offlineSyncQueueService from '../services/offlineSyncQueueService';
+import { useTheme } from '../theme/ThemeContext';
 
 export const OfflineSyncBanner = ({ style }) => {
+  const { colors, isDark } = useTheme();
   const [syncState, setSyncState] = useState({
     isConnected: true,
     isOnline: true,
@@ -41,7 +43,6 @@ export const OfflineSyncBanner = ({ style }) => {
     offlineSyncQueueService.syncNow();
   };
 
-  // If online and no items pending, render a subtle status or nothing
   if (syncState.isOnline && syncState.pendingCount === 0) {
     return null;
   }
@@ -52,18 +53,30 @@ export const OfflineSyncBanner = ({ style }) => {
     <View
       style={[
         styles.banner,
-        isOffline ? styles.bannerOffline : styles.bannerPending,
+        {
+          backgroundColor: isOffline ? colors.alphaRose10 : colors.alphaCyan10,
+          borderColor: isOffline ? colors.alphaRose20 : colors.borderCyan,
+        },
         style,
       ]}
     >
       <View style={styles.contentRow}>
-        <View style={styles.iconWrap}>
+        <View
+          style={[
+            styles.iconWrap,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255, 255, 255, 0.08)'
+                : 'rgba(15, 23, 42, 0.06)',
+            },
+          ]}
+        >
           {syncState.isSyncing ? (
-            <ActivityIndicator size="small" color="#000000" />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : isOffline ? (
-            <WifiOff size={16} color="#ef4444" />
+            <WifiOff size={16} color={colors.roseLight} />
           ) : (
-            <Clock size={16} color="#0891b2" />
+            <Clock size={16} color={colors.primaryLight} />
           )}
         </View>
 
@@ -71,7 +84,9 @@ export const OfflineSyncBanner = ({ style }) => {
           <Text
             style={[
               styles.title,
-              isOffline ? styles.titleOffline : styles.titlePending,
+              {
+                color: isOffline ? colors.roseLight : colors.primaryLight,
+              },
             ]}
           >
             {syncState.isSyncing
@@ -80,7 +95,7 @@ export const OfflineSyncBanner = ({ style }) => {
               ? 'Offline Mode Active (Dead-Zone Protected)'
               : `${syncState.pendingCount} Queued Specimen(s) Pending Sync`}
           </Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {isOffline
               ? 'Samples recorded locally in encrypted storage. Auto-syncs on reconnect.'
               : 'LTE/Wi-Fi connected. Tapping Sync Now will upload immediately.'}
@@ -89,16 +104,20 @@ export const OfflineSyncBanner = ({ style }) => {
 
         {syncState.pendingCount > 0 && (
           <TouchableOpacity
-            style={[styles.syncBtn, syncState.isSyncing && { opacity: 0.6 }]}
+            style={[
+              styles.syncBtn,
+              { backgroundColor: colors.primary },
+              syncState.isSyncing && { opacity: 0.6 },
+            ]}
             onPress={handleSyncNow}
             disabled={syncState.isSyncing || isOffline}
             activeOpacity={0.8}
           >
             {syncState.isSyncing ? (
-              <ActivityIndicator size="small" color="#000000" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Zap size={13} color="#000000" />
+                <Zap size={13} color="#FFFFFF" />
                 <Text style={styles.syncBtnText}>Sync Now</Text>
               </>
             )}
@@ -114,18 +133,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 10,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
-  },
-  bannerOffline: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-  },
-  bannerPending: {
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderColor: 'rgba(6, 182, 212, 0.35)',
   },
   contentRow: {
     flexDirection: 'row',
@@ -133,10 +144,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -148,15 +158,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  titleOffline: {
-    color: '#f87171',
-  },
-  titlePending: {
-    color: '#22d3ee',
-  },
   subtitle: {
     fontSize: 10,
-    color: '#94a3b8',
     marginTop: 2,
     lineHeight: 14,
   },
@@ -164,15 +167,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#06b6d4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 9,
   },
   syncBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#000000',
+    color: '#FFFFFF',
   },
 });
 

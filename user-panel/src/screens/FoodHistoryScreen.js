@@ -474,8 +474,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 12,
   },
   statHeader: {
@@ -535,9 +533,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mealCard: {
-    backgroundColor: '#0a0a0a',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 14,
   },
   mealCardTop: {
@@ -660,8 +656,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   emptyStateCard: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     padding: 28,
   },
@@ -669,7 +663,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: 'rgba(6, 182, 212, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,

@@ -128,7 +128,7 @@ export default function RestaurantMenuScreen({ route, navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
       {/* Restaurant Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.bgSurface }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -144,8 +144,8 @@ export default function RestaurantMenuScreen({ route, navigation }) {
             style={[
               styles.modePill,
               orderMode === 'VITALS_GUARD'
-                ? { backgroundColor: '#064E3B', borderColor: '#10B981' }
-                : { backgroundColor: '#78350F', borderColor: '#F59E0B' },
+                ? { backgroundColor: isDark ? 'rgba(6, 78, 59, 0.7)' : '#ecfdf5', borderColor: '#10B981' }
+                : { backgroundColor: isDark ? 'rgba(120, 53, 15, 0.7)' : '#fffbeb', borderColor: '#F59E0B' },
             ]}
           >
             {orderMode === 'VITALS_GUARD' ? (

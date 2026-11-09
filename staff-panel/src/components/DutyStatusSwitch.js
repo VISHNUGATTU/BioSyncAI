@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,38 +18,7 @@ import {
   Check,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
-
-const STATUS_CONFIGS = [
-  {
-    value: 'Available',
-    label: 'Available',
-    description: 'Ready for new assignments',
-    icon: CircleCheck,
-    color: colors.success || '#10B981',
-  },
-  {
-    value: 'On_Route',
-    label: 'On Route',
-    description: 'Travelling to patient location',
-    icon: Navigation,
-    color: colors.blue || '#3B82F6',
-  },
-  {
-    value: 'Collecting',
-    label: 'Collecting',
-    description: 'Currently collecting specimen',
-    icon: Clock3,
-    color: colors.primary || '#06B6D4',
-  },
-  {
-    value: 'Off_Duty',
-    label: 'Off Duty',
-    description: 'Not accepting field assignments',
-    icon: Moon,
-    color: colors.textMuted || '#6B7280',
-  },
-];
+import { useTheme } from '../theme/ThemeContext';
 
 const DutyStatusSwitch = ({
   status,
@@ -61,16 +30,47 @@ const DutyStatusSwitch = ({
   compact = false,
   style,
 }) => {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const statusConfigs = useMemo(() => [
+    {
+      value: 'Available',
+      label: 'Available',
+      description: 'Ready for new assignments',
+      icon: CircleCheck,
+      color: colors.success || '#10B981',
+    },
+    {
+      value: 'On_Route',
+      label: 'On Route',
+      description: 'Travelling to patient location',
+      icon: Navigation,
+      color: colors.blue || '#3B82F6',
+    },
+    {
+      value: 'Collecting',
+      label: 'Collecting',
+      description: 'Currently collecting specimen',
+      icon: Clock3,
+      color: colors.primary || '#06B6D4',
+    },
+    {
+      value: 'Off_Duty',
+      label: 'Off Duty',
+      description: 'Not accepting field assignments',
+      icon: Moon,
+      color: colors.textMuted || '#64748B',
+    },
+  ], [colors]);
 
   const activeStatusValue = currentStatus || status || 'Available';
 
   const activeOption =
-    STATUS_CONFIGS.find(
+    statusConfigs.find(
       (item) => item.value === activeStatusValue
-    ) || STATUS_CONFIGS[0];
+    ) || statusConfigs[0];
 
   const ActiveIcon = activeOption.icon;
 
@@ -117,15 +117,18 @@ const DutyStatusSwitch = ({
       onRequestClose={handleCloseModal}
     >
       <Pressable
-        style={styles.modalOverlay}
+        style={[
+          styles.modalOverlay,
+          { backgroundColor: colors.overlay },
+        ]}
         onPress={handleCloseModal}
       >
         <Pressable
           style={[
             styles.modalSheet,
             {
-              backgroundColor: colors.bgCardElevated || '#131316',
-              borderColor: colors.borderSubtle || 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: colors.bgCardElevated,
+              borderColor: colors.borderDefault,
             },
           ]}
           onPress={(e) => e.stopPropagation()}
@@ -136,7 +139,7 @@ const DutyStatusSwitch = ({
               <Text
                 style={[
                   styles.modalTitle,
-                  { color: colors.textPrimary || '#FFFFFF' },
+                  { color: colors.textPrimary },
                 ]}
               >
                 Duty Status
@@ -144,7 +147,7 @@ const DutyStatusSwitch = ({
               <Text
                 style={[
                   styles.modalSubtitle,
-                  { color: colors.textMuted || '#9CA3AF' },
+                  { color: colors.textMuted },
                 ]}
               >
                 Select your active field availability
@@ -155,8 +158,8 @@ const DutyStatusSwitch = ({
               style={[
                 styles.modalCloseBtn,
                 {
-                  backgroundColor: colors.alphaCyan10 || 'rgba(6, 182, 212, 0.1)',
-                  borderColor: colors.borderCyan || 'rgba(6, 182, 212, 0.2)',
+                  backgroundColor: colors.alphaCyan10,
+                  borderColor: colors.borderCyan,
                 },
               ]}
               onPress={handleCloseModal}
@@ -164,7 +167,7 @@ const DutyStatusSwitch = ({
             >
               <X
                 size={16}
-                color={colors.textSecondary || '#9CA3AF'}
+                color={colors.textSecondary}
                 strokeWidth={2.4}
               />
             </TouchableOpacity>
@@ -172,7 +175,7 @@ const DutyStatusSwitch = ({
 
           {/* Options */}
           <View style={styles.optionsList}>
-            {STATUS_CONFIGS.map((option) => {
+            {statusConfigs.map((option) => {
               const Icon = option.icon;
               const isSelected = option.value === activeStatusValue;
 
@@ -186,11 +189,13 @@ const DutyStatusSwitch = ({
                     styles.optionRow,
                     {
                       backgroundColor: isSelected
-                        ? `${option.color}15`
-                        : colors.bgCard || '#0E0E10',
+                        ? `${option.color}16`
+                        : isDark
+                        ? colors.bgCard
+                        : colors.bgCardSoft,
                       borderColor: isSelected
-                        ? `${option.color}45`
-                        : colors.borderSubtle || 'rgba(255, 255, 255, 0.08)',
+                        ? `${option.color}48`
+                        : colors.borderSubtle,
                     },
                   ]}
                 >
@@ -217,7 +222,7 @@ const DutyStatusSwitch = ({
                         {
                           color: isSelected
                             ? option.color
-                            : colors.textPrimary || '#FFFFFF',
+                            : colors.textPrimary,
                         },
                       ]}
                     >
@@ -226,7 +231,7 @@ const DutyStatusSwitch = ({
                     <Text
                       style={[
                         styles.optionDesc,
-                        { color: colors.textMuted || '#6B7280' },
+                        { color: colors.textMuted },
                       ]}
                       numberOfLines={1}
                     >
@@ -243,7 +248,7 @@ const DutyStatusSwitch = ({
                     >
                       <Check
                         size={12}
-                        color="#000000"
+                        color="#FFFFFF"
                         strokeWidth={3}
                       />
                     </View>
@@ -257,12 +262,12 @@ const DutyStatusSwitch = ({
             <View style={styles.updatingOverlay}>
               <ActivityIndicator
                 size="small"
-                color={colors.primaryLight || '#22D3EE'}
+                color={colors.primaryLight}
               />
               <Text
                 style={[
                   styles.updatingText,
-                  { color: colors.primaryLight || '#22D3EE' },
+                  { color: colors.primaryLight },
                 ]}
               >
                 Updating status...
@@ -292,8 +297,8 @@ const DutyStatusSwitch = ({
           style={[
             styles.compactPill,
             {
-              backgroundColor: `${activeOption.color}14`,
-              borderColor: `${activeOption.color}35`,
+              backgroundColor: `${activeOption.color}16`,
+              borderColor: `${activeOption.color}38`,
             },
             style,
           ]}
@@ -309,7 +314,7 @@ const DutyStatusSwitch = ({
           <Text
             style={[
               styles.compactLabel,
-              { color: colors.textPrimary || '#FFFFFF' },
+              { color: colors.textPrimary },
             ]}
             numberOfLines={1}
           >
@@ -325,7 +330,7 @@ const DutyStatusSwitch = ({
           ) : (
             <ChevronDown
               size={13}
-              color={colors.textSecondary || '#9CA3AF'}
+              color={colors.textSecondary}
               strokeWidth={2.4}
             />
           )}
@@ -348,8 +353,8 @@ const DutyStatusSwitch = ({
         style={[
           styles.fullCard,
           {
-            backgroundColor: colors.bgCard || '#0E0E10',
-            borderColor: colors.borderSubtle || 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: colors.bgCard,
+            borderColor: colors.borderSubtle,
           },
           style,
         ]}
@@ -374,7 +379,7 @@ const DutyStatusSwitch = ({
           <Text
             style={[
               styles.fullCardHeading,
-              { color: colors.textMuted || '#9CA3AF' },
+              { color: colors.textMuted },
             ]}
           >
             DUTY STATUS
@@ -400,12 +405,12 @@ const DutyStatusSwitch = ({
         {isUpdating ? (
           <ActivityIndicator
             size="small"
-            color={colors.primaryLight || '#22D3EE'}
+            color={colors.primaryLight}
           />
         ) : (
           <ChevronDown
             size={18}
-            color={colors.textMuted || '#6B7280'}
+            color={colors.textMuted}
             strokeWidth={2}
           />
         )}
@@ -485,7 +490,6 @@ const styles = StyleSheet.create({
   /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -499,7 +503,7 @@ const styles = StyleSheet.create({
     padding: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 20,
     elevation: 10,
   },

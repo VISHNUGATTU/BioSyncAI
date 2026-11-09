@@ -12,12 +12,14 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 export const StatusBadge = ({
   status = 'Pending',
   size = 'medium',
 }) => {
+  const { colors } = useTheme();
+
   const getConfig = () => {
     switch (status) {
       case 'On_The_Way':
@@ -43,10 +45,8 @@ export const StatusBadge = ({
         return {
           label: 'Collecting Sample',
           color: colors.purpleLight,
-          bg: colors.alphaPurple10 || 'rgba(139, 92, 246, 0.10)',
-          border:
-            colors.alphaPurple20 ||
-            'rgba(139, 92, 246, 0.22)',
+          bg: colors.alphaPurple10,
+          border: colors.alphaPurple20,
           icon: TestTube,
         };
 
@@ -63,8 +63,8 @@ export const StatusBadge = ({
         return {
           label: 'At Laboratory',
           color: colors.blueLight,
-          bg: 'rgba(59, 130, 246, 0.10)',
-          border: 'rgba(59, 130, 246, 0.22)',
+          bg: colors.alphaBlue10 || 'rgba(59, 130, 246, 0.10)',
+          border: colors.alphaBlue20 || 'rgba(59, 130, 246, 0.22)',
           icon: Building,
         };
 
@@ -72,12 +72,8 @@ export const StatusBadge = ({
         return {
           label: 'Lab Processing',
           color: colors.purpleLight,
-          bg:
-            colors.alphaPurple10 ||
-            'rgba(139, 92, 246, 0.10)',
-          border:
-            colors.alphaPurple20 ||
-            'rgba(139, 92, 246, 0.22)',
+          bg: colors.alphaPurple10,
+          border: colors.alphaPurple20,
           icon: Activity,
         };
 
@@ -158,7 +154,7 @@ export const StatusBadge = ({
       <Icon
         size={isSmall ? 10 : 12}
         color={config.color}
-        strokeWidth={2.2}
+        strokeWidth={2.3}
       />
 
       <Text
@@ -182,22 +178,16 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-
     alignSelf: 'flex-start',
-
-    borderRadius: 8,
-
+    borderRadius: 9,
     borderWidth: 1,
-
     gap: 5,
   },
 
   text: {
     fontWeight: '800',
-
     textTransform: 'uppercase',
-
-    letterSpacing: 0.45,
+    letterSpacing: 0.5,
   },
 });
 

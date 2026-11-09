@@ -11,9 +11,9 @@ export const GlassCard = ({ children, style, surface = false, className = '' }) 
         styles.card,
         {
           backgroundColor: surface ? colors.bgCardSurface : colors.bgCardElevated,
-          borderColor: colors.borderSubtle,
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.09)' : colors.borderSubtle,
         },
-        !isDark && shadows.sm,
+        isDark ? shadows.sm : shadows.sm,
         style,
       ]}
     >
@@ -24,7 +24,7 @@ export const GlassCard = ({ children, style, surface = false, className = '' }) 
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     overflow: 'hidden',

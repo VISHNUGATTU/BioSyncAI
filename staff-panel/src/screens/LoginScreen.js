@@ -1,18 +1,21 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform,
   ScrollView, Modal, Animated, Image, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Phone, Lock, Eye, EyeOff, CircleAlert, Check, Info } from 'lucide-react-native';
-import { colors, useTheme } from '../theme/colors';
+import {
+  Phone, Lock, Eye, EyeOff, CircleAlert, Check, Info, Sun, Moon, ShieldCheck,
+} from 'lucide-react-native';
+import { useTheme } from '../theme/colors';
 import useAuthStore from '../store/authStore';
 
 const { width } = Dimensions.get('window');
 
 export const LoginScreen = () => {
-  const { isDark } = useTheme();
+  const { isDark, colors, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const { login } = useAuthStore();
 
   const [phone,           setPhone]           = useState('');
@@ -71,18 +74,44 @@ export const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: colors.bgDark }]}
+      style={styles.container}
     >
       {/* Background */}
-      <LinearGradient colors={isDark ? ['#000000', '#030712', '#000000'] : ['#F8FAFC', '#F1F5F9', '#FFFFFF']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient
+        colors={isDark ? ['#030712', '#070E1A', '#030712'] : ['#F8FAFC', '#EFF6FF', '#F1F5F9']}
+        style={StyleSheet.absoluteFillObject}
+      />
       <View style={[styles.orb, styles.orbTL]} />
       <View style={[styles.orb, styles.orbBR]} />
+
+      {/* Top Corner Theme Toggle */}
+      <View style={styles.topBar}>
+        <View style={styles.securityBadge}>
+          <ShieldCheck size={13} color={colors.emeraldLight} />
+          <Text style={styles.securityBadgeText}>HIPAA ENCRYPTED</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.themeToggleBtn}
+          onPress={toggleTheme}
+          activeOpacity={0.8}
+          accessibilityLabel="Toggle color theme"
+        >
+          {isDark ? (
+            <Sun size={15} color={colors.amberLight} />
+          ) : (
+            <Moon size={15} color={colors.primary} />
+          )}
+          <Text style={styles.themeToggleText}>
+            {isDark ? 'Light' : 'Dark'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Toast */}
       {toastVisible && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity, transform: [{ translateY: toastTranslateY }] }]}>
           <View style={styles.toastCheck}>
-            <Check size={13} color="#000" strokeWidth={3.5} />
+            <Check size={13} color="#FFFFFF" strokeWidth={3.5} />
           </View>
           <Text style={styles.toastText}>Signed in successfully</Text>
         </Animated.View>
@@ -96,28 +125,32 @@ export const LoginScreen = () => {
         {/* Brand */}
         <View style={styles.brand}>
           <View style={styles.logoBadge}>
-            <LinearGradient colors={['rgba(6,182,212,0.22)', 'rgba(6,182,212,0.04)']} style={styles.logoGrad}>
+            <LinearGradient
+              colors={isDark ? ['rgba(6,182,212,0.22)', 'rgba(6,182,212,0.04)'] : ['rgba(8,145,178,0.14)', 'rgba(8,145,178,0.03)']}
+              style={styles.logoGrad}
+            >
               <Image source={require('../../assets/Logo.png')} style={styles.logoImage} resizeMode="contain" />
             </LinearGradient>
           </View>
-          <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>
+          <Text style={styles.brandTitle}>
             BioSync<Text style={{ color: colors.primaryLight }}>AI</Text>
           </Text>
-          <Text style={styles.brandSub}>Central Laboratory Portal</Text>
+          <Text style={styles.brandSub}>CENTRAL LABORATORY FIELD PORTAL</Text>
         </View>
 
         {/* Card */}
-        <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.borderSubtle, shadowColor: isDark ? '#000000' : '#64748B', shadowOpacity: isDark ? 0.75 : 0.08 }]}>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Staff Sign In</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Staff Sign In</Text>
+          <Text style={styles.cardSubtitle}>Authenticate with your registered clinical credentials</Text>
 
           {/* Phone */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Mobile Number</Text>
-            <View style={[styles.inputBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', borderColor: phoneFocused ? colors.primary : colors.borderSubtle }, phoneFocused && styles.inputBoxFocused]}>
+            <Text style={styles.fieldLabel}>MOBILE NUMBER</Text>
+            <View style={[styles.inputBox, phoneFocused && styles.inputBoxFocused]}>
               <Phone size={18} color={phoneFocused ? colors.primaryLight : colors.textMuted} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.textPrimary }]}
-                placeholder="10-digit mobile"
+                style={styles.input}
+                placeholder="10-digit mobile number"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 maxLength={10}
@@ -134,16 +167,16 @@ export const LoginScreen = () => {
           {/* Password */}
           <View style={styles.fieldGroup}>
             <View style={styles.labelRow}>
-              <Text style={styles.fieldLabel}>Password</Text>
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
               <TouchableOpacity onPress={() => setSupportVisible(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={styles.forgot}>Forgot?</Text>
               </TouchableOpacity>
             </View>
-            <View style={[styles.inputBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF', borderColor: passwordFocused ? colors.primary : colors.borderSubtle }, passwordFocused && styles.inputBoxFocused]}>
+            <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused]}>
               <Lock size={18} color={passwordFocused ? colors.primaryLight : colors.textMuted} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: colors.textPrimary }]}
-                placeholder="Password"
+                style={styles.input}
+                placeholder="Enter password"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showPassword}
                 value={password}
@@ -165,9 +198,9 @@ export const LoginScreen = () => {
           {/* Remember me */}
           <TouchableOpacity style={styles.rememberRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.8}>
             <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-              {rememberMe && <Check size={11} color="#000" strokeWidth={4} />}
+              {rememberMe && <Check size={11} color="#FFFFFF" strokeWidth={4} />}
             </View>
-            <Text style={styles.rememberText}>Remember me</Text>
+            <Text style={styles.rememberText}>Keep my clinical session signed in</Text>
           </TouchableOpacity>
 
           {/* Error */}
@@ -193,11 +226,11 @@ export const LoginScreen = () => {
             >
               {loading ? (
                 <View style={styles.loadingRow}>
-                  <ActivityIndicator color="#000" size="small" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                   <Text style={styles.btnText}>Signing in…</Text>
                 </View>
               ) : (
-                <Text style={styles.btnText}>Sign In</Text>
+                <Text style={styles.btnText}>Sign In to Portal</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -207,25 +240,25 @@ export const LoginScreen = () => {
       {/* Support modal */}
       <Modal visible={supportVisible} transparent animationType="fade" onRequestClose={() => setSupportVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle }]}>
+          <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIconCircle}>
                 <Info size={20} color={colors.primaryLight} />
               </View>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Password Reset</Text>
+              <Text style={styles.modalTitle}>Password Reset</Text>
             </View>
             <Text style={styles.modalBody}>
               For security, contact your central lab administrator to reset staff credentials.
             </Text>
-            <View style={[styles.supportBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: colors.borderSubtle }]}>
+            <View style={styles.supportBox}>
               <Text style={styles.supportLabel}>Admin Email</Text>
-              <Text style={[styles.supportValue, { color: colors.textPrimary }]}>admin@biosync.ai</Text>
+              <Text style={styles.supportValue}>admin@biosync.ai</Text>
               <View style={styles.supportDivider} />
               <Text style={styles.supportLabel}>IT Help Desk</Text>
-              <Text style={[styles.supportValue, { color: colors.textPrimary }]}>+91 40 8822 4000</Text>
+              <Text style={styles.supportValue}>+91 40 8822 4000</Text>
             </View>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={() => setSupportVisible(false)} activeOpacity={0.8}>
-              <Text style={[styles.modalBtnText, { color: '#FFFFFF' }]}>Understood</Text>
+            <TouchableOpacity style={styles.modalBtn} onPress={() => setSupportVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.modalBtnText}>Understood</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -234,192 +267,373 @@ export const LoginScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+const getStyles = (colors, isDark) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bgDark,
+    },
 
-  // Ambient orbs
-  orb:   { position: 'absolute', width: width * 0.75, height: width * 0.75, borderRadius: width * 0.375, opacity: 0.12 },
-  orbTL: { backgroundColor: '#06b6d4', top: -(width * 0.2), left: -(width * 0.2) },
-  orbBR: { backgroundColor: '#3b82f6', bottom: -(width * 0.2), right: -(width * 0.25) },
+    // Top bar with security badge + theme toggle
+    topBar: {
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? 54 : 34,
+      left: 20,
+      right: 20,
+      zIndex: 50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    securityBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.borderEmerald,
+      borderWidth: 1,
+      borderColor: colors.borderEmeraldStrong,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    securityBadgeText: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.emeraldLight,
+      letterSpacing: 0.7,
+    },
+    themeToggleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+      shadowColor: isDark ? '#000000' : '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.35 : 0.06,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    themeToggleText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      letterSpacing: 0.2,
+    },
 
-  // Toast
-  toast: {
-    position:        'absolute',
-    top:             Platform.OS === 'ios' ? 56 : 36,
-    alignSelf:       'center',
-    zIndex:          999,
-    flexDirection:   'row',
-    alignItems:      'center',
-    backgroundColor: 'rgba(14, 14, 18, 0.94)',
-    borderWidth:     1,
-    borderColor:     'rgba(16, 185, 129, 0.25)',
-    paddingHorizontal: 16,
-    paddingVertical:   10,
-    borderRadius:    100,
-    gap:             10,
-    shadowColor:     '#10b981',
-    shadowOffset:    { width: 0, height: 6 },
-    shadowOpacity:   0.22,
-    shadowRadius:    14,
-    elevation:       8,
-  },
-  toastCheck: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#10b981',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  toastText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.1 },
+    // Ambient orbs
+    orb: {
+      position: 'absolute',
+      width: width * 0.75,
+      height: width * 0.75,
+      borderRadius: width * 0.375,
+      opacity: isDark ? 0.12 : 0.08,
+    },
+    orbTL: { backgroundColor: '#06b6d4', top: -(width * 0.2), left: -(width * 0.2) },
+    orbBR: { backgroundColor: '#3b82f6', bottom: -(width * 0.2), right: -(width * 0.25) },
 
-  // Scroll
-  scroll: {
-    flexGrow:        1,
-    justifyContent:  'center',
-    padding:         24,
-    paddingTop:      Platform.OS === 'ios' ? 64 : 48,
-    paddingBottom:   40,
-  },
+    // Toast
+    toast: {
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? 98 : 78,
+      alignSelf: 'center',
+      zIndex: 999,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: colors.borderEmeraldStrong,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 100,
+      gap: 10,
+      shadowColor: colors.emerald,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.22,
+      shadowRadius: 14,
+      elevation: 8,
+    },
+    toastCheck: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.emerald,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    toastText: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '700',
+      letterSpacing: 0.1,
+    },
 
-  // Brand
-  brand:       { alignItems: 'center', marginBottom: 32 },
-  logoBadge: {
-    width: 76, height: 76, borderRadius: 24,
-    overflow: 'hidden', marginBottom: 14,
-    borderWidth: 1, borderColor: 'rgba(6,182,212,0.25)',
-    shadowColor: '#06b6d4', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35, shadowRadius: 20, elevation: 10,
-  },
-  logoGrad:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logoImage:   { width: 52, height: 52 },
-  brandTitle:  { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  brandSub:    { fontSize: 13, color: colors.textMuted, marginTop: 4, letterSpacing: 0.4 },
+    // Scroll
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: 24,
+      paddingTop: Platform.OS === 'ios' ? 96 : 80,
+      paddingBottom: 40,
+    },
 
-  // Card
-  card: {
-    backgroundColor: 'rgba(14, 14, 18, 0.65)',
-    borderRadius:    28,
-    borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.06)',
-    padding:         24,
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 20 },
-    shadowOpacity:   0.75,
-    shadowRadius:    28,
-    elevation:       12,
-  },
-  cardTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.4, marginBottom: 22 },
+    // Brand
+    brand: { alignItems: 'center', marginBottom: 28 },
+    logoBadge: {
+      width: 78,
+      height: 78,
+      borderRadius: 24,
+      overflow: 'hidden',
+      marginBottom: 14,
+      borderWidth: 1,
+      borderColor: colors.borderCyanStrong,
+      backgroundColor: isDark ? colors.bgCard : '#FFFFFF',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.35 : 0.15,
+      shadowRadius: 20,
+      elevation: 10,
+    },
+    logoGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    logoImage: { width: 52, height: 52 },
+    brandTitle: {
+      fontSize: 30,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
+    brandSub: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textMuted,
+      marginTop: 5,
+      letterSpacing: 1.2,
+    },
 
-  // Inputs
-  fieldGroup: { marginBottom: 18 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 8, letterSpacing: 0.1 },
-  labelRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  forgot:     { fontSize: 12, color: colors.primaryLight, fontWeight: '700' },
-  inputBox: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius:    14,
-    borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.08)',
-    paddingHorizontal: 14,
-    height:          52,
-  },
-  inputBoxFocused: {
-    borderColor:   'rgba(6,182,212,0.50)',
-    backgroundColor: 'rgba(6,182,212,0.04)',
-  },
-  inputIcon: { marginRight: 10 },
-  input: {
-    flex:       1,
-    height:     '100%',
-    color:      '#fff',
-    fontSize:   15,
-    fontWeight: '500',
-  },
-  eyeBtn: { padding: 6 },
+    // Card
+    card: {
+      backgroundColor: colors.bgCard,
+      borderRadius: 26,
+      borderWidth: 1,
+      borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+      padding: 24,
+      shadowColor: isDark ? '#000000' : '#0F172A',
+      shadowOffset: { width: 0, height: 14 },
+      shadowOpacity: isDark ? 0.65 : 0.08,
+      shadowRadius: 24,
+      elevation: 10,
+    },
+    cardTitle: {
+      fontSize: 21,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      letterSpacing: -0.4,
+      marginBottom: 4,
+    },
+    cardSubtitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.textMuted,
+      marginBottom: 22,
+    },
 
-  // Remember me
-  rememberRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20, marginTop: 2 },
-  checkbox: {
-    width: 20, height: 20, borderRadius: 6,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  checkboxActive:  { backgroundColor: colors.primary, borderColor: colors.primary },
-  rememberText:    { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+    // Inputs
+    fieldGroup: { marginBottom: 18 },
+    fieldLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textSecondary,
+      marginBottom: 8,
+      letterSpacing: 0.7,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    forgot: { fontSize: 12, color: colors.primaryLight, fontWeight: '800' },
+    inputBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? colors.bgCardSoft : '#F8FAFC',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+      paddingHorizontal: 14,
+      height: 52,
+    },
+    inputBoxFocused: {
+      borderColor: colors.primary,
+      backgroundColor: isDark ? 'rgba(6,182,212,0.06)' : '#FFFFFF',
+    },
+    inputIcon: { marginRight: 10 },
+    input: {
+      flex: 1,
+      height: '100%',
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    eyeBtn: { padding: 6 },
 
-  // Error
-  errorBox: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    gap:             10,
-    backgroundColor: 'rgba(244,63,94,0.10)',
-    borderWidth:     1,
-    borderColor:     'rgba(244,63,94,0.25)',
-    padding:         12,
-    borderRadius:    12,
-    marginBottom:    20,
-  },
-  errorText: { color: colors.roseLight, fontSize: 13, fontWeight: '600', flex: 1, lineHeight: 18 },
+    // Remember me
+    rememberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 20,
+      marginTop: 2,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: colors.borderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? colors.bgCardSoft : '#F8FAFC',
+    },
+    checkboxActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    rememberText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
 
-  // Submit button
-  submitBtn: {
-    height:       52,
-    borderRadius: 14,
-    overflow:     'hidden',
-    shadowColor:  '#06b6d4',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius:  14,
-    elevation:     8,
-  },
-  btnGrad:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  btnText:  { color: '#000', fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
+    // Error
+    errorBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.borderRose,
+      borderWidth: 1,
+      borderColor: colors.borderRoseStrong,
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 20,
+    },
+    errorText: {
+      color: colors.roseLight,
+      fontSize: 13,
+      fontWeight: '700',
+      flex: 1,
+      lineHeight: 18,
+    },
 
-  // Modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.78)',
-    justifyContent: 'center', padding: 24,
-  },
-  modalCard: {
-    backgroundColor: '#0e0e12',
-    borderRadius:    24,
-    borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.07)',
-    padding:         24,
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 16 },
-    shadowOpacity:   0.50,
-    shadowRadius:    24,
-    elevation:       20,
-  },
-  modalHeader:     { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  modalIconCircle: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(6,182,212,0.10)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  modalTitle:  { fontSize: 18, fontWeight: '800', color: '#fff', flex: 1 },
-  modalBody:   { fontSize: 14, color: colors.textMuted, marginBottom: 20, lineHeight: 21 },
-  supportBox: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius:    14,
-    padding:         18,
-    borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.05)',
-    marginBottom:    20,
-  },
-  supportDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 12 },
-  supportLabel:   { fontSize: 11, color: colors.textDisabled, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
-  supportValue:   { fontSize: 15, color: '#fff', fontWeight: '700', marginTop: 3 },
-  modalBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingVertical:  14,
-    borderRadius:     14,
-    alignItems:       'center',
-  },
-  modalBtnText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
-});
+    // Submit button
+    submitBtn: {
+      height: 52,
+      borderRadius: 14,
+      overflow: 'hidden',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.35 : 0.22,
+      shadowRadius: 14,
+      elevation: 8,
+    },
+    btnGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    btnText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+
+    // Modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.bgOverlay,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      backgroundColor: colors.bgCardElevated,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+      padding: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: isDark ? 0.50 : 0.15,
+      shadowRadius: 24,
+      elevation: 20,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 14,
+    },
+    modalIconCircle: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.borderCyan,
+      borderWidth: 1,
+      borderColor: colors.borderCyanStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    modalBody: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 20,
+      lineHeight: 21,
+    },
+    supportBox: {
+      backgroundColor: colors.bgCardSoft,
+      borderRadius: 14,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      marginBottom: 20,
+    },
+    supportDivider: {
+      height: 1,
+      backgroundColor: colors.borderSubtle,
+      marginVertical: 12,
+    },
+    supportLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    supportValue: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '800',
+      marginTop: 3,
+    },
+    modalBtn: {
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: 'center',
+    },
+    modalBtnText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+    },
+  });
 
 export default LoginScreen;

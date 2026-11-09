@@ -187,40 +187,53 @@ export const ProfileScreen = ({ navigation }) => {
 
           {!vitalsUploaded ? (
             /* NOT UPLOADED PROMPT & CALL TO ACTION */
-            <GlassCard style={styles.notUploadedCard}>
+            <GlassCard
+              style={[
+                styles.notUploadedCard,
+                {
+                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(217, 119, 6, 0.06)',
+                  borderColor: colors.amber,
+                },
+              ]}
+            >
               <View style={styles.notUploadedTop}>
                 <View style={styles.notUploadedIconWrap}>
-                  <AlertTriangle size={22} color={colors.amberLight} />
+                  <AlertTriangle size={22} color={colors.amber} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.notUploadedTitle}>Vitals Not Uploaded</Text>
-                  <Text style={styles.notUploadedSubtitle}>
+                  <Text style={[styles.notUploadedTitle, { color: colors.amber }]}>Vitals Not Uploaded</Text>
+                  <Text style={[styles.notUploadedSubtitle, { color: colors.textSecondary }]}>
                     In-detail clinical biomarkers & metabolic vitals have not been recorded yet.
                   </Text>
                 </View>
               </View>
 
-              <Text style={styles.notUploadedExplanation}>
+              <Text style={[styles.notUploadedExplanation, { color: colors.textMuted }]}>
                 BioSync AI requires verified laboratory vitals to calibrate our predictive neural model and unlock personalized meal nutrition scanning.
               </Text>
 
               <View style={styles.notUploadedActionsRow}>
                 <TouchableOpacity
-                  style={styles.healthSetupBtn}
+                  style={[styles.healthSetupBtn, { backgroundColor: colors.primary }]}
                   onPress={() => navigation.navigate('HealthSetup')}
                   activeOpacity={0.85}
                 >
-                  <Sparkles size={15} color="#000000" />
-                  <Text style={styles.healthSetupBtnText}>START INITIAL ASSESSMENT (3 CHOICES)</Text>
+                  <Sparkles size={15} color={isDark ? '#000000' : '#ffffff'} />
+                  <Text style={[styles.healthSetupBtnText, { color: isDark ? '#000000' : '#ffffff' }]}>
+                    START INITIAL ASSESSMENT (3 CHOICES)
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.bookAppointmentBtn}
+                  style={[
+                    styles.bookAppointmentBtn,
+                    { backgroundColor: colors.alphaCyan10, borderColor: colors.borderCyan },
+                  ]}
                   onPress={() => navigation.navigate('BookAppointment')}
                   activeOpacity={0.85}
                 >
-                  <CalendarPlus size={15} color={colors.cyan} />
-                  <Text style={styles.bookAppointmentBtnText}>BOOK HOME VISIT</Text>
+                  <CalendarPlus size={15} color={colors.primary} />
+                  <Text style={[styles.bookAppointmentBtnText, { color: colors.primary }]}>BOOK HOME VISIT</Text>
                 </TouchableOpacity>
               </View>
             </GlassCard>
@@ -228,21 +241,29 @@ export const ProfileScreen = ({ navigation }) => {
             /* VITALS TOTAL RECORD CARDS */
             <View style={styles.vitalsRecordContainer}>
               {/* Vitals Summary Banner */}
-              <GlassCard style={styles.vitalsSummaryBanner}>
+              <GlassCard
+                style={[
+                  styles.vitalsSummaryBanner,
+                  {
+                    backgroundColor: colors.alphaCyan10,
+                    borderColor: colors.borderCyan,
+                  },
+                ]}
+              >
                 <View style={styles.summaryBannerRow}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={styles.summaryBannerTitle}>
+                    <Text style={[styles.summaryBannerTitle, { color: colors.textPrimary }]}>
                       {totalBiomarkersCount} Biomarkers Calibrated
                     </Text>
-                    <Text style={styles.summaryBannerSub}>
+                    <Text style={[styles.summaryBannerSub, { color: colors.textSecondary }]}>
                       Status: {user?.vitalsStatus === 'Lab_Verified' ? 'NABL Lab Verified' : user?.vitalsStatus === 'PDF_Scanned' ? 'Report OCR Verified' : user?.vitalsStatus === 'Manual' ? 'Manual Baseline' : 'Active'} • Diagnostic Grade
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 6 }}>
                     <DataProvenanceBadge type={vitalsProvenance} size="xs" showLabel={true} />
                     <View style={styles.verifiedBadge}>
-                      <CheckCircle2 size={13} color={colors.emeraldLight} />
-                      <Text style={styles.verifiedBadgeText}>Verified</Text>
+                      <CheckCircle2 size={13} color={colors.emerald} />
+                      <Text style={[styles.verifiedBadgeText, { color: colors.emerald }]}>Verified</Text>
                     </View>
                   </View>
                 </View>
@@ -252,41 +273,41 @@ export const ProfileScreen = ({ navigation }) => {
               <View style={styles.vitalsCategoryGrid}>
                 {/* 1. Cardiovascular Risk Panel */}
                 <GlassCard style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <Heart size={16} color={colors.roseLight} />
-                    <Text style={styles.categoryTitle}>Cardiovascular & Hemodynamic</Text>
+                  <View style={[styles.categoryHeader, { borderBottomColor: colors.borderSubtle }]}>
+                    <Heart size={16} color={colors.rose} />
+                    <Text style={[styles.categoryTitle, { color: colors.textPrimary }]}>Cardiovascular & Hemodynamic</Text>
                   </View>
                   <View style={styles.biomarkersRow}>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Blood Pressure</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Blood Pressure</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.cardiovascularRisk?.systolic && latestVitals?.cardiovascularRisk?.diastolic
                           ? `${latestVitals.cardiovascularRisk.systolic}/${latestVitals.cardiovascularRisk.diastolic}`
                           : '118/76'}
-                        <Text style={styles.bioUnit}> mmHg</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> mmHg</Text>
                       </Text>
                     </View>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Resting Pulse</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Resting Pulse</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.continuousMetrics?.restingHeartRate || 72}
-                        <Text style={styles.bioUnit}> BPM</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> BPM</Text>
                       </Text>
                     </View>
                   </View>
                   <View style={styles.biomarkersRow}>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Total Cholesterol</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Total Cholesterol</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.cardiovascularRisk?.totalCholesterol || 174}
-                        <Text style={styles.bioUnit}> mg/dL</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> mg/dL</Text>
                       </Text>
                     </View>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Triglycerides</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Triglycerides</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.cardiovascularRisk?.triglycerides || 132}
-                        <Text style={styles.bioUnit}> mg/dL</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> mg/dL</Text>
                       </Text>
                     </View>
                   </View>
@@ -294,39 +315,39 @@ export const ProfileScreen = ({ navigation }) => {
 
                 {/* 2. Metabolic & Glycemic Panel */}
                 <GlassCard style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <Zap size={16} color={colors.amberLight} />
-                    <Text style={styles.categoryTitle}>Metabolic & Glycemic Profile</Text>
+                  <View style={[styles.categoryHeader, { borderBottomColor: colors.borderSubtle }]}>
+                    <Zap size={16} color={colors.amber} />
+                    <Text style={[styles.categoryTitle, { color: colors.textPrimary }]}>Metabolic & Glycemic Profile</Text>
                   </View>
                   <View style={styles.biomarkersRow}>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Fasting Glucose</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Fasting Glucose</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.metabolicHealth?.glucoseFasting || 92}
-                        <Text style={styles.bioUnit}> mg/dL</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> mg/dL</Text>
                       </Text>
                     </View>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>HbA1c</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>HbA1c</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.metabolicHealth?.hba1c || 5.4}
-                        <Text style={styles.bioUnit}> %</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> %</Text>
                       </Text>
                     </View>
                   </View>
                   <View style={styles.biomarkersRow}>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Post-Prandial</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Post-Prandial</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.metabolicHealth?.glucosePostPrandial || 124}
-                        <Text style={styles.bioUnit}> mg/dL</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> mg/dL</Text>
                       </Text>
                     </View>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Fasting Insulin</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Fasting Insulin</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.metabolicHealth?.insulin || 8.6}
-                        <Text style={styles.bioUnit}> μIU/mL</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> μIU/mL</Text>
                       </Text>
                     </View>
                   </View>
@@ -334,23 +355,23 @@ export const ProfileScreen = ({ navigation }) => {
 
                 {/* 3. Continuous Telemetry Panel */}
                 <GlassCard style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <Wind size={16} color={colors.cyanLight} />
-                    <Text style={styles.categoryTitle}>Continuous Telemetry & SpO2</Text>
+                  <View style={[styles.categoryHeader, { borderBottomColor: colors.borderSubtle }]}>
+                    <Wind size={16} color={colors.cyan} />
+                    <Text style={[styles.categoryTitle, { color: colors.textPrimary }]}>Continuous Telemetry & SpO2</Text>
                   </View>
                   <View style={styles.biomarkersRow}>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Arterial SpO2</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Arterial SpO2</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.continuousMetrics?.oxygenSaturationSpO2 || 99}
-                        <Text style={styles.bioUnit}> %</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> %</Text>
                       </Text>
                     </View>
                     <View style={styles.biomarkerItem}>
-                      <Text style={styles.bioLabel}>Heart Rate Var (HRV)</Text>
-                      <Text style={styles.bioVal}>
+                      <Text style={[styles.bioLabel, { color: colors.textMuted }]}>Heart Rate Var (HRV)</Text>
+                      <Text style={[styles.bioVal, { color: colors.textPrimary }]}>
                         {latestVitals?.continuousMetrics?.hrv || 52}
-                        <Text style={styles.bioUnit}> ms</Text>
+                        <Text style={[styles.bioUnit, { color: colors.textMuted }]}> ms</Text>
                       </Text>
                     </View>
                   </View>
@@ -364,7 +385,7 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 2. APPOINTMENT BOOKING & 30-DAY CALIBRATION SECTION       */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>HEALTH CHECKUP CYCLE</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>HEALTH CHECKUP CYCLE</Text>
 
           <GlassCard style={styles.calibrationCard}>
             <View style={styles.calibrationHeader}>
@@ -372,10 +393,10 @@ export const ProfileScreen = ({ navigation }) => {
                 <Sparkles size={20} color={colors.cyan} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.calibrationTitle}>
+                <Text style={[styles.calibrationTitle, { color: colors.textPrimary }]}>
                   {canBook ? 'Checkup Available' : 'Routine Checkup Cycle'}
                 </Text>
-                <Text style={styles.calibrationSubtitle}>
+                <Text style={[styles.calibrationSubtitle, { color: colors.textSecondary }]}>
                   {canBook
                     ? 'Schedule a home visit to update your vitals and health history.'
                     : `Next checkup eligible in ${daysRemaining} days.`}
@@ -384,7 +405,16 @@ export const ProfileScreen = ({ navigation }) => {
             </View>
 
             {/* Calibration explanation note */}
-            <Text style={styles.calibrationExplainerText}>
+            <Text
+              style={[
+                styles.calibrationExplainerText,
+                {
+                  backgroundColor: colors.bgCardSurface,
+                  borderColor: colors.borderSubtle,
+                  color: colors.textSecondary,
+                },
+              ]}
+            >
               Regular checkups every 30 days help maintain accurate, up-to-date health insights.
             </Text>
 
@@ -392,47 +422,56 @@ export const ProfileScreen = ({ navigation }) => {
             {!canBook && !activeAppointment && (
               <View style={styles.calibrationProgressWrap}>
                 <View style={styles.progressHeaderRow}>
-                  <Text style={styles.progressLabelText}>Checkup Cycle Progress</Text>
-                  <Text style={styles.progressValueText}>{daysSince}/30 Days ({calibrationPercent}%)</Text>
+                  <Text style={[styles.progressLabelText, { color: colors.textMuted }]}>Checkup Cycle Progress</Text>
+                  <Text style={[styles.progressValueText, { color: colors.primary }]}>{daysSince}/30 Days ({calibrationPercent}%)</Text>
                 </View>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${calibrationPercent}%` }]} />
+                <View style={[styles.progressTrack, { backgroundColor: colors.borderSubtle }]}>
+                  <View style={[styles.progressFill, { width: `${calibrationPercent}%`, backgroundColor: colors.primary }]} />
                 </View>
               </View>
             )}
 
             {/* Active Appointment Notice */}
             {activeAppointment ? (
-              <View style={styles.activeApptBox}>
+              <View style={[styles.activeApptBox, { backgroundColor: colors.alphaCyan10 }]}>
                 <View style={styles.activeApptRow}>
-                  <Zap size={14} color={colors.cyan} />
-                  <Text style={styles.activeApptText}>
+                  <Zap size={14} color={colors.primary} />
+                  <Text style={[styles.activeApptText, { color: colors.primary }]}>
                     Active Visit in Progress: {activeAppointment.status}
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.viewHomeBtn}
+                  style={[styles.viewHomeBtn, { backgroundColor: colors.primary }]}
                   onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.viewHomeBtnText}>TRACK ON HOME SCREEN</Text>
+                  <Text style={[styles.viewHomeBtnText, { color: isDark ? '#000000' : '#ffffff' }]}>
+                    TRACK ON HOME SCREEN
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : canBook ? (
               /* ALLOWED TO BOOK */
               <TouchableOpacity
-                style={styles.bookCalibrationBtn}
+                style={[styles.bookCalibrationBtn, { backgroundColor: colors.primary }]}
                 onPress={() => navigation.navigate('BookAppointment')}
                 activeOpacity={0.85}
               >
-                <CalendarPlus size={16} color="#000000" />
-                <Text style={styles.bookCalibrationBtnText}>SCHEDULE HEALTH CHECKUP</Text>
+                <CalendarPlus size={16} color={isDark ? '#000000' : '#ffffff'} />
+                <Text style={[styles.bookCalibrationBtnText, { color: isDark ? '#000000' : '#ffffff' }]}>
+                  SCHEDULE HEALTH CHECKUP
+                </Text>
               </TouchableOpacity>
             ) : (
               /* 30-DAY RESTRICTION LOCKED BUTTON */
-              <View style={styles.lockedBtnWrap}>
+              <View
+                style={[
+                  styles.lockedBtnWrap,
+                  { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle },
+                ]}
+              >
                 <Lock size={15} color={colors.textMuted} />
-                <Text style={styles.lockedBtnText}>
+                <Text style={[styles.lockedBtnText, { color: colors.textMuted }]}>
                   NEXT CHECKUP IN {daysRemaining} DAYS
                 </Text>
               </View>
@@ -444,24 +483,30 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 3. NABL ACCOUNT STANDING & COMPLIANCE                     */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT STATUS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>ACCOUNT STATUS</Text>
           <GlassCard
             style={[
               styles.complianceCard,
-              isSuspended && styles.complianceCardSuspended,
+              isSuspended && [
+                styles.complianceCardSuspended,
+                {
+                  borderColor: colors.rose,
+                  backgroundColor: isDark ? '#160808' : '#fff1f2',
+                },
+              ],
             ]}
           >
             <View style={styles.complianceRow}>
               {isSuspended ? (
-                <ShieldAlert size={20} color={colors.roseLight} />
+                <ShieldAlert size={20} color={colors.rose} />
               ) : (
-                <Shield size={20} color={colors.emeraldLight} />
+                <Shield size={20} color={colors.emerald} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.complianceTitle}>
+                <Text style={[styles.complianceTitle, { color: colors.textPrimary }]}>
                   Status: {user?.accountStatus || 'Active'}
                 </Text>
-                <Text style={styles.complianceSubtitle}>
+                <Text style={[styles.complianceSubtitle, { color: colors.textSecondary }]}>
                   {isSuspended
                     ? 'Account temporarily paused due to repeated cancellations.'
                     : 'Verified Patient Account'}
@@ -469,23 +514,25 @@ export const ProfileScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.strikeRow}>
-              <Text style={styles.strikeLabel}>Cancellation Strikes:</Text>
+            <View style={[styles.strikeRow, { borderTopColor: colors.borderSubtle }]}>
+              <Text style={[styles.strikeLabel, { color: colors.textSecondary }]}>Cancellation Strikes:</Text>
               <View style={styles.strikeDots}>
                 <View
                   style={[
                     styles.strikeDot,
+                    { backgroundColor: colors.bgCardSurface, borderColor: colors.borderMedium },
                     strikes >= 1 && styles.strikeDotActive,
                   ]}
                 />
                 <View
                   style={[
                     styles.strikeDot,
+                    { backgroundColor: colors.bgCardSurface, borderColor: colors.borderMedium },
                     strikes >= 2 && styles.strikeDotActive,
                   ]}
                 />
               </View>
-              <Text style={styles.strikeLimitText}>({strikes}/2 Maximum)</Text>
+              <Text style={[styles.strikeLimitText, { color: colors.textMuted }]}>({strikes}/2 Maximum)</Text>
             </View>
           </GlassCard>
         </View>
@@ -494,18 +541,18 @@ export const ProfileScreen = ({ navigation }) => {
         {/* 4. REGISTERED HOME COLLECTION ADDRESS                     */}
         {/* ========================================================= */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>COLLECTION ADDRESS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>COLLECTION ADDRESS</Text>
           <GlassCard style={styles.addressCard}>
             <View style={styles.addressRow}>
-              <MapPin size={20} color={colors.cyan} />
+              <MapPin size={20} color={colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.addressMain}>
+                <Text style={[styles.addressMain, { color: colors.textPrimary }]}>
                   {user?.address?.street || 'Flat 402, Highline Residency'}
                 </Text>
-                <Text style={styles.addressSub}>
+                <Text style={[styles.addressSub, { color: colors.textSecondary }]}>
                   {user?.address?.city || 'Hyderabad'}, {user?.address?.pincode || '500081'}
                 </Text>
-                <Text style={styles.coordsText}>
+                <Text style={[styles.coordsText, { color: colors.textMuted }]}>
                   GPS: {user?.address?.coordinates?.lat || '17.4435'}° N,{' '}
                   {user?.address?.coordinates?.lng || '78.3842'}° E
                 </Text>
@@ -802,21 +849,36 @@ export const ProfileScreen = ({ navigation }) => {
         </View>
 
         {/* Clinical Disclaimer */}
-        <View style={styles.disclaimerBox}>
+        <View
+          style={[
+            styles.disclaimerBox,
+            {
+              backgroundColor: colors.bgCardElevated,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
           <FileCheck2 size={16} color={colors.textMuted} />
-          <Text style={styles.disclaimerText}>
+          <Text style={[styles.disclaimerText, { color: colors.textMuted }]}>
             All specimens are handled in strict adherence to CLSI H3-A6 standards with full cold chain audit logs.
           </Text>
         </View>
 
         {/* Logout Button */}
         <TouchableOpacity
-          style={styles.logoutBtn}
+          style={[
+            styles.logoutBtn,
+            {
+              backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : 'rgba(225, 29, 72, 0.08)',
+              borderColor: colors.rose,
+            },
+          ]}
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <LogOut size={16} color={colors.roseLight} />
-          <Text style={styles.logoutBtnText}>SIGN OUT</Text>
+          <LogOut size={16} color={colors.rose} />
+          <Text style={[styles.logoutBtnText, { color: colors.rose }]}>SIGN OUT</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -1057,9 +1119,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   categoryCard: {
-    backgroundColor: '#0a0a0a',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 14,
   },
   categoryHeader: {
@@ -1101,9 +1161,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   calibrationCard: {
-    backgroundColor: '#0a0a0a',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 16,
   },
   calibrationHeader: {
@@ -1231,8 +1289,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   complianceCard: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
   },
   complianceCardSuspended: {
     borderColor: colors.rose,
@@ -1288,8 +1345,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   addressCard: {
-    backgroundColor: '#0a0a0a',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
   },
   addressRow: {
     flexDirection: 'row',

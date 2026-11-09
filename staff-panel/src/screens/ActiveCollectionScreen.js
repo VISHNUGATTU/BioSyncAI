@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -47,7 +47,7 @@ import {
   AlertOctagon,
   Scan,
 } from 'lucide-react-native';
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import useAuthStore from '../store/authStore';
 import staffApi from '../api/staffApi';
@@ -63,7 +63,8 @@ import offlineSyncQueueService from '../services/offlineSyncQueueService';
 import { OfflineSyncBanner } from '../components/OfflineSyncBanner';
 
 export const ActiveCollectionScreen = ({ route, navigation }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const { appointment } = route.params || {};
   const { collectSampleAndCOD, dropoffSamplesToLab } = useAppointmentStore();
   const role = useAuthStore((state) => state.role || state.user?.role || 'lab_assistant');
@@ -2800,7 +2801,7 @@ export const ActiveCollectionScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -2812,13 +2813,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: isDark ? colors.borderDefault : colors.borderSubtle,
+    backgroundColor: isDark ? colors.bgSurface : '#FFFFFF',
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.glassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2861,7 +2865,7 @@ const styles = StyleSheet.create({
   },
   navTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   stepIndicatorContainer: {
@@ -2869,13 +2873,15 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: isDark ? colors.bgSurface : '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
   },
   stepBar: {
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.glassStrong,
   },
   stepBarActive: {
     backgroundColor: colors.cyan,
@@ -2900,9 +2906,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.bgCardSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: colors.borderSubtle,
     borderRadius: 10,
     padding: 10,
     marginBottom: 10,
@@ -3026,7 +3032,7 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
   otpTextInput: {
-    backgroundColor: 'rgba(12, 12, 12, 0.9)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.9)' : '#F8FAFC',
     borderWidth: 1.5,
     borderColor: colors.violetLight,
     borderRadius: 14,
@@ -3108,9 +3114,9 @@ const styles = StyleSheet.create({
   vitalFieldWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(12, 12, 12, 0.8)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.8)' : '#F8FAFC',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     borderRadius: 10,
     paddingHorizontal: 10,
     height: 42,
@@ -3164,9 +3170,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: colors.bgCardSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
   },
   chipActive: {
     backgroundColor: colors.cyan + '20',
@@ -3182,9 +3188,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   standardTextInput: {
-    backgroundColor: 'rgba(12, 12, 12, 0.8)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.8)' : '#F8FAFC',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -3197,7 +3203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: colors.borderSubtle,
   },
   questionText: {
     fontSize: 12,
@@ -3211,11 +3217,11 @@ const styles = StyleSheet.create({
   },
   pillChoiceGroup: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(12, 12, 12, 0.6)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.6)' : '#F1F5F9',
     borderRadius: 8,
     padding: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
   },
   pillBtn: {
     paddingHorizontal: 12,
@@ -3350,9 +3356,9 @@ const styles = StyleSheet.create({
   },
   barcodeTextInput: {
     flex: 1,
-    backgroundColor: 'rgba(12, 12, 12, 0.9)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.9)' : '#F8FAFC',
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.3)',
+    borderColor: colors.borderCyanStrong,
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 40,
@@ -3437,7 +3443,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.bgCardSoft,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     padding: 14,
     borderRadius: 12,
     marginBottom: 14,
@@ -3476,9 +3484,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: colors.bgCardSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     gap: 6,
   },
   paymentModeCardActive: {
@@ -3526,10 +3534,10 @@ const styles = StyleSheet.create({
   },
   kitSummaryBox: {
     width: '100%',
-    backgroundColor: 'rgba(12, 12, 12, 0.8)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.8)' : colors.bgCardSoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 12,
     marginVertical: 16,
     gap: 8,
@@ -3572,9 +3580,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: colors.bgCardSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.borderSubtle,
   },
   secondaryActionBtnText: {
     color: colors.textPrimary,
@@ -3601,10 +3609,10 @@ const styles = StyleSheet.create({
   // Step 5 Decision & Vitals Styles
   resultsDecisionContainer: {
     width: '100%',
-    backgroundColor: 'rgba(12, 12, 12, 0.65)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.65)' : colors.bgCardSoft,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 14,
     marginTop: 14,
   },
@@ -3638,9 +3646,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.borderSubtle,
   },
   decisionOptionBtnActiveNo: {
     backgroundColor: colors.amber + '18',
@@ -3776,8 +3784,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   barcodeStationCard: {
-    borderColor: 'rgba(6, 182, 212, 0.3)',
-    backgroundColor: '#0a0a0a',
+    borderColor: colors.borderCyanStrong,
+    backgroundColor: isDark ? '#0B1120' : '#FFFFFF',
     marginBottom: 16,
   },
   stationHeaderRow: {
@@ -3799,7 +3807,7 @@ const styles = StyleSheet.create({
   stationTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#ffffff',
+    color: colors.textPrimary,
     letterSpacing: 0.3,
   },
   stationSub: {
@@ -3828,9 +3836,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   activeBarcodeBox: {
-    backgroundColor: '#121212',
+    backgroundColor: isDark ? '#111827' : colors.bgCardSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: colors.borderSubtle,
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',

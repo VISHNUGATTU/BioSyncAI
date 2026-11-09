@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,9 +28,11 @@ import {
   Headset,
   Bell,
   Volume2,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 
-import { colors, gradients, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAuthStore from '../store/authStore';
 import useAppointmentStore from '../store/appointmentStore';
 import DutyStatusSwitch from '../components/DutyStatusSwitch';
@@ -44,7 +46,8 @@ import { OfflineSyncBanner } from '../components/OfflineSyncBanner';
 import webPushService from '../services/webPushService';
 
 export const DashboardScreen = ({ navigation }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors, gradients, toggleTheme } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const staff = useAuthStore((state) => state.staff);
   const dutyStatus = useAuthStore((state) => state.dutyStatus);
   const setDutyStatus = useAuthStore((state) => state.setDutyStatus);
@@ -237,6 +240,27 @@ export const DashboardScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.themeHeaderBtn}
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+              accessibilityLabel="Toggle color theme"
+            >
+              {isDark ? (
+                <Sun
+                  size={17}
+                  color={colors.amberLight}
+                  strokeWidth={2.2}
+                />
+              ) : (
+                <Moon
+                  size={17}
+                  color={colors.primaryLight}
+                  strokeWidth={2.2}
+                />
+              )}
+            </TouchableOpacity>
+
             {Platform.OS === 'web' && (
               <TouchableOpacity
                 style={styles.webAlertHeaderBtn}
@@ -793,7 +817,7 @@ export const DashboardScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -849,7 +873,7 @@ const styles = StyleSheet.create({
 
   greetingText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.3,
   },
@@ -890,12 +914,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textSecondary,
     marginLeft: 3,
+    fontWeight: '600',
   },
 
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
+  },
+
+  themeHeaderBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
+    borderWidth: 1,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.25 : 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
   webAlertHeaderBtn: {
@@ -1289,10 +1330,15 @@ const styles = StyleSheet.create({
 
   sampleTrackCard: {
     backgroundColor: colors.bgCard,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: 12,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+    padding: 13,
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: isDark ? 0.25 : 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   sampleTrackRow: {
@@ -1409,14 +1455,19 @@ const styles = StyleSheet.create({
 
   shortcutCard: {
     flex: 1,
-    minHeight: 96,
+    minHeight: 98,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: isDark ? 0.25 : 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   shortcutIcon: {

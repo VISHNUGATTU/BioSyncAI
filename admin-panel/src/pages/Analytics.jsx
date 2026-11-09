@@ -124,25 +124,6 @@ export const Analytics = () => {
     ];
   }, [data?.testTypesDistribution]);
 
-  // Daily intake trend
-  const dailyIntakeData = useMemo(() => {
-    if (data?.dailyAppointments && data.dailyAppointments.length > 0) {
-      return data.dailyAppointments.map((d) => ({
-        date: d._id,
-        count: d.count,
-      }));
-    }
-    return [
-      { date: 'Mon', count: 12 },
-      { date: 'Tue', count: 15 },
-      { date: 'Wed', count: 18 },
-      { date: 'Thu', count: 14 },
-      { date: 'Fri', count: 22 },
-      { date: 'Sat', count: 28 },
-      { date: 'Sun', count: 25 },
-    ];
-  }, [data?.dailyAppointments]);
-
   const formatCurrency = (value) => {
     return `₹${Number(value || 0).toLocaleString('en-IN')}`;
   };
@@ -161,21 +142,21 @@ export const Analytics = () => {
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
               Healthcare Business Intelligence
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
             Comprehensive Clinical Analytics
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Multi-dimensional revenue breakdown, field collection velocity, and laboratory operational throughput.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Time range selector */}
-          <div className="flex items-center gap-1 rounded-xl border border-white/70 bg-white/60 p-1 shadow-xs backdrop-blur-md">
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/80 p-1 shadow-2xs backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
             {[
               { label: '7 Days', val: '7d' },
               { label: '30 Days', val: '30d' },
@@ -187,8 +168,8 @@ export const Analytics = () => {
                 onClick={() => setTimeRange(t.val)}
                 className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all ${
                   timeRange === t.val
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                    ? 'bg-cyan-600 text-white shadow-2xs dark:bg-cyan-500 dark:text-slate-950'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
                 }`}
               >
                 {t.label}
@@ -200,7 +181,7 @@ export const Analytics = () => {
             type="button"
             onClick={fetchData}
             disabled={loading}
-            className="flex h-9 items-center gap-2 rounded-xl border border-white/70 bg-white/70 px-3.5 text-xs font-bold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:bg-white hover:text-cyan-600 disabled:opacity-50"
+            className="flex h-9 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-xs font-bold text-slate-700 shadow-2xs backdrop-blur-md transition-all hover:bg-white hover:text-cyan-600 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-cyan-400"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin text-cyan-500' : ''} />
             <span>Refresh</span>
@@ -213,66 +194,66 @@ export const Analytics = () => {
       {/* ------------------------------------------------------------- */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Gross Revenue */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gross Revenue</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Gross Revenue</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <IndianRupee size={17} />
             </div>
           </div>
-          <p className="mt-3 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+          <p className="mt-3 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums sm:text-3xl">
             {formatCurrency(totalRevenue)}
           </p>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+          <div className="mt-2 flex items-center justify-between border-t border-slate-200/70 pt-2 text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400 tabular-nums">
             <span>Online: {formatCurrency(onlineRevenue)}</span>
-            <span className="font-semibold text-emerald-600">COD: {formatCurrency(codRevenue)}</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">COD: {formatCurrency(codRevenue)}</span>
           </div>
         </div>
 
         {/* Average Order Value */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg. Revenue / Visit</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Avg. Revenue / Visit</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
               <TrendingUp size={17} />
             </div>
           </div>
-          <p className="mt-3 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+          <p className="mt-3 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums sm:text-3xl">
             {formatCurrency(aov)}
           </p>
-          <p className="mt-2 text-[11px] font-medium text-cyan-600 border-t border-slate-100 pt-2">
+          <p className="mt-2 border-t border-slate-200/70 pt-2 text-[11px] font-medium text-cyan-600 dark:border-slate-800 dark:text-cyan-400">
             Based on completed diagnostic visits
           </p>
         </div>
 
         {/* Collection Completion Rate */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Completion Rate</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Completion Rate</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <CheckCircle2 size={17} />
             </div>
           </div>
-          <p className="mt-3 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+          <p className="mt-3 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums sm:text-3xl">
             {completionRate}%
           </p>
-          <p className="mt-2 text-[11px] font-medium text-indigo-600 border-t border-slate-100 pt-2">
+          <p className="mt-2 border-t border-slate-200/70 pt-2 text-[11px] font-medium text-indigo-600 dark:border-slate-800 dark:text-indigo-400">
             {completedVisits} successfully finalized visits
           </p>
         </div>
 
         {/* Active Staff Fleet Utilization */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Fleet Operations</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
+            <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Fleet Operations</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Truck size={17} />
             </div>
           </div>
-          <p className="mt-3 text-2xl font-extrabold text-slate-900 sm:text-3xl">
-            {kpis?.fleet?.totalActive || kpis?.activeLabAssistants || 0} <span className="text-sm font-semibold text-slate-400">On Duty</span>
+          <p className="mt-3 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums sm:text-3xl">
+            {kpis?.fleet?.totalActive || kpis?.activeLabAssistants || 0} <span className="font-sans text-sm font-semibold text-slate-400 dark:text-slate-500">On Duty</span>
           </p>
-          <p className="mt-2 text-[11px] font-medium text-purple-600 border-t border-slate-100 pt-2">
+          <p className="mt-2 border-t border-slate-200/70 pt-2 text-[11px] font-medium text-purple-600 dark:border-slate-800 dark:text-purple-400">
             {kpis?.fleet?.onRoute || 0} currently in transit to patients
           </p>
         </div>
@@ -283,15 +264,15 @@ export const Analytics = () => {
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Monthly Revenue Trend */}
-        <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200/50 pb-3">
+        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="mb-4 flex items-center justify-between border-b border-slate-200/70 pb-3 dark:border-slate-800">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Revenue Trajectory & Expansion</h2>
-              <p className="text-[11px] font-medium text-slate-500">Gross billing per monthly collection cycle</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Revenue Trajectory &amp; Expansion</h2>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Gross billing per monthly collection cycle</p>
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-bold uppercase text-slate-400">Annual Total</span>
-              <p className="text-sm font-extrabold text-slate-900">{formatCurrency(chartTotal)}</p>
+              <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">Annual Total</span>
+              <p className="font-mono text-sm font-extrabold text-slate-900 dark:text-white tabular-nums">{formatCurrency(chartTotal)}</p>
             </div>
           </div>
 
@@ -316,10 +297,11 @@ export const Analytics = () => {
                 <Tooltip
                   formatter={(value) => [formatCurrency(value), 'Gross Revenue']}
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(226, 232, 240, 0.8)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(51, 65, 85, 0.8)',
+                    color: '#f8fafc',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
                     fontSize: '11px',
                   }}
                 />
@@ -330,13 +312,13 @@ export const Analytics = () => {
         </section>
 
         {/* 8-Stage State Machine Distribution Funnel */}
-        <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200/50 pb-3">
+        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="mb-4 flex items-center justify-between border-b border-slate-200/70 pb-3 dark:border-slate-800">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">8-Stage Lifecycle Funnel Throughput</h2>
-              <p className="text-[11px] font-medium text-slate-500">Distribution of patient appointments across active stages</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">8-Stage Lifecycle Funnel Throughput</h2>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Distribution of patient appointments across active stages</p>
             </div>
-            <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-bold text-cyan-700 border border-cyan-100">
+            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-300">
               Live Pipeline
             </span>
           </div>
@@ -350,10 +332,11 @@ export const Analytics = () => {
                 <Tooltip
                   formatter={(val) => [val, 'Appointments']}
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(226, 232, 240, 0.8)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(51, 65, 85, 0.8)',
+                    color: '#f8fafc',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
                     fontSize: '11px',
                   }}
                 />
@@ -373,15 +356,15 @@ export const Analytics = () => {
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Diagnostic Test Catalog Popularity */}
-        <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200/50 pb-3">
+        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="mb-4 flex items-center justify-between border-b border-slate-200/70 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
                 <FlaskConical size={16} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Diagnostic Panel Demand</h2>
-                <p className="text-[11px] font-medium text-slate-500">Most requested diagnostic profiles</p>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Diagnostic Panel Demand</h2>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Most requested diagnostic profiles</p>
               </div>
             </div>
           </div>
@@ -403,10 +386,11 @@ export const Analytics = () => {
                 <Tooltip
                   formatter={(val) => [val, 'Samples Ordered']}
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.94)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(226, 232, 240, 0.8)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(51, 65, 85, 0.8)',
+                    color: '#f8fafc',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
                     fontSize: '11px',
                   }}
                 />
@@ -417,53 +401,53 @@ export const Analytics = () => {
         </section>
 
         {/* Payment Channels: Online vs Cash on Delivery */}
-        <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200/50 pb-3">
+        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="mb-4 flex items-center justify-between border-b border-slate-200/70 pb-3 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <CreditCard size={16} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Payment Collection Channels</h2>
-                <p className="text-[11px] font-medium text-slate-500">Online settlement gateway vs Home Cash on Delivery</p>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Payment Collection Channels</h2>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Online settlement gateway vs Home Cash on Delivery</p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 my-4">
-            <div className="rounded-xl border border-cyan-100 bg-cyan-50/50 p-4">
-              <div className="flex items-center gap-2 text-cyan-700">
+          <div className="my-4 grid grid-cols-2 gap-4">
+            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] p-4 dark:bg-cyan-500/[0.08]">
+              <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300">
                 <CreditCard size={16} />
                 <span className="text-xs font-bold">Online Gateway (UPI/Card)</span>
               </div>
-              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+              <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
                 {formatCurrency(onlineRevenue)}
               </p>
-              <p className="mt-1 text-[11px] font-medium text-cyan-600">
+              <p className="mt-1 text-[11px] font-medium text-cyan-600 dark:text-cyan-400">
                 {totalRevenue > 0 ? `${Math.round((onlineRevenue / totalRevenue) * 100)}% of total volume` : '72% volume'}
               </p>
             </div>
 
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <div className="flex items-center gap-2 text-emerald-700">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 dark:bg-emerald-500/[0.08]">
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                 <Banknote size={16} />
                 <span className="text-xs font-bold">Cash On Delivery (COD)</span>
               </div>
-              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+              <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
                 {formatCurrency(codRevenue)}
               </p>
-              <p className="mt-1 text-[11px] font-medium text-emerald-600">
+              <p className="mt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                 {totalRevenue > 0 ? `${Math.round((codRevenue / totalRevenue) * 100)}% of total volume` : '28% volume'}
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-100 bg-white/70 p-3.5 mt-4">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
+          <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
               <span>Collection Settlement Ratio</span>
-              <span>100% Reconciled</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400">100% Reconciled</span>
             </div>
-            <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100 gap-1">
+            <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
               <div
                 className="bg-cyan-500"
                 style={{ width: `${totalRevenue > 0 ? (onlineRevenue / totalRevenue) * 100 : 72}%` }}
@@ -473,7 +457,7 @@ export const Analytics = () => {
                 style={{ width: `${totalRevenue > 0 ? (codRevenue / totalRevenue) * 100 : 28}%` }}
               />
             </div>
-            <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+            <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
               <span>Online Gateway Direct Transfer</span>
               <span>Phlebotomist Physical COD Deposit</span>
             </div>

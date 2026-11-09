@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ import {
   ShieldCheck,
   Lock,
 } from 'lucide-react-native';
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import { useAuthStore } from '../store/authStore';
 import staffApi from '../api/staffApi';
@@ -36,7 +36,8 @@ import StatusBadge from '../components/StatusBadge';
 import VitalsFormSection from '../components/VitalsFormSection';
 
 export const SamplesScreen = ({ route, navigation }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const role = useAuthStore((state) => state.role || state.user?.role || 'lab_assistant');
   const isDoctor = role === 'doctor';
 
@@ -1124,7 +1125,7 @@ export const SamplesScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -1139,21 +1140,23 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 20,
-    backgroundColor: colors.bgCardElevated,
+    backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     padding: 4,
     marginBottom: 10,
   },
@@ -1220,10 +1223,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     padding: 14,
     marginBottom: 10,
     overflow: 'hidden',
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: isDark ? 0.25 : 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sampleCardSelected: {
     borderColor: colors.primaryLight,
@@ -1382,10 +1390,10 @@ const styles = StyleSheet.create({
   // Results Decision & Vitals Styles
   resultsDecisionBox: {
     marginTop: 10,
-    backgroundColor: 'rgba(12, 12, 12, 0.6)',
+    backgroundColor: isDark ? 'rgba(12, 12, 12, 0.6)' : colors.bgCardSoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.borderSubtle,
     padding: 10,
   },
   resultsDecisionPrompt: {
@@ -1406,9 +1414,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.borderSubtle,
   },
   toggleOptionBtnActiveNo: {
     backgroundColor: colors.amber + '18',
@@ -1512,7 +1520,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.bgCardSoft,
     borderRadius: 8,
     paddingVertical: 7,
     paddingHorizontal: 9,

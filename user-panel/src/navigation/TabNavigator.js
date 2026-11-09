@@ -32,10 +32,10 @@ export default function TabNavigator() {
         tabBarStyle:             [
           styles.tabBar,
           {
-            backgroundColor: colors.bgSurface,
-            borderTopColor:  colors.borderSubtle,
+            backgroundColor: isDark ? '#06080c' : '#ffffff',
+            borderTopColor:  isDark ? 'rgba(255,255,255,0.09)' : colors.borderSubtle,
           },
-          !isDark && shadows.sm,
+          !isDark && shadows.md,
         ],
         tabBarActiveTintColor:   colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
@@ -59,7 +59,7 @@ export default function TabNavigator() {
                   focused && [
                     styles.activeIconWrap,
                     {
-                      backgroundColor: colors.borderCyan,
+                      backgroundColor: colors.primaryGlow,
                       borderColor:     colors.borderCyanStrong,
                     },
                   ],
@@ -68,7 +68,7 @@ export default function TabNavigator() {
                 <Icon
                   size={focused ? size - 1 : size}
                   color={focused ? colors.primary : color}
-                  strokeWidth={focused ? 2.5 : 1.8}
+                  strokeWidth={focused ? 2.6 : 1.9}
                 />
               </View>
             ),
@@ -82,37 +82,37 @@ export default function TabNavigator() {
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth:   1,
-    height:           Platform.OS === 'ios' ? 86 : 64,
-    paddingTop:       6,
-    paddingBottom:    Platform.OS === 'ios' ? 26 : 6,
-    elevation:        10,
+    height:           Platform.OS === 'ios' ? 88 : 66,
+    paddingTop:       7,
+    paddingBottom:    Platform.OS === 'ios' ? 26 : 7,
+    elevation:        12,
     shadowColor:      '#000',
-    shadowOffset:     { width: 0, height: -2 },
-    shadowOpacity:    0.08,
-    shadowRadius:     10,
+    shadowOffset:     { width: 0, height: -3 },
+    shadowOpacity:    0.12,
+    shadowRadius:     12,
   },
 
   tabLabel: {
-    fontSize:      9.5,
-    fontWeight:    '700',
-    letterSpacing: 0.2,
+    fontSize:      10,
+    fontWeight:    '800',
+    letterSpacing: 0.25,
     marginTop:     2,
   },
 
   tabItem: { paddingVertical: 1 },
 
   iconWrap: {
-    minWidth:       44,
-    minHeight:      26,
+    minWidth:       46,
+    minHeight:      28,
     alignItems:     'center',
     justifyContent: 'center',
-    borderRadius:   12,
+    borderRadius:   14,
   },
 
   activeIconWrap: {
     borderWidth:       1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical:   3,
-    borderRadius:      12,
+    borderRadius:      14,
   },
 });

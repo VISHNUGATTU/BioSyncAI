@@ -857,13 +857,20 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
           <Text style={[styles.pageSubtitle, { color: colors.textMuted }]}>Select vital & timeline to view instant trends</Text>
         </View>
 
-        <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh} activeOpacity={0.7}>
-          <RefreshCw size={15} color={colors.cyan} />
+        <TouchableOpacity
+          style={[
+            styles.refreshBtn,
+            { backgroundColor: colors.bgCardElevated, borderColor: colors.borderSubtle },
+          ]}
+          onPress={onRefresh}
+          activeOpacity={0.7}
+        >
+          <RefreshCw size={15} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {/* FILTER BAR AT TOP */}
-      <View style={styles.filterSection}>
+      <View style={[styles.filterSection, { borderBottomColor: colors.borderSubtle }]}>
         {/* Vital Selector Trigger */}
         <TouchableOpacity
           style={[
@@ -1039,7 +1046,7 @@ export const VitalsAnalysisScreen = ({ navigation }) => {
               <Text style={styles.benchmarkSub}>Typical normal level</Text>
             </View>
 
-            <View style={styles.benchmarkDivider} />
+            <View style={[styles.benchmarkDivider, { backgroundColor: colors.borderSubtle }]} />
 
             <View style={styles.benchmarkCol}>
               <Text style={styles.benchmarkLabel}>DOCTOR NORMAL RANGE</Text>

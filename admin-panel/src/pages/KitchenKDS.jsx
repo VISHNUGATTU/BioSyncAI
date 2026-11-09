@@ -9,14 +9,10 @@ import {
   Printer,
   RefreshCw,
   Search,
-  Filter,
-  ChevronRight,
-  Package,
   Layers,
   ChefHat,
   Hash,
   X,
-  ExternalLink,
 } from 'lucide-react';
 import api from '../api/axios';
 
@@ -88,22 +84,23 @@ export default function KitchenKDS() {
   const countCheat = orders.filter((o) => o.orderMode === 'CHEAT_MODE_OVERRIDE').length;
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* KDS Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-5">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800/80 md:flex-row md:items-end">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-bold tracking-wider rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              KITCHEN DISPLAY SYSTEM (KDS)
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+              Kitchen Display System (KDS)
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Live Station View</span>
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">• Live Station View</span>
           </div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white mt-1 flex items-center gap-2">
-            <ChefHat className="w-7 h-7 text-emerald-500" />
-            Culinary Dispatch & Customization Console
+          <h1 className="flex items-center gap-2.5 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
+            <ChefHat className="h-7 w-7 text-emerald-500" />
+            Culinary Dispatch &amp; Customization Console
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Real-time biometric kitchen tickets, pre-bite sequencing labels & SHA-256 custody ledger.
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Real-time biometric kitchen tickets, pre-bite sequencing labels &amp; SHA-256 custody ledger.
           </p>
         </div>
 
@@ -113,51 +110,75 @@ export default function KitchenKDS() {
               setIsLoading(true);
               fetchOrders();
             }}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
+            className="flex h-10 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-4 text-xs font-bold text-slate-700 shadow-2xs backdrop-blur-md transition hover:bg-white hover:text-emerald-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-emerald-400"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
+            Refresh Station
           </button>
         </div>
       </div>
 
       {/* KPI Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/80 shadow-sm">
-          <div className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">ORDERS IN QUEUE</div>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{countPlaced}</div>
-          <div className="text-xs text-gray-400 mt-0.5">Awaiting acceptance</div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-4.5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Orders In Queue
+          </div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold text-cyan-600 dark:text-cyan-400 tabular-nums">
+            {countPlaced}
+          </div>
+          <div className="mt-0.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            Awaiting station acceptance
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/80 shadow-sm">
-          <div className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">PREPARING NOW</div>
-          <div className="text-2xl font-black text-amber-500 mt-1">{countPreparing}</div>
-          <div className="text-xs text-gray-400 mt-0.5">Cooking at kitchen stations</div>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-4.5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Preparing Now
+          </div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold text-amber-500 tabular-nums">
+            {countPreparing}
+          </div>
+          <div className="mt-0.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            Cooking at kitchen stations
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800/80 shadow-sm">
-          <div className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">READY TO PACK</div>
-          <div className="text-2xl font-black text-emerald-500 mt-1">{countPacked}</div>
-          <div className="text-xs text-gray-400 mt-0.5">Boxing & sealing</div>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-4.5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Ready To Pack
+          </div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold text-emerald-500 tabular-nums">
+            {countPacked}
+          </div>
+          <div className="mt-0.5 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            Boxing &amp; tamper-evident sealing
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 shadow-sm">
-          <div className="text-xs font-bold text-amber-600 dark:text-amber-400 tracking-wider">CHEAT MODE ORDERS</div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{countCheat}</div>
-          <div className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">Mandatory 3-phase box labeling</div>
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-4.5 shadow-xs backdrop-blur-xl dark:border-amber-500/25 dark:bg-amber-500/[0.08]">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+            Cheat Mode Orders
+          </div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+            {countCheat}
+          </div>
+          <div className="mt-0.5 text-[11px] font-medium text-amber-600/80 dark:text-amber-400/80">
+            Mandatory 3-phase box labeling
+          </div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/60">
-        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-gray-400 ml-1" />
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/80 p-3.5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+        <div className="relative flex min-w-[240px] flex-1 items-center">
+          <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search ticket #, patient name, dish..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-sm bg-transparent border-none outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400"
+            className="h-9.5 w-full rounded-xl border border-slate-200/80 bg-slate-50/80 pl-10 pr-4 text-xs font-medium text-slate-800 outline-none transition focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
           />
         </div>
 
@@ -166,7 +187,7 @@ export default function KitchenKDS() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+            className="h-9.5 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-cyan-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200"
           >
             <option value="ALL">All Statuses</option>
             <option value="PLACED">Placed</option>
@@ -180,7 +201,7 @@ export default function KitchenKDS() {
           <select
             value={selectedMode}
             onChange={(e) => setSelectedMode(e.target.value)}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+            className="h-9.5 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-cyan-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200"
           >
             <option value="ALL">All Modes</option>
             <option value="VITALS_GUARD">Vitals Guard Only</option>
@@ -191,13 +212,15 @@ export default function KitchenKDS() {
 
       {/* Orders Grid */}
       {filteredOrders.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-800">
-          <Utensils className="w-10 h-10 text-gray-400 mx-auto mb-2 opacity-50" />
-          <h3 className="text-base font-bold text-gray-700 dark:text-gray-300">No Orders in Queue</h3>
-          <p className="text-xs text-gray-500">Incoming patient orders will appear here in real-time.</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 py-16 text-center shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <Utensils className="mx-auto mb-2.5 h-10 w-10 text-slate-400 opacity-50" />
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No Orders in Queue</h3>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            Incoming patient orders will appear here in real-time.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filteredOrders.map((order) => {
             const isCheat = order.orderMode === 'CHEAT_MODE_OVERRIDE';
             const ticketNo = order.printedKitchenTicket?.ticketNumber || `TKT-${order._id.slice(-4).toUpperCase()}`;
@@ -205,34 +228,34 @@ export default function KitchenKDS() {
             return (
               <div
                 key={order._id}
-                className={`flex flex-col justify-between rounded-xl border p-5 transition shadow-sm bg-white dark:bg-gray-800/90 ${
+                className={`flex flex-col justify-between rounded-2xl border p-5 shadow-xs backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md bg-white/85 dark:bg-slate-900/75 ${
                   isCheat
-                    ? 'border-amber-500/40 hover:border-amber-500'
-                    : 'border-emerald-500/30 hover:border-emerald-500'
+                    ? 'border-amber-500/40 hover:border-amber-500/70'
+                    : 'border-emerald-500/30 hover:border-emerald-500/60'
                 }`}
               >
                 <div>
                   {/* Card Header: Ticket # & Mode */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-black px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                      <span className="rounded-lg border border-slate-200/80 bg-slate-100 px-2.5 py-0.5 font-mono text-xs font-extrabold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                         {ticketNo}
                       </span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                        className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
                           isCheat
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            ? 'border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                            : 'border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                         }`}
                       >
                         {isCheat ? (
                           <>
-                            <Flame className="w-3 h-3" />
+                            <Flame className="h-3 w-3" />
                             CHEAT OVERRIDE
                           </>
                         ) : (
                           <>
-                            <ShieldCheck className="w-3 h-3" />
+                            <ShieldCheck className="h-3 w-3" />
                             VITALS GUARD
                           </>
                         )}
@@ -240,55 +263,55 @@ export default function KitchenKDS() {
                     </div>
 
                     {/* Status Pill */}
-                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    <span className="rounded-md border border-cyan-500/25 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] font-extrabold uppercase text-cyan-700 dark:text-cyan-300">
                       {order.orderStatus}
                     </span>
                   </div>
 
                   {/* Customer Info */}
-                  <div className="mb-3 text-xs">
-                    <div className="font-bold text-gray-900 dark:text-white">
+                  <div className="mb-3.5 text-xs">
+                    <div className="font-bold text-slate-900 dark:text-white">
                       {order.userId?.name || 'Patient'}
                     </div>
-                    <div className="text-gray-500 dark:text-gray-400 text-[11px]">
+                    <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                       {order.userId?.phoneNumber || '+91 98765 43210'} • {order.deliveryAddress?.area || 'Banjara Hills'}
                     </div>
                   </div>
 
                   {/* CRITICAL CHEF PREPARATION DIRECTIVES */}
                   {order.appliedModifications?.length > 0 ? (
-                    <div className="p-3 mb-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300">
-                      <div className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5 mb-1 text-red-600 dark:text-red-400">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        CLINICAL RECIPE MODIFICATIONS REQUIRED:
+                    <div className="mb-3.5 rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-3 text-rose-700 dark:text-rose-300">
+                      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Clinical Recipe Modifications Required:
                       </div>
-                      <ul className="text-xs space-y-1 font-semibold">
+                      <ul className="space-y-1 text-xs font-semibold">
                         {order.appliedModifications.map((mod, mIdx) => (
                           <li key={mIdx} className="flex items-start gap-1.5">
-                            <span className="text-red-500">•</span>
+                            <span className="text-rose-500">•</span>
                             <span>{mod}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   ) : (
-                    <div className="p-2 mb-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <div className="mb-3.5 flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                       Standard low-glycemic kitchen recipe verified.
                     </div>
                   )}
 
                   {/* Ordered Items List */}
-                  <div className="mb-3 space-y-1.5 border-t border-b border-gray-100 dark:border-gray-700/60 py-2.5">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      DISHES TO PREPARE:
+                  <div className="mb-3.5 space-y-1.5 border-b border-t border-slate-200/70 py-2.5 dark:border-slate-800">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      Dishes To Prepare:
                     </div>
                     {order.items?.map((item, idx) => (
                       <div key={idx} className="flex justify-between text-xs">
-                        <span className="font-bold text-gray-800 dark:text-gray-200">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
                           {item.quantity}x {item.name || item.foodItemId?.name || 'Dish'}
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400">
+                        <span className="font-mono font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
                           ₹{(item.price || 200) * item.quantity}
                         </span>
                       </div>
@@ -296,52 +319,52 @@ export default function KitchenKDS() {
                   </div>
 
                   {/* 3-Phase Packaging Box Labels */}
-                  <div className="mb-3">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <Layers className="w-3 h-3 text-emerald-500" />
-                      3-PHASE SEQUENCING PACKAGING LABELS:
+                  <div className="mb-3.5">
+                    <div className="mb-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      <Layers className="h-3 w-3 text-emerald-500" />
+                      3-Phase Sequencing Packaging Labels:
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
-                      <div className="p-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-extrabold">
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-1.5 text-emerald-600 dark:text-emerald-400">
                         BOX 1: FIBER
                       </div>
-                      <div className="p-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-1.5 text-amber-600 dark:text-amber-400">
                         BOX 2: PROTEIN
                       </div>
-                      <div className="p-1 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-1.5 text-blue-600 dark:text-blue-400">
                         BOX 3: CARBS
                       </div>
                     </div>
                   </div>
 
                   {/* SHA-256 Custody Hash */}
-                  <div className="p-2 rounded bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 mb-4 flex items-center justify-between text-[10px] font-mono text-gray-500">
+                  <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/90 p-2 font-mono text-[10px] text-slate-500 dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-400">
                     <div className="flex items-center gap-1 truncate pr-2">
-                      <Hash className="w-3 h-3 text-gray-400 shrink-0" />
+                      <Hash className="h-3 w-3 shrink-0 text-slate-400" />
                       <span className="truncate">
                         {order.printedKitchenTicket?.sha256Hash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
                       </span>
                     </div>
-                    <span className="text-emerald-500 font-bold shrink-0">VERIFIED</span>
+                    <span className="shrink-0 font-bold text-emerald-500">VERIFIED</span>
                   </div>
                 </div>
 
                 {/* Bottom Actions Row */}
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-3 dark:border-slate-800">
                   <button
                     onClick={() => setActivePrintOrder(order)}
-                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition"
+                    className="rounded-xl border border-slate-200/80 bg-white p-2 text-slate-600 shadow-2xs transition hover:border-cyan-500/40 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-cyan-400"
                     title="Simulate Thermal ESC/POS Print"
                   >
-                    <Printer className="w-4 h-4" />
+                    <Printer className="h-4 w-4" />
                   </button>
 
-                  <div className="flex items-center gap-1.5 flex-1 justify-end">
+                  <div className="flex flex-1 items-center justify-end gap-1.5">
                     {order.orderStatus === 'PLACED' && (
                       <button
                         onClick={() => updateOrderStatus(order._id, 'KITCHEN_ACCEPTED')}
                         disabled={isUpdating}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+                        className="rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700"
                       >
                         Accept Order
                       </button>
@@ -351,7 +374,7 @@ export default function KitchenKDS() {
                       <button
                         onClick={() => updateOrderStatus(order._id, 'PREPARING')}
                         disabled={isUpdating}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition"
+                        className="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-amber-500/20 transition hover:bg-amber-600"
                       >
                         Start Cooking
                       </button>
@@ -361,7 +384,7 @@ export default function KitchenKDS() {
                       <button
                         onClick={() => updateOrderStatus(order._id, 'PACKED')}
                         disabled={isUpdating}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition"
+                        className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700"
                       >
                         Mark Packed
                       </button>
@@ -371,15 +394,15 @@ export default function KitchenKDS() {
                       <button
                         onClick={() => updateOrderStatus(order._id, 'OUT_FOR_DELIVERY')}
                         disabled={isUpdating}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition"
+                        className="rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm shadow-purple-500/20 transition hover:bg-purple-700"
                       >
                         Dispatch
                       </button>
                     )}
 
                     {order.orderStatus === 'OUT_FOR_DELIVERY' && (
-                      <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" /> En Route
+                      <span className="flex items-center gap-1 text-xs font-bold text-emerald-500">
+                        <CheckCircle2 className="h-4 w-4" /> En Route
                       </span>
                     )}
                   </div>
@@ -392,25 +415,25 @@ export default function KitchenKDS() {
 
       {/* ESC/POS Thermal Slip Simulation Modal */}
       {activePrintOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4 border-b border-gray-200 dark:border-gray-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-200/80 pb-3 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Printer className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-base font-black text-gray-900 dark:text-white">
+                <Printer className="h-5 w-5 text-emerald-500" />
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                   ESC/POS 80mm Thermal Slip Preview
                 </h3>
               </div>
               <button
                 onClick={() => setActivePrintOrder(null)}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Simulated 80mm Thermal Paper */}
-            <div className="p-4 bg-gray-100 dark:bg-gray-950 font-mono text-xs rounded-xl border border-gray-300 dark:border-gray-800 text-gray-900 dark:text-gray-100 space-y-2 select-text shadow-inner">
+            <div className="select-text space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-900 shadow-inner dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
               <div className="text-center font-bold">
                 ================================<br />
                 BIOSYNC AI METABOLIC KITCHEN<br />
@@ -423,7 +446,7 @@ export default function KitchenKDS() {
                 DATE: {new Date(activePrintOrder.createdAt || Date.now()).toLocaleString()}<br />
                 PATIENT: {activePrintOrder.userId?.name || 'Aman Sharma'}
               </div>
-              <div className="border-t border-dashed border-gray-400 dark:border-gray-700 pt-1">
+              <div className="border-t border-dashed border-slate-300 pt-1 dark:border-slate-700">
                 ITEMS ORDERED:<br />
                 {activePrintOrder.items?.map((i, idx) => (
                   <div key={idx} className="flex justify-between">
@@ -432,21 +455,21 @@ export default function KitchenKDS() {
                   </div>
                 ))}
               </div>
-              <div className="border-t border-dashed border-gray-400 dark:border-gray-700 pt-1 font-bold text-red-600 dark:text-red-400">
+              <div className="border-t border-dashed border-slate-300 pt-1 font-bold text-rose-600 dark:border-slate-700 dark:text-rose-400">
                 CHEF DIRECTIVES:<br />
                 {activePrintOrder.appliedModifications?.join('\n') || 'STANDARD LOW-GI PROTOCOL'}
               </div>
-              <div className="border-t border-dashed border-gray-400 dark:border-gray-700 pt-1">
+              <div className="border-t border-dashed border-slate-300 pt-1 dark:border-slate-700">
                 PACKAGING LABELS:<br />
-                [BOX 1] FIBER & LEAFY STARTER<br />
-                [BOX 2] PROTEIN & HEALTHY LIPIDS<br />
+                [BOX 1] FIBER &amp; LEAFY STARTER<br />
+                [BOX 2] PROTEIN &amp; HEALTHY LIPIDS<br />
                 [BOX 3] COMPLEX CARBOHYDRATE
               </div>
-              <div className="border-t border-dashed border-gray-400 dark:border-gray-700 pt-1 text-[9px] break-all">
+              <div className="break-all border-t border-dashed border-slate-300 pt-1 text-[9px] dark:border-slate-700">
                 SHA-256 HASH:<br />
                 {activePrintOrder.printedKitchenTicket?.sha256Hash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
               </div>
-              <div className="text-center font-bold pt-1">
+              <div className="pt-1 text-center font-bold">
                 *** CLINICALLY GOVERNED ORDER ***
               </div>
             </div>
@@ -454,7 +477,7 @@ export default function KitchenKDS() {
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setActivePrintOrder(null)}
-                className="px-4 py-2 text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition"
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Close
               </button>
@@ -463,9 +486,9 @@ export default function KitchenKDS() {
                   alert('Thermal print command sent to Bluetooth/Network ESC/POS Printer (Port 9100).');
                   setActivePrintOrder(null);
                 }}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="h-4 w-4" />
                 Send to Thermal Printer
               </button>
             </div>
@@ -539,4 +562,3 @@ function getFallbackKdsOrders() {
     },
   ];
 }
-

@@ -32,12 +32,13 @@ import {
   Sliders,
 } from 'lucide-react-native';
 
-import { colors, gradients } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import GlassCard from '../components/GlassCard';
 import bleWearableService from '../services/bleWearableService';
 import userApi from '../api/userApi';
 
 export default function WearableSyncScreen({ navigation }) {
+  const { colors, isDark } = useTheme();
   const [isScanning, setIsScanning] = useState(false);
   const [deviceStatus, setDeviceStatus] = useState(bleWearableService.getStatus());
   const [liveTelemetry, setLiveTelemetry] = useState(null);
@@ -178,24 +179,27 @@ export default function WearableSyncScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={[colors.bgDark, '#030d1a']} style={StyleSheet.absoluteFill} />
+    <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
+      <LinearGradient
+        colors={isDark ? [colors.bgDark, '#030d1a'] : [colors.bgDark, '#e0f2fe']}
+        style={StyleSheet.absoluteFill}
+      />
 
       {/* Header Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.borderSubtle }]}>
         <TouchableOpacity
           onPress={() => navigation?.goBack?.()}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.bgCardSurface, borderWidth: 1, borderColor: colors.borderSubtle }]}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color="#ffffff" />
+          <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Connected Health Devices</Text>
-          <Text style={styles.headerSubtitle}>Bluetooth SIG GATT 1Hz Telemetry Hub</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Connected Health Devices</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.cyan }]}>Bluetooth SIG GATT 1Hz Telemetry Hub</Text>
         </View>
         <TouchableOpacity
-          style={styles.refreshButton}
+          style={[styles.refreshButton, { backgroundColor: colors.cyanMuted }]}
           onPress={handleConnect}
           activeOpacity={0.7}
         >
@@ -208,7 +212,15 @@ export default function WearableSyncScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* Radar Scanner Visualizer */}
-        <View style={styles.radarCard}>
+        <View
+          style={[
+            styles.radarCard,
+            {
+              backgroundColor: isDark ? 'rgba(10, 25, 47, 0.65)' : '#ffffff',
+              borderColor: colors.borderHighlight,
+            },
+          ]}
+        >
           <View style={styles.radarContainer}>
             <Animated.View
               style={[
@@ -216,7 +228,15 @@ export default function WearableSyncScreen({ navigation }) {
                 { transform: [{ scale: pulseAnim }] },
               ]}
             />
-            <View style={styles.radarCircle}>
+            <View
+              style={[
+                styles.radarCircle,
+                {
+                  backgroundColor: isDark ? 'rgba(0, 30, 60, 0.85)' : '#f0f9ff',
+                  borderColor: colors.cyan,
+                },
+              ]}
+            >
               <Animated.View style={[styles.radarSweep, { transform: [{ rotate: spin }] }]} />
               <View style={styles.centerIconWrap}>
                 <Watch size={38} color={deviceStatus.isConnected ? colors.cyan : colors.textMuted} />
@@ -224,10 +244,10 @@ export default function WearableSyncScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={styles.radarStatusTitle}>
+          <Text style={[styles.radarStatusTitle, { color: colors.textPrimary }]}>
             {deviceStatus.isConnected ? 'Smartwatch Stream Active' : 'Scanning for GATT Devices'}
           </Text>
-          <Text style={styles.radarStatusSub}>
+          <Text style={[styles.radarStatusSub, { color: colors.textSecondary }]}>
             {deviceStatus.isConnected
               ? `Connected: ${deviceStatus.device.name}`
               : 'Hold smartwatch within 5 meters with Bluetooth enabled'}
@@ -245,7 +265,7 @@ export default function WearableSyncScreen({ navigation }) {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[styles.btnAction, styles.btnConnect]}
+                style={[styles.btnAction, styles.btnConnect, { backgroundColor: colors.primary }]}
                 onPress={handleConnect}
                 activeOpacity={0.8}
               >
@@ -266,7 +286,7 @@ export default function WearableSyncScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <Zap size={16} color={pushStatus === 'SYNCED' ? colors.emerald : colors.cyan} />
-              <Text style={styles.btnSyncText}>
+              <Text style={[styles.btnSyncText, { color: colors.cyan }]}>
                 {pushStatus === 'TRANSMITTING'
                   ? 'Transmitting...'
                   : pushStatus === 'SYNCED'
@@ -278,7 +298,7 @@ export default function WearableSyncScreen({ navigation }) {
         </View>
 
         {/* Live GATT Stream Biomarker Cards */}
-        <Text style={styles.sectionHeading}>Real-Time GATT Services (0x180D / 0x1822 / 0x1808)</Text>
+        <Text style={[styles.sectionHeading, { color: colors.textSecondary }]}>Real-Time GATT Services (0x180D / 0x1822 / 0x1808)</Text>
 
         <View style={styles.grid}>
           {/* Card 1: Heart Rate Service */}
@@ -287,56 +307,56 @@ export default function WearableSyncScreen({ navigation }) {
               <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                 <Heart size={20} color="#ff4d4d" fill="#ff4d4d" />
               </Animated.View>
-              <Text style={styles.metricBadge}>GATT 0x180D</Text>
+              <Text style={[styles.metricBadge, { color: colors.textMuted, backgroundColor: colors.bgCardSurface }]}>GATT 0x180D</Text>
             </View>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
               {liveTelemetry?.heartRate || 74}
-              <Text style={styles.metricUnit}> bpm</Text>
+              <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> bpm</Text>
             </Text>
-            <Text style={styles.metricLabel}>Continuous Pulse</Text>
-            <Text style={styles.metricSub}>RR-Intervals: 810 ms</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Continuous Pulse</Text>
+            <Text style={[styles.metricSub, { color: colors.textMuted }]}>RR-Intervals: 810 ms</Text>
           </GlassCard>
 
           {/* Card 2: Pulse Oximeter Service */}
           <GlassCard style={styles.metricCard}>
             <View style={styles.metricHeader}>
               <Wind size={20} color={colors.cyan} />
-              <Text style={styles.metricBadge}>GATT 0x1822</Text>
+              <Text style={[styles.metricBadge, { color: colors.textMuted, backgroundColor: colors.bgCardSurface }]}>GATT 0x1822</Text>
             </View>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
               {liveTelemetry?.spO2Percent || liveTelemetry?.spO2 || 98}
-              <Text style={styles.metricUnit}> %</Text>
+              <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> %</Text>
             </Text>
-            <Text style={styles.metricLabel}>Arterial SpO2</Text>
-            <Text style={styles.metricSub}>Perfusion: 5.4%</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Arterial SpO2</Text>
+            <Text style={[styles.metricSub, { color: colors.textMuted }]}>Perfusion: 5.4%</Text>
           </GlassCard>
 
           {/* Card 3: Continuous Glucose Monitoring (CGM) */}
           <GlassCard style={styles.metricCard}>
             <View style={styles.metricHeader}>
               <Activity size={20} color="#ffaa00" />
-              <Text style={styles.metricBadge}>GATT 0x1808</Text>
+              <Text style={[styles.metricBadge, { color: colors.textMuted, backgroundColor: colors.bgCardSurface }]}>GATT 0x1808</Text>
             </View>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
               {liveTelemetry?.glucoseCgm || liveTelemetry?.continuousGlucose || 95}
-              <Text style={styles.metricUnit}> mg/dL</Text>
+              <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> mg/dL</Text>
             </Text>
-            <Text style={styles.metricLabel}>Interstitial Glucose</Text>
-            <Text style={styles.metricSub}>Trend: STABLE (0.0 mg/dL/m)</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Interstitial Glucose</Text>
+            <Text style={[styles.metricSub, { color: colors.textMuted }]}>Trend: STABLE (0.0 mg/dL/m)</Text>
           </GlassCard>
 
           {/* Card 4: Hemodynamic Windkessel BP */}
           <GlassCard style={styles.metricCard}>
             <View style={styles.metricHeader}>
               <Gauge size={20} color="#8a2be2" />
-              <Text style={styles.metricBadge}>Arterial Pulse</Text>
+              <Text style={[styles.metricBadge, { color: colors.textMuted, backgroundColor: colors.bgCardSurface }]}>Arterial Pulse</Text>
             </View>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
               {liveTelemetry?.systolicBP || 118}/{liveTelemetry?.diastolicBP || 78}
-              <Text style={styles.metricUnit}> mmHg</Text>
+              <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> mmHg</Text>
             </Text>
-            <Text style={styles.metricLabel}>Blood Pressure</Text>
-            <Text style={styles.metricSub}>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>Blood Pressure</Text>
+            <Text style={[styles.metricSub, { color: colors.textMuted }]}>
               MAP: {Math.round(((liveTelemetry?.systolicBP || 118) + 2 * (liveTelemetry?.diastolicBP || 78)) / 3)} mmHg
             </Text>
           </GlassCard>
@@ -347,20 +367,20 @@ export default function WearableSyncScreen({ navigation }) {
           <View style={styles.specRow}>
             <View style={styles.specItem}>
               <BatteryCharging size={18} color={colors.emerald} />
-              <Text style={styles.specLabel}>Battery Level</Text>
-              <Text style={styles.specValue}>{deviceStatus.device.batteryLevel}%</Text>
+              <Text style={[styles.specLabel, { color: colors.textMuted }]}>Battery Level</Text>
+              <Text style={[styles.specValue, { color: colors.textPrimary }]}>{deviceStatus.device.batteryLevel}%</Text>
             </View>
-            <View style={styles.specDivider} />
+            <View style={[styles.specDivider, { backgroundColor: colors.borderSubtle }]} />
             <View style={styles.specItem}>
               <Radio size={18} color={colors.cyan} />
-              <Text style={styles.specLabel}>Signal RSSI</Text>
-              <Text style={styles.specValue}>{deviceStatus.device.rssi} dBm</Text>
+              <Text style={[styles.specLabel, { color: colors.textMuted }]}>Signal RSSI</Text>
+              <Text style={[styles.specValue, { color: colors.textPrimary }]}>{deviceStatus.device.rssi} dBm</Text>
             </View>
-            <View style={styles.specDivider} />
+            <View style={[styles.specDivider, { backgroundColor: colors.borderSubtle }]} />
             <View style={styles.specItem}>
-              <ShieldCheck size={18} color="#00d2ff" />
-              <Text style={styles.specLabel}>Certification</Text>
-              <Text style={styles.specValue}>NABL ISO 15189</Text>
+              <ShieldCheck size={18} color={colors.cyan} />
+              <Text style={[styles.specLabel, { color: colors.textMuted }]}>Certification</Text>
+              <Text style={[styles.specValue, { color: colors.textPrimary }]}>NABL ISO 15189</Text>
             </View>
           </View>
         </GlassCard>
@@ -372,7 +392,6 @@ export default function WearableSyncScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgDark,
   },
   header: {
     flexDirection: 'row',
@@ -402,7 +421,6 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 11,
-    color: colors.cyan,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -448,7 +466,6 @@ const styles = StyleSheet.create({
     borderRadius: 45,
     backgroundColor: 'rgba(0, 30, 60, 0.85)',
     borderWidth: 1.5,
-    borderColor: colors.cyan,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -471,7 +488,6 @@ const styles = StyleSheet.create({
   },
   radarStatusSub: {
     fontSize: 12,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 18,
@@ -490,9 +506,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     gap: 8,
   },
-  btnConnect: {
-    backgroundColor: colors.primary,
-  },
+  btnConnect: {},
   btnConnectText: {
     fontSize: 13,
     fontWeight: '700',
@@ -516,12 +530,10 @@ const styles = StyleSheet.create({
   btnSyncText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.cyan,
   },
   sectionHeading: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 14,
@@ -546,7 +558,6 @@ const styles = StyleSheet.create({
   metricBadge: {
     fontSize: 9,
     fontWeight: '700',
-    color: colors.textMuted,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -555,22 +566,18 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#ffffff',
   },
   metricUnit: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
   },
   metricLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textSecondary,
     marginTop: 4,
   },
   metricSub: {
     fontSize: 10,
-    color: colors.textMuted,
     marginTop: 2,
   },
   hardwareSpecsCard: {
@@ -595,11 +602,9 @@ const styles = StyleSheet.create({
   specLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.textMuted,
   },
   specValue: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#ffffff',
   },
 });

@@ -6,12 +6,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowRight, Server, ShieldCheck, CircleAlert } from 'lucide-react-native';
-import { colors } from '../theme/colors';
+import { ArrowRight, Server, ShieldCheck, CircleAlert, Sun, Moon } from 'lucide-react-native';
+import { useTheme } from '../theme/ThemeContext';
 import userApi from '../api/userApi';
 import api, { setCustomApiUrl, DEFAULT_BASE_URL } from '../api/axios';
 
 export const LoginScreen = ({ navigation }) => {
+  const { colors, isDark, setTheme, shadows } = useTheme();
   const [phoneNumber,        setPhoneNumber]        = useState('');
   const [loading,            setLoading]            = useState(false);
   const [errorMessage,       setErrorMessage]       = useState('');
@@ -60,9 +61,12 @@ export const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bgDark }]}>
       {/* Background gradient */}
-      <LinearGradient colors={['#000000', '#040812', '#000000']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient
+        colors={isDark ? ['#000000', '#040812', '#000000'] : ['#f8fafc', '#e2e8f0', '#f1f5f9']}
+        style={StyleSheet.absoluteFillObject}
+      />
 
       {/* Ambient orbs */}
       <View style={styles.orbTopRight} />
@@ -70,18 +74,52 @@ export const LoginScreen = ({ navigation }) => {
 
       {/* Top bar */}
       <View style={styles.topBar}>
-        <View style={styles.securePill}>
-          <View style={styles.pulseDot} />
-          <Text style={styles.securePillText}>SECURE SIGN IN</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.serverBtn}
-          onPress={() => setServerModalVisible(true)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          activeOpacity={0.7}
+        <View
+          style={[
+            styles.securePill,
+            {
+              backgroundColor: colors.alphaCyan10,
+              borderColor: colors.borderCyan,
+            },
+          ]}
         >
-          <Server size={15} color={colors.textMuted} />
-        </TouchableOpacity>
+          <View style={[styles.pulseDot, { backgroundColor: colors.emerald }]} />
+          <Text style={[styles.securePillText, { color: colors.primary }]}>SECURE SIGN IN</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={[
+              styles.serverBtn,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+            onPress={() => setTheme(isDark ? 'light' : 'dark')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            {isDark ? (
+              <Sun size={15} color={colors.amberLight} />
+            ) : (
+              <Moon size={15} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.serverBtn,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+            onPress={() => setServerModalVisible(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.7}
+          >
+            <Server size={15} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -92,35 +130,70 @@ export const LoginScreen = ({ navigation }) => {
         >
           {/* Brand */}
           <View style={styles.brand}>
-            <View style={styles.logoBadge}>
+            <View style={[styles.logoBadge, { borderColor: colors.borderCyan }]}>
               <LinearGradient
-                colors={['rgba(6,182,212,0.20)', 'rgba(6,182,212,0.04)']}
+                colors={
+                  isDark
+                    ? ['rgba(6,182,212,0.22)', 'rgba(6,182,212,0.05)']
+                    : ['rgba(8,145,178,0.16)', 'rgba(8,145,178,0.04)']
+                }
                 style={styles.logoGrad}
               >
                 <Image source={require('../../assets/Logo.png')} style={styles.logoImage} resizeMode="contain" />
               </LinearGradient>
             </View>
-            <Text style={styles.brandTitle}>
-              BioSync<Text style={{ color: colors.cyanLight }}>AI</Text>
+            <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>
+              BioSync<Text style={{ color: colors.primary }}>AI</Text>
             </Text>
-            <Text style={styles.brandTagline}>Precision Diagnostics & Metabolic Health</Text>
+            <Text style={[styles.brandTagline, { color: colors.textSecondary }]}>
+              Precision Diagnostics & Metabolic Health
+            </Text>
           </View>
 
           {/* Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Sign In</Text>
-            <Text style={styles.cardSub}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+              !isDark && shadows.md,
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Sign In</Text>
+            <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
               Enter your mobile number to continue.
             </Text>
 
             {/* Phone input */}
-            <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
-            <View style={[styles.phoneRow, phoneFocused && styles.phoneRowFocused]}>
-              <View style={styles.countryCode}>
-                <Text style={styles.countryCodeText}>+91</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>MOBILE NUMBER</Text>
+            <View
+              style={[
+                styles.phoneRow,
+                {
+                  backgroundColor: colors.bgCardSurface,
+                  borderColor: colors.borderSubtle,
+                },
+                phoneFocused && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.alphaCyan10,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.countryCode,
+                  {
+                    borderRightColor: colors.borderSubtle,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(15,23,42,0.03)',
+                  },
+                ]}
+              >
+                <Text style={[styles.countryCodeText, { color: colors.primary }]}>+91</Text>
               </View>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: colors.textPrimary }]}
                 value={phoneNumber}
                 onChangeText={(t) => { setPhoneNumber(t); if (errorMessage) setErrorMessage(''); }}
                 placeholder="10-digit mobile"
@@ -138,8 +211,8 @@ export const LoginScreen = ({ navigation }) => {
             {/* Error */}
             {!!errorMessage && (
               <View style={styles.errorBox}>
-                <CircleAlert size={15} color={colors.roseLight} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+                <CircleAlert size={15} color={colors.rose} />
+                <Text style={[styles.errorText, { color: colors.rose }]}>{errorMessage}</Text>
               </View>
             )}
 
@@ -151,20 +224,20 @@ export const LoginScreen = ({ navigation }) => {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#06b6d4', '#0891b2']}
+                colors={colors.accentButtonGradient || ['#06b6d4', '#0891b2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.ctaGrad}
               >
                 {loading ? (
                   <View style={styles.ctaRow}>
-                    <ActivityIndicator size="small" color="#000" />
-                    <Text style={styles.ctaText}>Sending…</Text>
+                    <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                    <Text style={[styles.ctaText, { color: isDark ? '#000' : '#fff' }]}>Sending…</Text>
                   </View>
                 ) : (
                   <View style={styles.ctaRow}>
-                    <Text style={styles.ctaText}>Continue</Text>
-                    <ArrowRight size={17} color="#000" strokeWidth={2.5} />
+                    <Text style={[styles.ctaText, { color: isDark ? '#000' : '#fff' }]}>Continue</Text>
+                    <ArrowRight size={17} color={isDark ? '#000' : '#fff'} strokeWidth={2.5} />
                   </View>
                 )}
               </LinearGradient>
@@ -173,17 +246,21 @@ export const LoginScreen = ({ navigation }) => {
             {/* OTP info */}
             <View style={styles.otpNote}>
               <ShieldCheck size={13} color={colors.textMuted} />
-              <Text style={styles.otpNoteText}>A 6-digit verification code will be sent to your phone.</Text>
+              <Text style={[styles.otpNoteText, { color: colors.textMuted }]}>
+                A 6-digit verification code will be sent to your phone.
+              </Text>
             </View>
           </View>
 
           {/* Trust footer */}
           <View style={styles.trustFooter}>
             <View style={styles.trustRow}>
-              <View style={styles.trustDot} />
-              <Text style={styles.trustText}>HIPAA & DISHA STANDARDS · 256-BIT ENCRYPTION</Text>
+              <View style={[styles.trustDot, { backgroundColor: colors.textMuted }]} />
+              <Text style={[styles.trustText, { color: colors.textMuted }]}>
+                HIPAA & DISHA STANDARDS · 256-BIT ENCRYPTION
+              </Text>
             </View>
-            <Text style={styles.trustDisclaimer}>
+            <Text style={[styles.trustDisclaimer, { color: colors.textMuted }]}>
               By signing in, you agree to BioSyncAI's Terms of Service and Privacy Policy.
             </Text>
           </View>
@@ -198,14 +275,31 @@ export const LoginScreen = ({ navigation }) => {
         onRequestClose={() => setServerModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
-              <Server size={18} color={colors.cyanLight} />
-              <Text style={styles.modalTitle}>Gateway Configuration</Text>
+              <Server size={18} color={colors.primary} />
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Gateway Configuration</Text>
             </View>
-            <Text style={styles.modalSub}>Configure the API endpoint for your deployment.</Text>
+            <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
+              Configure the API endpoint for your deployment.
+            </Text>
             <TextInput
-              style={styles.serverInput}
+              style={[
+                styles.serverInput,
+                {
+                  backgroundColor: colors.bgCardSurface,
+                  borderColor: colors.borderCyan,
+                  color: colors.textPrimary,
+                },
+              ]}
               value={customHost}
               onChangeText={setCustomHost}
               placeholder="http://192.168.1.100:6446/api"
@@ -214,14 +308,23 @@ export const LoginScreen = ({ navigation }) => {
               autoCorrect={false}
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtnGhost} onPress={resetDefaultHost}>
-                <Text style={styles.modalBtnGhostText}>Reset</Text>
+              <TouchableOpacity
+                style={[styles.modalBtnGhost, { borderColor: colors.borderSubtle }]}
+                onPress={resetDefaultHost}
+              >
+                <Text style={[styles.modalBtnGhostText, { color: colors.textSecondary }]}>Reset</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setServerModalVisible(false)}>
-                <Text style={styles.modalBtnGhostText}>Cancel</Text>
+              <TouchableOpacity
+                style={[styles.modalBtnGhost, { borderColor: colors.borderSubtle }]}
+                onPress={() => setServerModalVisible(false)}
+              >
+                <Text style={[styles.modalBtnGhostText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnPrimary} onPress={saveCustomHost}>
-                <Text style={styles.modalBtnPrimaryText}>Save</Text>
+              <TouchableOpacity
+                style={[styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
+                onPress={saveCustomHost}
+              >
+                <Text style={[styles.modalBtnPrimaryText, { color: isDark ? '#000' : '#fff' }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>

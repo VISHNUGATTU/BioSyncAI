@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 const AppointmentCard = ({
   appointment,
@@ -23,7 +23,7 @@ const AppointmentCard = ({
   showActions = true,
   className = '',
 }) => {
-  const { isDark } = useTheme();
+  const { colors, isDark, shadows } = useTheme();
   if (!appointment) {
     return null;
   }
@@ -36,12 +36,14 @@ const AppointmentCard = ({
   const patientName =
     patient.name ||
     patient.fullName ||
+    (patient.firstName ? `${patient.firstName} ${patient.lastName || ''}`.trim() : '') ||
     appointment.patientName ||
     appointment.userName ||
     'Patient';
 
   const phone =
     patient.phone ||
+    patient.phoneNumber ||
     patient.mobile ||
     appointment.phone ||
     appointment.patientPhone ||
@@ -71,6 +73,7 @@ const AppointmentCard = ({
       : 'Address not available';
 
   const appointmentTime =
+    appointment.timeSlot ||
     appointment.time ||
     appointment.appointmentTime ||
     appointment.scheduledTime ||
@@ -104,14 +107,18 @@ const AppointmentCard = ({
         return colors.primary;
 
       case 'Completed':
+      case 'Report_Generated':
+      case 'Sample_Collected':
         return colors.success;
 
       case 'Rejected':
       case 'Cancelled':
+      case 'Failed':
+      case 'No_Show':
         return colors.danger;
 
       default:
-        return colors.textSecondary;
+        return colors.amber;
     }
   };
 
@@ -141,24 +148,22 @@ const AppointmentCard = ({
     }
   };
 
+  const statusColor = getStatusColor();
+
   return (
     <View
       style={[
         {
           width: '100%',
           backgroundColor: colors.bgCard,
-          borderColor: colors.borderSubtle,
+          borderColor: isDark ? colors.borderSubtle : colors.borderDefault,
           borderWidth: 1,
           borderRadius: 20,
           padding: 16,
           marginBottom: 12,
           overflow: 'hidden',
-          shadowColor: isDark ? 'transparent' : '#000000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0 : 0.05,
-          shadowRadius: 8,
-          elevation: isDark ? 0 : 2,
         },
+        shadows?.sm,
       ]}
     >
       {/* Clickable Card Body (Header + ID + Details) */}
@@ -175,7 +180,7 @@ const AppointmentCard = ({
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 16,
+                borderRadius: 15,
                 backgroundColor: colors.alphaCyan10,
                 borderWidth: 1,
                 borderColor: colors.borderCyan,
@@ -192,14 +197,14 @@ const AppointmentCard = ({
 
             <View style={{ flex: 1, justifyContent: 'center', minWidth: 0 }}>
               <Text
-                style={{ fontSize: 14, fontWeight: '800', color: colors.textPrimary }}
+                style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.2 }}
                 numberOfLines={1}
               >
                 {patientName}
               </Text>
 
               <Text
-                style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}
+                style={{ fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginTop: 2 }}
                 numberOfLines={1}
               >
                 {appointmentType}
@@ -212,11 +217,11 @@ const AppointmentCard = ({
               flexDirection: 'row',
               alignItems: 'center',
               paddingHorizontal: 10,
-              paddingVertical: 4,
+              paddingVertical: 5,
               borderRadius: 9999,
               borderWidth: 1,
-              borderColor: getStatusColor(),
-              backgroundColor: `${getStatusColor()}15`,
+              borderColor: `${statusColor}40`,
+              backgroundColor: `${statusColor}16`,
             }}
           >
             <View
@@ -225,16 +230,17 @@ const AppointmentCard = ({
                 height: 6,
                 borderRadius: 3,
                 marginRight: 6,
-                backgroundColor: getStatusColor(),
+                backgroundColor: statusColor,
               }}
             />
 
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: '900',
-                letterSpacing: 0.5,
-                color: getStatusColor(),
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+                color: statusColor,
               }}
             >
               {getStatusLabel()}
@@ -249,7 +255,7 @@ const AppointmentCard = ({
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : colors.bgCardSoft,
               borderWidth: 1,
               borderColor: colors.borderSubtle,
               borderRadius: 12,
@@ -258,12 +264,12 @@ const AppointmentCard = ({
               marginBottom: 12,
             }}
           >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.6 }}>
               Appointment ID
             </Text>
 
             <Text
-              style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, maxWidth: '65%' }}
+              style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary, maxWidth: '65%', fontVariant: ['tabular-nums'] }}
               numberOfLines={1}
             >
               {String(appointmentId)}
@@ -274,7 +280,7 @@ const AppointmentCard = ({
         {/* Details */}
         <View
           style={{
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.025)' : colors.bgCardSoft,
             borderWidth: 1,
             borderColor: colors.borderSubtle,
             borderRadius: 16,
@@ -296,18 +302,18 @@ const AppointmentCard = ({
               }}
             >
               <Clock3
-                size={17}
+                size={16}
                 color={colors.primary}
-                strokeWidth={2}
+                strokeWidth={2.1}
               />
             </View>
 
             <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 9.5, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Scheduled Time
               </Text>
 
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 2 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginTop: 2 }}>
                 {appointmentTime}
               </Text>
             </View>
@@ -326,19 +332,19 @@ const AppointmentCard = ({
               }}
             >
               <MapPin
-                size={17}
+                size={16}
                 color={colors.primary}
-                strokeWidth={2}
+                strokeWidth={2.1}
               />
             </View>
 
             <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 9.5, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Collection Address
               </Text>
 
               <Text
-                style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 2 }}
+                style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginTop: 2, lineHeight: 17 }}
                 numberOfLines={2}
               >
                 {address}
@@ -371,20 +377,20 @@ const AppointmentCard = ({
                 justifyContent: 'center',
                 height: 40,
                 gap: 6,
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: colors.alphaEmerald10,
                 borderWidth: 1,
-                borderColor: colors.borderSubtle,
+                borderColor: colors.alphaEmerald20,
                 paddingHorizontal: 14,
                 borderRadius: 12,
               }}
             >
               <Phone
-                size={16}
-                color={colors.primary}
+                size={15}
+                color={colors.emeraldLight}
                 strokeWidth={2.2}
               />
 
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryLight }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.emeraldLight }}>
                 Call
               </Text>
             </TouchableOpacity>
@@ -400,20 +406,20 @@ const AppointmentCard = ({
                 justifyContent: 'center',
                 height: 40,
                 gap: 6,
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: colors.alphaCyan10,
                 borderWidth: 1,
-                borderColor: colors.borderSubtle,
+                borderColor: colors.borderCyan,
                 paddingHorizontal: 14,
                 borderRadius: 12,
               }}
             >
               <Navigation
-                size={16}
-                color={colors.primary}
+                size={15}
+                color={colors.primaryLight}
                 strokeWidth={2.2}
               />
 
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryLight }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.primaryLight }}>
                 Map
               </Text>
             </TouchableOpacity>
@@ -435,12 +441,12 @@ const AppointmentCard = ({
                 borderRadius: 12,
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.4 }}>
                 View
               </Text>
 
               <ChevronRight
-                size={17}
+                size={16}
                 color="#FFFFFF"
                 strokeWidth={2.5}
               />

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import userApi from '../api/userApi';
 import GlassCard from './GlassCard';
+import { useTheme } from '../theme/ThemeContext';
 
 /**
  * High-Precision 1-Second Biometric IoT Telemetry Generator
@@ -124,6 +125,7 @@ export const LiveIoTWatchSyncCard = ({
   onTelemetryUpdate = null,
   containerStyle = null,
 }) => {
+  const { colors, isDark } = useTheme();
   const navigation = useNavigation();
   const [isStreaming, setIsStreaming] = useState(true);
   const [activityMode, setActivityMode] = useState('resting'); // 'resting' | 'walking' | 'exercise'
@@ -243,8 +245,22 @@ export const LiveIoTWatchSyncCard = ({
     }
   };
 
+  const tileDynamicStyle = {
+    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.55)' : colors.bgCardSurface,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.07)' : colors.borderSubtle,
+  };
+
   return (
-    <GlassCard style={[styles.cardContainer, containerStyle]}>
+    <GlassCard
+      style={[
+        styles.cardContainer,
+        {
+          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.78)' : colors.bgCardElevated,
+          borderColor: colors.borderCyan,
+        },
+        containerStyle,
+      ]}
+    >
       {/* Top Header: Device Name & 1Hz Status Indicator */}
       <View style={styles.topHeader}>
         <TouchableOpacity
@@ -262,13 +278,15 @@ export const LiveIoTWatchSyncCard = ({
           </View>
           <View>
             <View style={styles.brandRow}>
-              <Text style={styles.deviceTitle}>BioSync Smartwatch Stream</Text>
+              <Text style={[styles.deviceTitle, { color: colors.textPrimary }]}>
+                BioSync Smartwatch Stream
+              </Text>
               <View style={styles.hzPill}>
-                <Radio size={9} color="#06b6d4" />
-                <Text style={styles.hzText}>Real-Time</Text>
+                <Radio size={9} color={colors.cyan} />
+                <Text style={[styles.hzText, { color: colors.cyan }]}>Real-Time</Text>
               </View>
             </View>
-            <Text style={styles.deviceSubtitle}>
+            <Text style={[styles.deviceSubtitle, { color: colors.textSecondary }]}>
               Continuous Wireless Sensor Sync • Manage
             </Text>
           </View>
@@ -283,11 +301,11 @@ export const LiveIoTWatchSyncCard = ({
           onPress={() => setIsStreaming(!isStreaming)}
           activeOpacity={0.8}
         >
-          <Radio size={11} color={isStreaming ? '#10b981' : '#94a3b8'} />
+          <Radio size={11} color={isStreaming ? '#10b981' : colors.textMuted} />
           <Text
             style={[
               styles.syncToggleText,
-              { color: isStreaming ? '#10b981' : '#94a3b8' },
+              { color: isStreaming ? '#10b981' : colors.textMuted },
             ]}
           >
             {isStreaming ? 'Live' : 'Paused'}
@@ -298,75 +316,83 @@ export const LiveIoTWatchSyncCard = ({
       {/* Main Real-Time Vitals Grid */}
       <View style={styles.vitalsGrid}>
         {/* Metric 1: Heart Rate with Pulsing Heart */}
-        <View style={styles.metricTile}>
+        <View style={[styles.metricTile, tileDynamicStyle]}>
           <View style={styles.metricHeader}>
             <Animated.View style={{ transform: [{ scale: heartScale }] }}>
               <Heart size={14} color="#ef4444" fill="#ef4444" />
             </Animated.View>
-            <Text style={styles.metricLabel}>PULSE</Text>
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>PULSE</Text>
           </View>
           <View style={styles.metricValueRow}>
             <Text style={[styles.metricValue, { color: '#ef4444' }]}>
               {metrics.heartRate}
             </Text>
-            <Text style={styles.metricUnit}>BPM</Text>
+            <Text style={[styles.metricUnit, { color: colors.textMuted }]}>BPM</Text>
           </View>
-          <Text style={styles.metricSub}>Normal Rhythm</Text>
+          <Text style={[styles.metricSub, { color: colors.textMuted }]}>Normal Rhythm</Text>
         </View>
 
         {/* Metric 2: Continuous Glucose Monitor (CGM) */}
-        <View style={styles.metricTile}>
+        <View style={[styles.metricTile, tileDynamicStyle]}>
           <View style={styles.metricHeader}>
-            <Activity size={14} color="#f59e0b" />
-            <Text style={styles.metricLabel}>GLUCOSE</Text>
+            <Activity size={14} color={colors.amber} />
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>GLUCOSE</Text>
           </View>
           <View style={styles.metricValueRow}>
-            <Text style={[styles.metricValue, { color: '#f59e0b' }]}>
+            <Text style={[styles.metricValue, { color: colors.amber }]}>
               {metrics.glucoseCgm}
             </Text>
             <View style={styles.trendArrowBox}>
               {getGlucoseTrendIcon(metrics.glucoseTrend)}
             </View>
           </View>
-          <Text style={styles.metricSub}>mg/dL • Continuous</Text>
+          <Text style={[styles.metricSub, { color: colors.textMuted }]}>mg/dL • Continuous</Text>
         </View>
 
         {/* Metric 3: Blood Pressure Waveform */}
-        <View style={styles.metricTile}>
+        <View style={[styles.metricTile, tileDynamicStyle]}>
           <View style={styles.metricHeader}>
-            <Gauge size={14} color="#3b82f6" />
-            <Text style={styles.metricLabel}>PRESSURE</Text>
+            <Gauge size={14} color={colors.blue} />
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>PRESSURE</Text>
           </View>
           <View style={styles.metricValueRow}>
-            <Text style={[styles.metricValue, { color: '#3b82f6' }]}>
+            <Text style={[styles.metricValue, { color: colors.blue }]}>
               {metrics.systolicBP}/{metrics.diastolicBP}
             </Text>
-            <Text style={styles.metricUnit}>mmHg</Text>
+            <Text style={[styles.metricUnit, { color: colors.textMuted }]}>mmHg</Text>
           </View>
-          <Text style={styles.metricSub}>Optimal Range</Text>
+          <Text style={[styles.metricSub, { color: colors.textMuted }]}>Optimal Range</Text>
         </View>
 
         {/* Metric 4: Pulse Oximetry (SpO2) */}
-        <View style={styles.metricTile}>
+        <View style={[styles.metricTile, tileDynamicStyle]}>
           <View style={styles.metricHeader}>
-            <Wind size={14} color="#06b6d4" />
-            <Text style={styles.metricLabel}>OXYGEN</Text>
+            <Wind size={14} color={colors.cyan} />
+            <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>OXYGEN</Text>
           </View>
           <View style={styles.metricValueRow}>
-            <Text style={[styles.metricValue, { color: '#06b6d4' }]}>
+            <Text style={[styles.metricValue, { color: colors.cyan }]}>
               {metrics.spO2Percent}
             </Text>
-            <Text style={styles.metricUnit}>%</Text>
+            <Text style={[styles.metricUnit, { color: colors.textMuted }]}>%</Text>
           </View>
-          <Text style={styles.metricSub}>SpO2 In Range</Text>
+          <Text style={[styles.metricSub, { color: colors.textMuted }]}>SpO2 In Range</Text>
         </View>
       </View>
 
       {/* Real-Time 1-Second ECG / Arterial Wave Visualizer */}
-      <View style={styles.waveformContainer}>
+      <View
+        style={[
+          styles.waveformContainer,
+          {
+            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : colors.bgCardSurface,
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : colors.borderSubtle,
+          },
+        ]}
+      >
         <View style={styles.waveformHeader}>
-          <Text style={styles.waveformLabel}>LIVE PULSE WAVE</Text>
-          <Text style={styles.waveformTime}>
+          <Text style={[styles.waveformLabel, { color: colors.textSecondary }]}>LIVE PULSE WAVE</Text>
+          <Text style={[styles.waveformTime, { color: colors.cyan }]}>
             Streaming Live
           </Text>
         </View>
@@ -383,7 +409,7 @@ export const LiveIoTWatchSyncCard = ({
             y1="18"
             x2="280"
             y2="18"
-            stroke="rgba(255, 255, 255, 0.08)"
+            stroke={isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.12)'}
             strokeDasharray="4, 4"
             strokeWidth="1"
           />
@@ -405,41 +431,47 @@ export const LiveIoTWatchSyncCard = ({
       </View>
 
       {/* Secondary Biometrics Strip: HRV, Stress, Temp, Respiration */}
-      <View style={styles.secondaryStrip}>
+      <View
+        style={[
+          styles.secondaryStrip,
+          { backgroundColor: isDark ? 'rgba(30, 41, 59, 0.45)' : colors.bgCardSurface },
+        ]}
+      >
         <View style={styles.secondaryItem}>
-          <Text style={styles.secondaryLabel}>HRV (rMSSD)</Text>
-          <Text style={styles.secondaryValue}>{metrics.hrvMs} ms</Text>
+          <Text style={[styles.secondaryLabel, { color: colors.textMuted }]}>HRV (rMSSD)</Text>
+          <Text style={[styles.secondaryValue, { color: colors.textPrimary }]}>{metrics.hrvMs} ms</Text>
         </View>
-        <View style={styles.secondaryDivider} />
+        <View style={[styles.secondaryDivider, { backgroundColor: colors.borderSubtle }]} />
         <View style={styles.secondaryItem}>
-          <Text style={styles.secondaryLabel}>Stress Index</Text>
+          <Text style={[styles.secondaryLabel, { color: colors.textMuted }]}>Stress Index</Text>
           <Text
             style={[
               styles.secondaryValue,
-              { color: metrics.stressIndex > 65 ? '#ef4444' : '#10b981' },
+              { color: metrics.stressIndex > 65 ? '#ef4444' : colors.emerald },
             ]}
           >
             {metrics.stressIndex}/100
           </Text>
         </View>
-        <View style={styles.secondaryDivider} />
+        <View style={[styles.secondaryDivider, { backgroundColor: colors.borderSubtle }]} />
         <View style={styles.secondaryItem}>
-          <Text style={styles.secondaryLabel}>Respiration</Text>
-          <Text style={styles.secondaryValue}>{metrics.respirationRate} rpm</Text>
+          <Text style={[styles.secondaryLabel, { color: colors.textMuted }]}>Respiration</Text>
+          <Text style={[styles.secondaryValue, { color: colors.textPrimary }]}>{metrics.respirationRate} rpm</Text>
         </View>
-        <View style={styles.secondaryDivider} />
+        <View style={[styles.secondaryDivider, { backgroundColor: colors.borderSubtle }]} />
         <View style={styles.secondaryItem}>
-          <Text style={styles.secondaryLabel}>Skin Temp</Text>
-          <Text style={styles.secondaryValue}>{metrics.skinTemperatureCelsius}°C</Text>
+          <Text style={[styles.secondaryLabel, { color: colors.textMuted }]}>Skin Temp</Text>
+          <Text style={[styles.secondaryValue, { color: colors.textPrimary }]}>{metrics.skinTemperatureCelsius}°C</Text>
         </View>
       </View>
 
       {/* Wearable Simulation Activity Modes Selector */}
       <View style={styles.activityModesBar}>
-        <Text style={styles.modesLabel}>Simulate State:</Text>
+        <Text style={[styles.modesLabel, { color: colors.textMuted }]}>Simulate State:</Text>
         <TouchableOpacity
           style={[
             styles.modePill,
+            { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle },
             activityMode === 'resting' && styles.modePillActive,
           ]}
           onPress={() => setActivityMode('resting')}
@@ -448,7 +480,8 @@ export const LiveIoTWatchSyncCard = ({
           <Text
             style={[
               styles.modePillText,
-              activityMode === 'resting' && styles.modePillTextActive,
+              { color: colors.textSecondary },
+              activityMode === 'resting' && [styles.modePillTextActive, { color: colors.cyan }],
             ]}
           >
             Resting
@@ -458,6 +491,7 @@ export const LiveIoTWatchSyncCard = ({
         <TouchableOpacity
           style={[
             styles.modePill,
+            { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle },
             activityMode === 'walking' && styles.modePillActive,
           ]}
           onPress={() => setActivityMode('walking')}
@@ -466,7 +500,8 @@ export const LiveIoTWatchSyncCard = ({
           <Text
             style={[
               styles.modePillText,
-              activityMode === 'walking' && styles.modePillTextActive,
+              { color: colors.textSecondary },
+              activityMode === 'walking' && [styles.modePillTextActive, { color: colors.cyan }],
             ]}
           >
             Walking
@@ -476,6 +511,7 @@ export const LiveIoTWatchSyncCard = ({
         <TouchableOpacity
           style={[
             styles.modePill,
+            { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle },
             activityMode === 'exercise' && styles.modePillActive,
           ]}
           onPress={() => setActivityMode('exercise')}
@@ -483,12 +519,13 @@ export const LiveIoTWatchSyncCard = ({
         >
           <Flame
             size={10}
-            color={activityMode === 'exercise' ? '#ef4444' : '#64748b'}
+            color={activityMode === 'exercise' ? '#ef4444' : colors.textMuted}
           />
           <Text
             style={[
               styles.modePillText,
-              activityMode === 'exercise' && styles.modePillTextActive,
+              { color: colors.textSecondary },
+              activityMode === 'exercise' && [styles.modePillTextActive, { color: colors.cyan }],
             ]}
           >
             Exercise
@@ -498,20 +535,27 @@ export const LiveIoTWatchSyncCard = ({
 
       {/* BLE GATT Wearables Device Management Banner */}
       <TouchableOpacity
-        style={styles.blePairBanner}
+        style={[
+          styles.blePairBanner,
+          { backgroundColor: colors.alphaCyan10, borderColor: colors.borderCyan },
+        ]}
         onPress={() => navigation?.navigate?.('WearableSync')}
         activeOpacity={0.8}
       >
         <View style={styles.bleBannerLeft}>
           <View style={styles.bleIconCircle}>
-            <Bluetooth size={12} color="#06b6d4" />
+            <Bluetooth size={12} color={colors.cyan} />
           </View>
           <View>
-            <Text style={styles.bleBannerTitle}>BLE GATT Wearable Sync & Radar</Text>
-            <Text style={styles.bleBannerSub}>Dexcom CGM • Apple Watch • WHOOP 4.0</Text>
+            <Text style={[styles.bleBannerTitle, { color: colors.textPrimary }]}>
+              BLE GATT Wearable Sync & Radar
+            </Text>
+            <Text style={[styles.bleBannerSub, { color: colors.textSecondary }]}>
+              Dexcom CGM • Apple Watch • WHOOP 4.0
+            </Text>
           </View>
         </View>
-        <ChevronRight size={14} color="#06b6d4" />
+        <ChevronRight size={14} color={colors.cyan} />
       </TouchableOpacity>
     </GlassCard>
   );

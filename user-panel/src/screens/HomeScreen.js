@@ -36,6 +36,8 @@ import {
   Utensils,
   Mic,
   Globe,
+  Sun,
+  Moon,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -52,7 +54,7 @@ import LiveIoTWatchSyncCard from '../components/LiveIoTWatchSyncCard';
 
 export const HomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, setTheme } = useTheme();
   const { user, latestVitals, hasVitals, fetchVitals } = useAuthStore();
   const {
     appointments,
@@ -235,6 +237,24 @@ export const HomeScreen = ({ navigation }) => {
             style={[
               styles.iconButton,
               {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+            onPress={() => setTheme(isDark ? 'light' : 'dark')}
+            activeOpacity={0.7}
+          >
+            {isDark ? (
+              <Sun size={17} color={colors.amberLight} />
+            ) : (
+              <Moon size={17} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.iconButton,
+              {
                 backgroundColor: 'rgba(6, 182, 212, 0.12)',
                 borderColor: 'rgba(6, 182, 212, 0.35)',
               },
@@ -286,26 +306,37 @@ export const HomeScreen = ({ navigation }) => {
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {/* Quick Launch AI Clinical Health Companion Bar */}
           <TouchableOpacity
-            style={styles.aiCompanionBar}
+            style={[
+              styles.aiCompanionBar,
+              { borderColor: colors.borderCyan, backgroundColor: colors.bgCardElevated },
+            ]}
             onPress={() => navigation.navigate('Chatbot')}
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['rgba(6, 182, 212, 0.15)', 'rgba(8, 145, 178, 0.05)']}
+              colors={
+                isDark
+                  ? ['rgba(6, 182, 212, 0.15)', 'rgba(8, 145, 178, 0.05)']
+                  : ['rgba(8, 145, 178, 0.10)', 'rgba(8, 145, 178, 0.02)']
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.aiCompanionGradient}
             >
               <View style={styles.aiBarLeft}>
                 <View style={styles.aiAvatarOrb}>
-                  <Sparkles size={14} color="#22d3ee" />
+                  <Sparkles size={14} color={colors.primary} />
                 </View>
                 <View>
-                  <Text style={styles.aiBarTitle}>BioSync AI Health Companion</Text>
-                  <Text style={styles.aiBarSub}>Ask about glucose spikes, BP trends, or meal impact</Text>
+                  <Text style={[styles.aiBarTitle, { color: colors.textPrimary }]}>
+                    BioSync AI Health Companion
+                  </Text>
+                  <Text style={[styles.aiBarSub, { color: colors.textSecondary }]}>
+                    Ask about glucose spikes, BP trends, or meal impact
+                  </Text>
                 </View>
               </View>
-              <ChevronRight size={16} color="#06b6d4" />
+              <ChevronRight size={16} color={colors.primary} />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -317,13 +348,17 @@ export const HomeScreen = ({ navigation }) => {
             /* Active Home Visit Card */
             <GlassCard style={styles.heroCard}>
               <LinearGradient
-                colors={['rgba(6, 182, 212, 0.16)', 'rgba(6, 182, 212, 0.03)']}
+                colors={
+                  isDark
+                    ? ['rgba(6, 182, 212, 0.16)', 'rgba(6, 182, 212, 0.03)']
+                    : ['rgba(8, 145, 178, 0.10)', 'rgba(8, 145, 178, 0.02)']
+                }
                 style={styles.heroGradient}
               >
                 <View style={styles.heroTopRow}>
                   <View style={styles.heroTag}>
                     <Clock size={12} color={colors.cyan} />
-                    <Text style={styles.heroTagText}>ACTIVE HOME VISIT</Text>
+                    <Text style={[styles.heroTagText, { color: colors.cyan }]}>ACTIVE HOME VISIT</Text>
                   </View>
                   <StatusBadge status={activeAppointment.status} />
                 </View>
@@ -331,13 +366,18 @@ export const HomeScreen = ({ navigation }) => {
                 <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
                   {activeAppointment.testCatalog?.testName || 'Diagnostic Blood Panel'}
                 </Text>
-                <Text style={styles.heroSub}>
+                <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
                   Scheduled for {activeAppointment.timeSlot || 'Today'} • Sample Collection
                 </Text>
 
                 {/* Clean 4-Stage Progress Line */}
                 <View style={styles.simpleTracker}>
-                  <View style={styles.simpleTrackerTrack}>
+                  <View
+                    style={[
+                      styles.simpleTrackerTrack,
+                      { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : colors.borderSubtle },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.simpleTrackerFill,
@@ -357,10 +397,10 @@ export const HomeScreen = ({ navigation }) => {
                     />
                   </View>
                   <View style={styles.trackerLabelsRow}>
-                    <Text style={styles.trackerLabel}>Booked</Text>
-                    <Text style={styles.trackerLabel}>En Route</Text>
-                    <Text style={styles.trackerLabel}>Collected</Text>
-                    <Text style={styles.trackerLabel}>Report</Text>
+                    <Text style={[styles.trackerLabel, { color: colors.textMuted }]}>Booked</Text>
+                    <Text style={[styles.trackerLabel, { color: colors.textMuted }]}>En Route</Text>
+                    <Text style={[styles.trackerLabel, { color: colors.textMuted }]}>Collected</Text>
+                    <Text style={[styles.trackerLabel, { color: colors.textMuted }]}>Report</Text>
                   </View>
                 </View>
 
@@ -370,8 +410,10 @@ export const HomeScreen = ({ navigation }) => {
                   onPress={() => navigation.navigate('AppointmentsList')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryActionBtnText}>MANAGE VISIT & DETAILS</Text>
-                  <ChevronRight size={16} color="#000000" />
+                  <Text style={[styles.primaryActionBtnText, { color: isDark ? '#000000' : '#ffffff' }]}>
+                    MANAGE VISIT & DETAILS
+                  </Text>
+                  <ChevronRight size={16} color={isDark ? '#000000' : '#ffffff'} />
                 </TouchableOpacity>
 
                 {/* Handshake OTP if arrived */}
@@ -386,33 +428,39 @@ export const HomeScreen = ({ navigation }) => {
             /* Diagnostic Report Available Card */
             <GlassCard style={styles.heroCard}>
               <LinearGradient
-                colors={['rgba(16, 185, 129, 0.16)', 'rgba(16, 185, 129, 0.03)']}
+                colors={
+                  isDark
+                    ? ['rgba(16, 185, 129, 0.16)', 'rgba(16, 185, 129, 0.03)']
+                    : ['rgba(5, 150, 105, 0.10)', 'rgba(5, 150, 105, 0.02)']
+                }
                 style={styles.heroGradient}
               >
                 <View style={styles.heroTopRow}>
                   <View style={[styles.heroTag, { backgroundColor: 'rgba(16, 185, 129, 0.18)' }]}>
-                    <CheckCircle2 size={12} color={colors.emeraldLight} />
-                    <Text style={[styles.heroTagText, { color: colors.emeraldLight }]}>RESULTS VERIFIED</Text>
+                    <CheckCircle2 size={12} color={colors.emerald} />
+                    <Text style={[styles.heroTagText, { color: colors.emerald }]}>RESULTS VERIFIED</Text>
                   </View>
                   <View style={styles.reportBadgePill}>
-                    <Text style={styles.reportBadgePillText}>NABL CERTIFIED</Text>
+                    <Text style={[styles.reportBadgePillText, { color: colors.emerald }]}>NABL CERTIFIED</Text>
                   </View>
                 </View>
 
                 <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
                   {completedWithReport.testCatalog?.testName || 'Comprehensive Health Report'}
                 </Text>
-                <Text style={styles.heroSub}>
+                <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
                   Your lab results are ready with AI biomarker insights.
                 </Text>
 
                 <TouchableOpacity
-                  style={[styles.primaryActionBtn, { backgroundColor: colors.emeraldLight }]}
+                  style={[styles.primaryActionBtn, { backgroundColor: colors.emerald }]}
                   onPress={() => setSelectedReportAppt(completedWithReport)}
                   activeOpacity={0.85}
                 >
-                  <FileText size={16} color="#000000" />
-                  <Text style={styles.primaryActionBtnText}>VIEW DIAGNOSTIC REPORT</Text>
+                  <FileText size={16} color={isDark ? '#000000' : '#ffffff'} />
+                  <Text style={[styles.primaryActionBtnText, { color: isDark ? '#000000' : '#ffffff' }]}>
+                    VIEW DIAGNOSTIC REPORT
+                  </Text>
                 </TouchableOpacity>
               </LinearGradient>
             </GlassCard>
@@ -420,42 +468,81 @@ export const HomeScreen = ({ navigation }) => {
             /* Standard Day: Clean Metabolic Health Score Card */
             <GlassCard style={styles.heroCard}>
               <LinearGradient
-                colors={['rgba(6, 182, 212, 0.14)', 'rgba(16, 185, 129, 0.06)']}
+                colors={
+                  isDark
+                    ? ['rgba(6, 182, 212, 0.14)', 'rgba(16, 185, 129, 0.06)']
+                    : ['rgba(8, 145, 178, 0.10)', 'rgba(5, 150, 105, 0.04)']
+                }
                 style={styles.heroGradient}
               >
                 <View style={styles.scoreHeroRow}>
                   <View style={styles.scoreTextCol}>
                     <View style={styles.heroTag}>
                       <Sparkles size={12} color={colors.cyan} />
-                      <Text style={styles.heroTagText}>METABOLIC BALANCE</Text>
+                      <Text style={[styles.heroTagText, { color: colors.cyan }]}>METABOLIC BALANCE</Text>
                     </View>
                     <Text style={[styles.heroScoreHeading, { color: colors.textPrimary }]}>
                       Optimal Stability
                     </Text>
-                    <Text style={styles.heroScoreSub}>
+                    <Text style={[styles.heroScoreSub, { color: colors.textSecondary }]}>
                       All core biomarkers are aligned with resting physiological baseline.
                     </Text>
                   </View>
 
-                  <View style={styles.scoreBadgeBox}>
-                    <Text style={styles.scoreNumber}>94</Text>
-                    <Text style={styles.scoreUnit}>/100</Text>
-                    <Text style={styles.scoreLabel}>Health Score</Text>
+                  <View
+                    style={[
+                      styles.scoreBadgeBox,
+                      {
+                        backgroundColor: colors.alphaCyan10,
+                        borderColor: colors.borderCyanStrong,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.scoreNumber, { color: colors.primary }]}>94</Text>
+                    <Text style={[styles.scoreUnit, { color: colors.textSecondary }]}>/100</Text>
+                    <Text style={[styles.scoreLabel, { color: colors.textMuted }]}>Health Score</Text>
                   </View>
                 </View>
 
                 <View style={styles.scorePillsRow}>
-                  <View style={styles.statusPill}>
-                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
-                    <Text style={styles.statusPillText}>Heart Optimal</Text>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : colors.bgCardSurface,
+                        borderWidth: 1,
+                        borderColor: colors.borderSubtle,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.miniDot, { backgroundColor: colors.emerald }]} />
+                    <Text style={[styles.statusPillText, { color: colors.textSecondary }]}>Heart Optimal</Text>
                   </View>
-                  <View style={styles.statusPill}>
-                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
-                    <Text style={styles.statusPillText}>Glucose Stable</Text>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : colors.bgCardSurface,
+                        borderWidth: 1,
+                        borderColor: colors.borderSubtle,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.miniDot, { backgroundColor: colors.emerald }]} />
+                    <Text style={[styles.statusPillText, { color: colors.textSecondary }]}>Glucose Stable</Text>
                   </View>
-                  <View style={styles.statusPill}>
-                    <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
-                    <Text style={styles.statusPillText}>BP In Range</Text>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : colors.bgCardSurface,
+                        borderWidth: 1,
+                        borderColor: colors.borderSubtle,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.miniDot, { backgroundColor: colors.emerald }]} />
+                    <Text style={[styles.statusPillText, { color: colors.textSecondary }]}>BP In Range</Text>
                   </View>
                 </View>
               </LinearGradient>
@@ -769,29 +856,56 @@ export const HomeScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.macrosRow}>
-                <View style={styles.macroPill}>
-                  <Text style={styles.macroPillLabel}>Carbs</Text>
+                <View
+                  style={[
+                    styles.macroPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : colors.bgCardSurface,
+                      borderWidth: 1,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.macroPillLabel, { color: colors.textMuted }]}>Carbs</Text>
                   <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.carbohydrates ?? recentMeal.nutritionalValues?.carbsGrams ?? '42'}g
                   </Text>
                 </View>
-                <View style={styles.macroPill}>
-                  <Text style={styles.macroPillLabel}>Protein</Text>
+                <View
+                  style={[
+                    styles.macroPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : colors.bgCardSurface,
+                      borderWidth: 1,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.macroPillLabel, { color: colors.textMuted }]}>Protein</Text>
                   <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.proteins ?? recentMeal.nutritionalValues?.proteinGrams ?? '28'}g
                   </Text>
                 </View>
-                <View style={styles.macroPill}>
-                  <Text style={styles.macroPillLabel}>Fat</Text>
+                <View
+                  style={[
+                    styles.macroPill,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : colors.bgCardSurface,
+                      borderWidth: 1,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.macroPillLabel, { color: colors.textMuted }]}>Fat</Text>
                   <Text style={[styles.macroPillValue, { color: colors.textPrimary }]}>
                     {recentMeal.nutrients?.fats ?? recentMeal.nutritionalValues?.fatGrams ?? '14'}g
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.mealVerdictRow}>
-                <View style={[styles.miniDot, { backgroundColor: colors.emeraldLight }]} />
-                <Text style={styles.mealVerdictText}>
+              <View style={[styles.mealVerdictRow, { borderTopColor: colors.borderSubtle }]}>
+                <View style={[styles.miniDot, { backgroundColor: colors.emerald }]} />
+                <Text style={[styles.mealVerdictText, { color: colors.textSecondary }]}>
                   {recentMeal.predictedImpact?.glucoseSpike != null
                     ? `Estimated Glucose Surge: +${recentMeal.predictedImpact.glucoseSpike} mg/dL`
                     : 'Optimal nutrient balance for resting metabolism'}

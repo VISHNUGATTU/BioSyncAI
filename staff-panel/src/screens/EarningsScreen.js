@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,12 +20,13 @@ import {
   ArrowUpRight,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import GlassCard from '../components/GlassCard';
 
 export const EarningsScreen = () => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const earnings = useAppointmentStore(
     (state) => state.earnings
   );
@@ -675,7 +676,7 @@ export const EarningsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -716,7 +717,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 21,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.4,
   },
@@ -725,6 +726,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.textMuted,
     marginTop: 3,
+    fontWeight: '600',
   },
 
   /* =========================================================
@@ -868,9 +870,14 @@ const styles = StyleSheet.create({
     minHeight: 102,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     borderRadius: 14,
     padding: 11,
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.25 : 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   summaryIcon: {
@@ -998,10 +1005,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
     padding: 12,
     borderRadius: 14,
     marginBottom: 8,
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.25 : 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   ledgerLeft: {

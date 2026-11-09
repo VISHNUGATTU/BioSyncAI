@@ -23,13 +23,14 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 import AppointmentCard from '../components/AppointmentCard';
 import mapNavigationService from '../services/mapNavigationService';
 
 export const AppointmentsScreen = ({ route, navigation }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const appointmentsList = useAppointmentStore(
     (state) => state.appointmentsList
   );
@@ -591,7 +592,7 @@ export const AppointmentsScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -635,7 +636,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 21,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
@@ -644,26 +645,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 3,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
   totalPill: {
     minWidth: 58,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 12,
-    backgroundColor: colors.bgCardElevated,
+    backgroundColor: isDark ? colors.bgCardElevated : '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: isDark ? colors.borderDefault : colors.borderSubtle,
+    shadowColor: isDark ? '#000' : '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.25 : 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
   totalPillValue: {
     fontSize: 16,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.primaryLight,
+    fontVariant: ['tabular-nums'],
   },
 
   totalPillLabel: {

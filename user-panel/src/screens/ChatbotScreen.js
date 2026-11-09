@@ -33,11 +33,12 @@ import {
   RefreshCw,
 } from 'lucide-react-native';
 
-import { colors, gradients } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 import GlassCard from '../components/GlassCard';
 import userApi from '../api/userApi';
 
 export default function ChatbotScreen({ navigation }) {
+  const { colors, gradients, isDark } = useTheme();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -249,17 +250,17 @@ export default function ChatbotScreen({ navigation }) {
       const parts = line.split(/(\*\*.*?\*\*)/g);
 
       return (
-        <Text key={`line-${lineIdx}`} style={styles.assistantTextLine}>
+        <Text key={`line-${lineIdx}`} style={[styles.assistantTextLine, { color: colors.textSecondary }]}>
           {parts.map((part, partIdx) => {
             if (part.startsWith('**') && part.endsWith('**')) {
               return (
-                <Text key={`b-${partIdx}`} style={styles.boldText}>
+                <Text key={`b-${partIdx}`} style={[styles.boldText, { color: colors.textPrimary }]}>
                   {part.slice(2, -2)}
                 </Text>
               );
             }
             return (
-              <Text key={`p-${partIdx}`} style={styles.regularText}>
+              <Text key={`p-${partIdx}`} style={[styles.regularText, { color: colors.textSecondary }]}>
                 {part}
               </Text>
             );
@@ -296,11 +297,27 @@ export default function ChatbotScreen({ navigation }) {
         </View>
 
         <View style={styles.assistantContentWrap}>
-          <GlassCard style={styles.assistantBubble}>
+          <GlassCard
+            style={[
+              styles.assistantBubble,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
             {/* Header info */}
             <View style={styles.assistantHeader}>
-              <Text style={styles.assistantName}>BioSync Clinical Twin</Text>
-              <Text style={styles.modelTag}>
+              <Text style={[styles.assistantName, { color: colors.primary }]}>BioSync Clinical Twin</Text>
+              <Text
+                style={[
+                  styles.modelTag,
+                  {
+                    color: colors.textMuted,
+                    backgroundColor: colors.bgCardSurface,
+                  },
+                ]}
+              >
                 {item.modelUsed?.includes('gemini') ? 'Gemini 2.5 Flash' : 'Clinical RAG'}
               </Text>
             </View>
@@ -310,34 +327,34 @@ export default function ChatbotScreen({ navigation }) {
 
             {/* Referenced Biomarkers Pill Row if present */}
             {item.biomarkerContext && (
-              <View style={styles.biomarkerPillsRow}>
+              <View style={[styles.biomarkerPillsRow, { borderTopColor: colors.borderSubtle }]}>
                 {item.biomarkerContext.glucoseFasting != null && (
-                  <View style={styles.biomarkerPill}>
+                  <View style={[styles.biomarkerPill, { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle }]}>
                     <Activity size={10} color="#f59e0b" />
-                    <Text style={styles.biomarkerPillText}>
+                    <Text style={[styles.biomarkerPillText, { color: colors.textSecondary }]}>
                       Glucose: {item.biomarkerContext.glucoseFasting} mg/dL
                     </Text>
                   </View>
                 )}
                 {item.biomarkerContext.hba1c != null && (
-                  <View style={styles.biomarkerPill}>
+                  <View style={[styles.biomarkerPill, { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle }]}>
                     <Text style={[styles.biomarkerPillText, { color: '#ef4444' }]}>
                       HbA1c: {item.biomarkerContext.hba1c}%
                     </Text>
                   </View>
                 )}
                 {item.biomarkerContext.systolic != null && (
-                  <View style={styles.biomarkerPill}>
+                  <View style={[styles.biomarkerPill, { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle }]}>
                     <Gauge size={10} color="#3b82f6" />
-                    <Text style={styles.biomarkerPillText}>
+                    <Text style={[styles.biomarkerPillText, { color: colors.textSecondary }]}>
                       BP: {item.biomarkerContext.systolic}/{item.biomarkerContext.diastolic}
                     </Text>
                   </View>
                 )}
                 {item.biomarkerContext.restingHeartRate != null && (
-                  <View style={styles.biomarkerPill}>
+                  <View style={[styles.biomarkerPill, { backgroundColor: colors.bgCardSurface, borderColor: colors.borderSubtle }]}>
                     <Heart size={10} color="#ec4899" />
-                    <Text style={styles.biomarkerPillText}>
+                    <Text style={[styles.biomarkerPillText, { color: colors.textSecondary }]}>
                       HR: {item.biomarkerContext.restingHeartRate} BPM
                     </Text>
                   </View>
@@ -351,18 +368,18 @@ export default function ChatbotScreen({ navigation }) {
                 {item.suggestedActions.map((action, aIdx) => (
                   <TouchableOpacity
                     key={`act-${aIdx}`}
-                    style={styles.actionPillBtn}
+                    style={[styles.actionPillBtn, { backgroundColor: colors.cyanMuted, borderColor: colors.borderHighlight }]}
                     onPress={() => handleActionPress(action)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.actionBtnLeft}>
-                      {action.actionType === 'NAVIGATE_SCAN' && <Utensils size={12} color="#06b6d4" />}
-                      {action.actionType === 'NAVIGATE_WEARABLE' && <Bluetooth size={12} color="#06b6d4" />}
-                      {action.actionType === 'NAVIGATE_BOOKING' && <Calendar size={12} color="#06b6d4" />}
-                      {action.actionType === 'NAVIGATE_VITALS' && <Activity size={12} color="#06b6d4" />}
-                      <Text style={styles.actionBtnText}>{action.title}</Text>
+                      {action.actionType === 'NAVIGATE_SCAN' && <Utensils size={12} color={colors.primary} />}
+                      {action.actionType === 'NAVIGATE_WEARABLE' && <Bluetooth size={12} color={colors.primary} />}
+                      {action.actionType === 'NAVIGATE_BOOKING' && <Calendar size={12} color={colors.primary} />}
+                      {action.actionType === 'NAVIGATE_VITALS' && <Activity size={12} color={colors.primary} />}
+                      <Text style={[styles.actionBtnText, { color: colors.primary }]}>{action.title}</Text>
                     </View>
-                    <ChevronRight size={13} color="#06b6d4" />
+                    <ChevronRight size={13} color={colors.primary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -375,19 +392,19 @@ export default function ChatbotScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgDark }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <LinearGradient colors={[colors.bgDark, colors.bgSurface]} style={styles.background}>
         {/* Top Header */}
-        <View style={styles.topHeader}>
+        <View style={[styles.topHeader, { borderBottomColor: colors.borderSubtle }]}>
           <TouchableOpacity
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: colors.bgCardSurface, borderWidth: 1, borderColor: colors.borderSubtle }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <ArrowLeft size={20} color="#f8fafc" />
+            <ArrowLeft size={20} color={colors.textPrimary} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleWrap}>
@@ -406,51 +423,59 @@ export default function ChatbotScreen({ navigation }) {
               </LinearGradient>
             </View>
             <View>
-              <Text style={styles.headerTitle}>BioSync Health Companion</Text>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>BioSync Health Companion</Text>
               <View style={styles.statusRow}>
                 <View style={styles.onlineDot} />
-                <Text style={styles.statusText}>Grounded Clinical Twin • Gemini 2.5</Text>
+                <Text style={[styles.statusText, { color: colors.textSecondary }]}>Grounded Clinical Twin • Gemini 2.5</Text>
               </View>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.clearBtn}
+            style={[styles.clearBtn, { backgroundColor: colors.bgCardSurface, borderWidth: 1, borderColor: colors.borderSubtle }]}
             onPress={handleClearHistory}
             activeOpacity={0.7}
           >
-            <Trash2 size={18} color="#94a3b8" />
+            <Trash2 size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Live Biomarkers Snapshot Strip */}
         {biomarkerSnapshot && (
-          <View style={styles.biomarkerStrip}>
+          <View
+            style={[
+              styles.biomarkerStrip,
+              {
+                backgroundColor: colors.bgCardElevated,
+                borderBottomColor: colors.borderHighlight,
+              },
+            ]}
+          >
             <View style={styles.stripMetric}>
-              <Text style={styles.stripLabel}>GLUCOSE</Text>
+              <Text style={[styles.stripLabel, { color: colors.textMuted }]}>GLUCOSE</Text>
               <Text style={[styles.stripVal, { color: '#f59e0b' }]}>
-                {biomarkerSnapshot.glucoseFasting || '--'} <Text style={styles.stripUnit}>mg/dL</Text>
+                {biomarkerSnapshot.glucoseFasting || '--'} <Text style={[styles.stripUnit, { color: colors.textMuted }]}>mg/dL</Text>
               </Text>
             </View>
-            <View style={styles.stripDivider} />
+            <View style={[styles.stripDivider, { backgroundColor: colors.borderSubtle }]} />
             <View style={styles.stripMetric}>
-              <Text style={styles.stripLabel}>HBA1C</Text>
+              <Text style={[styles.stripLabel, { color: colors.textMuted }]}>HBA1C</Text>
               <Text style={[styles.stripVal, { color: '#ef4444' }]}>
-                {biomarkerSnapshot.hba1c || '--'} <Text style={styles.stripUnit}>%</Text>
+                {biomarkerSnapshot.hba1c || '--'} <Text style={[styles.stripUnit, { color: colors.textMuted }]}>%</Text>
               </Text>
             </View>
-            <View style={styles.stripDivider} />
+            <View style={[styles.stripDivider, { backgroundColor: colors.borderSubtle }]} />
             <View style={styles.stripMetric}>
-              <Text style={styles.stripLabel}>PRESSURE</Text>
+              <Text style={[styles.stripLabel, { color: colors.textMuted }]}>PRESSURE</Text>
               <Text style={[styles.stripVal, { color: '#3b82f6' }]}>
                 {biomarkerSnapshot.systolic || '--'}/{biomarkerSnapshot.diastolic || '--'}
               </Text>
             </View>
-            <View style={styles.stripDivider} />
+            <View style={[styles.stripDivider, { backgroundColor: colors.borderSubtle }]} />
             <View style={styles.stripMetric}>
-              <Text style={styles.stripLabel}>PULSE</Text>
+              <Text style={[styles.stripLabel, { color: colors.textMuted }]}>PULSE</Text>
               <Text style={[styles.stripVal, { color: '#ec4899' }]}>
-                {biomarkerSnapshot.restingHeartRate || '--'} <Text style={styles.stripUnit}>BPM</Text>
+                {biomarkerSnapshot.restingHeartRate || '--'} <Text style={[styles.stripUnit, { color: colors.textMuted }]}>BPM</Text>
               </Text>
             </View>
           </View>
@@ -459,8 +484,8 @@ export default function ChatbotScreen({ navigation }) {
         {/* Messages List */}
         {initialLoading ? (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#06b6d4" />
-            <Text style={styles.loadingText}>Synchronizing clinical biomarkers...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Synchronizing clinical biomarkers...</Text>
           </View>
         ) : (
           <FlatList
@@ -475,8 +500,8 @@ export default function ChatbotScreen({ navigation }) {
                 <LinearGradient colors={gradients.cyanBlue} style={styles.emptyIconCircle}>
                   <Bot size={28} color="#ffffff" />
                 </LinearGradient>
-                <Text style={styles.emptyTitle}>Personalized AI Health Companion</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Personalized AI Health Companion</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   Trained on your real-time continuous vitals, NABL lab assays, and dietary logs. Ask
                   questions regarding your blood sugar, cardiovascular health, or meal impacts.
                 </Text>
@@ -488,18 +513,18 @@ export default function ChatbotScreen({ navigation }) {
         {/* Typing indicator */}
         {loading && (
           <View style={styles.typingContainer}>
-            <View style={styles.typingBubble}>
+            <View style={[styles.typingBubble, { backgroundColor: colors.bgCardElevated, borderWidth: 1, borderColor: colors.borderSubtle }]}>
               <Animated.View style={[styles.typingDot, { transform: [{ translateY: dot1 }] }]} />
               <Animated.View style={[styles.typingDot, { transform: [{ translateY: dot2 }] }]} />
               <Animated.View style={[styles.typingDot, { transform: [{ translateY: dot3 }] }]} />
             </View>
-            <Text style={styles.typingText}>Reasoning over your clinical biomarkers...</Text>
+            <Text style={[styles.typingText, { color: colors.textMuted }]}>Reasoning over your clinical biomarkers...</Text>
           </View>
         )}
 
         {/* Suggestion Prompt Chips */}
         {suggestions.length > 0 && !loading && (
-          <View style={styles.suggestionsContainer}>
+          <View style={[styles.suggestionsContainer, { borderTopColor: colors.borderSubtle }]}>
             <FlatList
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -508,12 +533,12 @@ export default function ChatbotScreen({ navigation }) {
               contentContainerStyle={styles.suggestionsContent}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.suggestionChip}
+                  style={[styles.suggestionChip, { backgroundColor: colors.cyanMuted, borderColor: colors.borderHighlight }]}
                   onPress={() => handleSendMessage(item)}
                   activeOpacity={0.7}
                 >
-                  <Sparkles size={11} color="#06b6d4" />
-                  <Text style={styles.suggestionText}>{item}</Text>
+                  <Sparkles size={11} color={colors.primary} />
+                  <Text style={[styles.suggestionText, { color: colors.textPrimary }]}>{item}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -521,11 +546,26 @@ export default function ChatbotScreen({ navigation }) {
         )}
 
         {/* Input Bar */}
-        <View style={styles.inputBar}>
+        <View
+          style={[
+            styles.inputBar,
+            {
+              backgroundColor: colors.bgCardElevated,
+              borderTopColor: colors.borderSubtle,
+            },
+          ]}
+        >
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.bgCardSurface,
+                borderColor: colors.borderSubtle,
+                color: colors.textPrimary,
+              },
+            ]}
             placeholder="Ask about diet, glucose, BP, lab reports..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -544,12 +584,12 @@ export default function ChatbotScreen({ navigation }) {
             <LinearGradient
               colors={
                 !inputText.trim() || loading
-                  ? ['#1e293b', '#1e293b']
+                  ? [colors.bgCardSurface, colors.bgCardSurface]
                   : ['#0891b2', '#06b6d4']
               }
               style={styles.sendGradient}
             >
-              <Send size={15} color={!inputText.trim() || loading ? '#475569' : '#ffffff'} />
+              <Send size={15} color={!inputText.trim() || loading ? colors.textMuted : '#ffffff'} />
             </LinearGradient>
           </TouchableOpacity>
         </View>

@@ -650,7 +650,7 @@ export const FoodScannerScreen = ({ navigation }) => {
 
             {/* Portion Adjuster */}
             <GlassCard style={styles.portionCard}>
-              <Text style={styles.portionTitle}>Portion Size</Text>
+              <Text style={[styles.portionTitle, { color: colors.textPrimary }]}>Portion Size</Text>
               <View style={styles.portionControls}>
                 <TouchableOpacity
                   style={[styles.portionBtn, { backgroundColor: colors.bgCardSurface }]}
@@ -676,7 +676,7 @@ export const FoodScannerScreen = ({ navigation }) => {
 
             {/* Helpful Doctor Tips */}
             <GlassCard style={styles.tipsCard}>
-              <Text style={styles.tipsTitle}>Post-Meal Recommendations</Text>
+              <Text style={[styles.tipsTitle, { color: colors.textPrimary }]}>Post-Meal Recommendations</Text>
 
               <TouchableOpacity
                 style={[styles.tipItem, selectedTips.walk && styles.tipItemActive]}

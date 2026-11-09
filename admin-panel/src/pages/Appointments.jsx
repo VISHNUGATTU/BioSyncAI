@@ -280,33 +280,33 @@ export const Appointments = () => {
     switch (status) {
       case 'Completed':
       case 'Report_Generated':
-        return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600';
+        return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
       case 'At_Laboratory':
       case 'Processing':
-        return 'border-violet-500/25 bg-violet-500/10 text-violet-600';
+        return 'border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-400';
       case 'Sample_Collected':
-        return 'border-teal-500/25 bg-teal-500/10 text-teal-600';
+        return 'border-teal-500/25 bg-teal-500/10 text-teal-600 dark:text-teal-400';
       case 'Collecting':
-        return 'border-purple-500/25 bg-purple-500/10 text-purple-600';
+        return 'border-purple-500/25 bg-purple-500/10 text-purple-600 dark:text-purple-400';
       case 'Arrived':
-        return 'border-indigo-500/25 bg-indigo-500/10 text-indigo-600';
+        return 'border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400';
       case 'On_The_Way':
       case 'On_Route':
-        return 'border-blue-500/25 bg-blue-500/10 text-blue-600';
+        return 'border-blue-500/25 bg-blue-500/10 text-blue-600 dark:text-blue-400';
       case 'Assistant_Assigned':
       case 'Assigned':
       case 'Confirmed':
-        return 'border-cyan-500/25 bg-cyan-500/10 text-cyan-600';
+        return 'border-cyan-500/25 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400';
       case 'Cancelled':
       case 'Canceled':
       case 'Failed':
       case 'No_Show':
       case 'Rejected':
-        return 'border-red-500/25 bg-red-500/10 text-red-600';
+        return 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400';
       case 'Booked':
       case 'Pending':
       default:
-        return 'border-amber-500/25 bg-amber-500/10 text-amber-600';
+        return 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400';
     }
   };
 
@@ -396,16 +396,16 @@ export const Appointments = () => {
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600">
-              Operations & Fleet Dispatch
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
+              Operations &amp; Fleet Dispatch
             </span>
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
-            Appointments & Field Visits Queue
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
+            Appointments &amp; Field Visits Queue
           </h1>
 
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Intelligent staff dispatch, strict 8-stage state machine tracking, and home collection operations.
           </p>
         </div>
@@ -414,7 +414,7 @@ export const Appointments = () => {
           <button
             type="button"
             onClick={handleExportCSV}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition-all hover:bg-slate-50"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <Download size={13} />
             <span>Export CSV</span>
@@ -427,7 +427,7 @@ export const Appointments = () => {
               fetchAssistants();
             }}
             disabled={loading}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition-all hover:bg-slate-50 disabled:opacity-50"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-white disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin text-cyan-500' : ''} />
             <span>Refresh Queue</span>
@@ -439,34 +439,34 @@ export const Appointments = () => {
       {/* 1. OPERATIONS KPI SUMMARY                                     */}
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-2xl border border-white/65 bg-white/45 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Bookings</span>
-          <p className="mt-2 text-2xl font-extrabold text-slate-900">{stats.total}</p>
-          <p className="mt-1 text-[11px] text-slate-400">Registry visits</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Bookings</span>
+          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{stats.total}</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Registry visits</p>
         </div>
 
-        <div className="rounded-2xl border border-white/65 bg-white/45 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600">Today's Schedule</span>
-          <p className="mt-2 text-2xl font-extrabold text-slate-900">{stats.today}</p>
-          <p className="mt-1 text-[11px] text-slate-400">Scheduled collections</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Today&apos;s Schedule</span>
+          <p className="mt-2 font-mono text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">{stats.today}</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Scheduled collections</p>
         </div>
 
-        <div className="rounded-2xl border border-white/65 bg-white/45 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Needs Dispatch</span>
-          <p className="mt-2 text-2xl font-extrabold text-amber-600">{stats.pending}</p>
-          <p className="mt-1 text-[11px] text-slate-400">Pending phlebotomist</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Needs Dispatch</span>
+          <p className="mt-2 font-mono text-2xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">{stats.pending}</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Pending phlebotomist</p>
         </div>
 
-        <div className="rounded-2xl border border-white/65 bg-white/45 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Active in Field</span>
-          <p className="mt-2 text-2xl font-extrabold text-blue-600">{stats.inTransit}</p>
-          <p className="mt-1 text-[11px] text-slate-400">En route / collecting</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Active in Field</span>
+          <p className="mt-2 font-mono text-2xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">{stats.inTransit}</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">En route / collecting</p>
         </div>
 
-        <div className="rounded-2xl border border-white/65 bg-white/45 p-4 shadow-sm backdrop-blur-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Completed</span>
-          <p className="mt-2 text-2xl font-extrabold text-emerald-600">{stats.completed}</p>
-          <p className="mt-1 text-[11px] text-slate-400">Report generated</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Completed</span>
+          <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.completed}</p>
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Report generated</p>
         </div>
       </div>
 
@@ -488,8 +488,8 @@ export const Appointments = () => {
               }}
               className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
                 isActive
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'border border-white/60 bg-white/50 text-slate-600 hover:bg-white hover:text-slate-900'
+                  ? 'bg-cyan-600 text-white shadow-2xs dark:bg-cyan-500 dark:text-slate-950'
+                  : 'border border-slate-200/80 bg-white/75 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/75 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
               }`}
             >
               {stage.label}
@@ -502,12 +502,12 @@ export const Appointments = () => {
       {/* 3. BATCH OPERATIONS TOOLBAR (Shows when rows are checked)     */}
       {/* ------------------------------------------------------------- */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-cyan-200 bg-cyan-50/90 px-4 py-2.5 shadow-sm backdrop-blur-md">
+        <div className="flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 shadow-xs backdrop-blur-md">
           <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-600 text-xs font-bold text-white">
               {selectedIds.size}
             </span>
-            <span className="text-xs font-bold text-cyan-900">
+            <span className="text-xs font-bold text-cyan-900 dark:text-cyan-200">
               Appointments Selected
             </span>
           </div>
@@ -517,7 +517,7 @@ export const Appointments = () => {
               type="button"
               onClick={handleBatchAutoDispatch}
               disabled={batchActionLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50"
             >
               <Zap size={13} />
               <span>{batchActionLoading ? 'Dispatching...' : 'Auto-Dispatch Selected'}</span>
@@ -526,7 +526,7 @@ export const Appointments = () => {
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="rounded-lg border border-cyan-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="rounded-lg border border-cyan-500/30 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300"
             >
               Clear
             </button>
@@ -537,19 +537,19 @@ export const Appointments = () => {
       {/* ------------------------------------------------------------- */}
       {/* 4. MAIN APPOINTMENTS TABLE                                    */}
       {/* ------------------------------------------------------------- */}
-      <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 shadow-sm backdrop-blur-xl">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
         {/* Table Toolbar */}
-        <div className="flex flex-col gap-3 border-b border-slate-200/60 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-b border-slate-200/70 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             {['All', 'Lab_Collection', 'Doctor_Consultation'].map((type) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setTypeFilter(type)}
-                className={`rounded-xl px-3 py-1 text-xs font-semibold transition-all ${
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                   typeFilter === type
-                    ? 'bg-cyan-600 text-white shadow-xs'
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                    ? 'bg-cyan-600 text-white shadow-2xs'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 {type === 'All'
@@ -564,13 +564,13 @@ export const Appointments = () => {
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 outline-none"
+              className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-2.5 py-1 text-xs font-medium text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200"
             />
             {dateFilter && (
               <button
                 type="button"
                 onClick={() => setDateFilter('')}
-                className="text-xs text-red-500 hover:underline"
+                className="text-xs text-rose-500 hover:underline"
               >
                 Clear
               </button>
@@ -587,7 +587,7 @@ export const Appointments = () => {
               placeholder="Search patient, staff, city..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-xl border border-slate-200 bg-white/80 pl-9 pr-3 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-400 focus:bg-white"
+              className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-50/80 pl-9 pr-3 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
             />
           </div>
         </div>
@@ -596,36 +596,36 @@ export const Appointments = () => {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[950px] border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/60 text-slate-400">
+              <tr className="border-b border-slate-200/70 bg-slate-50/50 text-slate-400 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-500">
                 <th className="w-10 px-4 py-3 text-center">
                   <button
                     type="button"
                     onClick={toggleSelectAll}
-                    className="text-slate-400 hover:text-slate-600"
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   >
                     {selectedIds.size > 0 && selectedIds.size === filteredAppointments.length ? (
-                      <CheckSquare size={16} className="text-cyan-600" />
+                      <CheckSquare size={16} className="text-cyan-600 dark:text-cyan-400" />
                     ) : (
                       <Square size={16} />
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider">
-                  Patient & Location
+                <th className="px-4 py-3 text-left text-[9.5px] font-bold uppercase tracking-wider">
+                  Patient &amp; Location
                 </th>
-                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[9.5px] font-bold uppercase tracking-wider">
                   Test Package
                 </th>
-                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[9.5px] font-bold uppercase tracking-wider">
                   Assigned Staff
                 </th>
-                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[9.5px] font-bold uppercase tracking-wider">
                   Scheduled Slot
                 </th>
-                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-[9.5px] font-bold uppercase tracking-wider">
                   Lifecycle Stage
                 </th>
-                <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-[9.5px] font-bold uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -636,8 +636,8 @@ export const Appointments = () => {
                 <tr>
                   <td colSpan="7" className="px-6 py-16">
                     <div className="flex flex-col items-center justify-center">
-                      <span className="mb-2 h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-500" />
-                      <p className="text-xs font-medium text-slate-500">Loading collection appointments...</p>
+                      <span className="mb-2 h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-500 dark:border-slate-700" />
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Loading collection appointments...</p>
                     </div>
                   </td>
                 </tr>
@@ -645,9 +645,9 @@ export const Appointments = () => {
                 <tr>
                   <td colSpan="7" className="px-6 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
-                      <CalendarDays size={24} className="text-slate-300 mb-2" />
-                      <p className="text-sm font-bold text-slate-700">No appointments found</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Try clearing filters or changing search keywords.</p>
+                      <CalendarDays size={24} className="mb-2 text-slate-300 dark:text-slate-600" />
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">No appointments found</p>
+                      <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Try clearing filters or changing search keywords.</p>
                     </div>
                   </td>
                 </tr>
@@ -661,30 +661,30 @@ export const Appointments = () => {
                     <tr
                       key={apt._id}
                       onClick={() => openAppointmentModal(apt)}
-                      className={`group cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-white/80 ${
-                        isSelected ? 'bg-cyan-50/40' : ''
+                      className={`group cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/80 dark:border-slate-800/80 dark:hover:bg-slate-800/40 ${
+                        isSelected ? 'bg-cyan-500/[0.06]' : ''
                       }`}
                     >
                       {/* Checkbox */}
                       <td className="w-10 px-4 py-3 text-center" onClick={(e) => toggleSelectOne(apt._id, e)}>
                         {isSelected ? (
-                          <CheckSquare size={16} className="text-cyan-600 inline" />
+                          <CheckSquare size={16} className="inline text-cyan-600 dark:text-cyan-400" />
                         ) : (
-                          <Square size={16} className="text-slate-300 hover:text-slate-500 inline" />
+                          <Square size={16} className="inline text-slate-300 hover:text-slate-500 dark:text-slate-600" />
                         )}
                       </td>
 
                       {/* Patient & Location */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-100/60 font-bold text-cyan-700 text-xs shrink-0">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-bold text-cyan-700 dark:text-cyan-300">
                             {(apt.user?.firstName?.[0] || 'P').toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-bold text-slate-900 group-hover:text-cyan-600 transition-colors">
+                            <p className="truncate text-xs font-bold text-slate-900 transition-colors group-hover:text-cyan-600 dark:text-white dark:group-hover:text-cyan-400">
                               {patientName}
                             </p>
-                            <p className="truncate text-[10.5px] text-slate-400">
+                            <p className="truncate text-[10.5px] text-slate-400 dark:text-slate-500">
                               {apt.address?.city || apt.address?.street || 'Hyderabad'} · {apt.user?.phoneNumber || apt.phone || 'Phone on file'}
                             </p>
                           </div>
@@ -693,10 +693,10 @@ export const Appointments = () => {
 
                       {/* Test Package */}
                       <td className="px-4 py-3">
-                        <p className="truncate text-xs font-semibold text-slate-800 max-w-[200px]">
+                        <p className="max-w-[200px] truncate text-xs font-semibold text-slate-800 dark:text-slate-200">
                           {apt.testCatalog?.testName || 'BioSync 360 Full Biomarker Diagnostic'}
                         </p>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
                           {apt.appointmentType === 'Doctor_Consultation' ? 'Teleconsult' : 'Specimen Draw'}
                         </span>
                       </td>
@@ -705,20 +705,20 @@ export const Appointments = () => {
                       <td className="px-4 py-3">
                         {apt.labAssistant ? (
                           <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-50 text-cyan-600">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                               <Truck size={12} />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-slate-800">
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                                 {apt.labAssistant.name}
                               </p>
-                              <p className="text-[10px] text-slate-400">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500">
                                 {apt.labAssistant.phone || 'Phlebotomist'}
                               </p>
                             </div>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600 border border-amber-200/50">
+                          <span className="inline-flex items-center gap-1 rounded border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                             <AlertCircle size={10} />
                             Unassigned
                           </span>
@@ -727,11 +727,11 @@ export const Appointments = () => {
 
                       {/* Scheduled Slot */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200">
                           <Calendar size={12} className="text-slate-400" />
                           <span>{formatDate(apt.scheduledDate)}</span>
                         </div>
-                        <p className="mt-0.5 text-[10px] text-slate-400">
+                        <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
                           {apt.timeSlot || '09:00 - 10:00 AM'}
                         </p>
                       </td>
@@ -747,7 +747,7 @@ export const Appointments = () => {
                           {apt.status?.replace(/_/g, ' ') || 'Booked'}
                         </span>
                         {apt.failureReason && (
-                          <p className="mt-1 text-[10px] text-red-500 font-semibold truncate max-w-[140px]" title={apt.failureReason}>
+                          <p className="mt-1 max-w-[140px] truncate text-[10px] font-semibold text-rose-500" title={apt.failureReason}>
                             ⚠️ {apt.failureReason}
                           </p>
                         )}
@@ -762,7 +762,7 @@ export const Appointments = () => {
                               onClick={(e) => handleAutoDispatch(apt._id, e)}
                               disabled={autoDispatchingId === apt._id}
                               title="1-Click Auto-Dispatch Closest Phlebotomist"
-                              className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 border border-cyan-200 hover:bg-cyan-100 active:scale-95 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-500/20 active:scale-95 disabled:opacity-50 dark:text-cyan-300"
                             >
                               <Zap size={11} className={autoDispatchingId === apt._id ? 'animate-spin' : ''} />
                               <span>{autoDispatchingId === apt._id ? 'Dispatching...' : 'Dispatch'}</span>
@@ -776,7 +776,7 @@ export const Appointments = () => {
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               title="Preview Official NABL Diagnostic Certificate"
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-400 active:scale-95 transition-all"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 transition-all hover:bg-emerald-500/20 active:scale-95 dark:text-emerald-400"
                             >
                               <FileText size={13} />
                             </a>
@@ -788,7 +788,7 @@ export const Appointments = () => {
                               e.stopPropagation();
                               openAppointmentModal(apt);
                             }}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-cyan-400 hover:text-cyan-600"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-500 hover:border-cyan-400 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-cyan-400"
                           >
                             <UserRoundCog size={13} />
                           </button>
@@ -804,12 +804,12 @@ export const Appointments = () => {
 
         {/* Footer */}
         {!loading && filteredAppointments.length > 0 && (
-          <div className="flex flex-col gap-2 border-t border-slate-200/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11px] font-medium text-slate-500">
-              Showing <span className="font-bold text-slate-800">{filteredAppointments.length}</span> of{' '}
-              <span className="font-bold text-slate-800">{appointments.length}</span> visits
+          <div className="flex flex-col gap-2 border-t border-slate-200/70 px-5 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              Showing <span className="font-bold text-slate-800 dark:text-slate-200">{filteredAppointments.length}</span> of{' '}
+              <span className="font-bold text-slate-800 dark:text-slate-200">{appointments.length}</span> visits
             </p>
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
               BioSync AI Dispatch Engine Online
             </div>
@@ -824,18 +824,18 @@ export const Appointments = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/65 p-4 backdrop-blur-md">
           <div className="absolute inset-0" onClick={() => setSelectedApt(null)} />
 
-          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                   <CalendarDays size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     Manage Field Appointment
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-mono text-xs text-slate-500 dark:text-slate-400">
                     ID: {selectedApt._id}
                   </p>
                 </div>
@@ -844,32 +844,32 @@ export const Appointments = () => {
               <button
                 type="button"
                 onClick={() => setSelectedApt(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSaveChanges} className="flex-1 overflow-y-auto p-6 space-y-5">
+            <form onSubmit={handleSaveChanges} className="flex-1 space-y-5 overflow-y-auto p-6">
               {actionSuccess && (
-                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-bold text-emerald-700">
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
                   <CheckCircle2 size={16} />
                   <span>{actionSuccess}</span>
                 </div>
               )}
 
               {/* Patient Info Card */}
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/60">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                       {selectedApt.user?.firstName} {selectedApt.user?.lastName}
                     </h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                       {selectedApt.user?.phoneNumber || selectedApt.phone || 'Phone on file'} · {selectedApt.address?.city || 'Hyderabad'}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                       {typeof selectedApt.address === 'string' ? selectedApt.address : `${selectedApt.address?.street || ''} ${selectedApt.address?.city || ''} ${selectedApt.address?.pincode || ''}`}
                     </p>
                   </div>
@@ -880,13 +880,13 @@ export const Appointments = () => {
               </div>
 
               {/* 1-Click Auto Dispatch Action */}
-              <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/10 p-4">
                 <div>
-                  <h4 className="text-xs font-bold text-cyan-900 flex items-center gap-1.5">
-                    <Zap size={13} className="text-cyan-600" />
+                  <h4 className="flex items-center gap-1.5 text-xs font-bold text-cyan-900 dark:text-cyan-200">
+                    <Zap size={13} className="text-cyan-600 dark:text-cyan-400" />
                     Automated GPS Phlebotomist Dispatch
                   </h4>
-                  <p className="text-[11px] text-cyan-700 mt-0.5">
+                  <p className="mt-0.5 text-[11px] text-cyan-700 dark:text-cyan-300">
                     Calculates geographical proximity and automatically routes the closest available staff.
                   </p>
                 </div>
@@ -894,7 +894,7 @@ export const Appointments = () => {
                   type="button"
                   onClick={() => handleAutoDispatch(selectedApt._id)}
                   disabled={autoDispatchingId === selectedApt._id}
-                  className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50 shrink-0"
+                  className="shrink-0 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50"
                 >
                   {autoDispatchingId === selectedApt._id ? 'Routing...' : 'Auto-Dispatch'}
                 </button>
@@ -902,23 +902,23 @@ export const Appointments = () => {
 
               {/* Nearest Ranked Staff Proximity Feed */}
               {loadingNearby ? (
-                <div className="text-center py-2 text-xs text-slate-400">
+                <div className="py-2 text-center text-xs text-slate-400">
                   Scanning nearby phlebotomists via GPS...
                 </div>
               ) : nearbyStaff.length > 0 ? (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Nearest Phlebotomists By Distance
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {nearbyStaff.slice(0, 4).map((staff, idx) => (
                       <div
                         key={staff._id || idx}
                         onClick={() => setAssignAssistantId(staff._id)}
-                        className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                        className={`flex cursor-pointer items-center justify-between rounded-lg border p-2.5 text-xs transition-all ${
                           assignAssistantId === staff._id
-                            ? 'border-cyan-500 bg-cyan-50/80 font-bold text-cyan-900'
-                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                            ? 'border-cyan-500 bg-cyan-500/10 font-bold text-cyan-900 dark:text-cyan-200'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200 dark:hover:bg-slate-800'
                         }`}
                       >
                         <div>
@@ -926,7 +926,7 @@ export const Appointments = () => {
                           <p className="text-[10px] text-slate-400">{staff.distanceKm ? `${staff.distanceKm.toFixed(1)} km away` : 'Active in zone'}</p>
                         </div>
                         {assignAssistantId === staff._id && (
-                          <Check size={14} className="text-cyan-600" />
+                          <Check size={14} className="text-cyan-600 dark:text-cyan-400" />
                         )}
                       </div>
                     ))}
@@ -935,15 +935,15 @@ export const Appointments = () => {
               ) : null}
 
               {/* Status & Manual Assignment Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Update Lifecycle Stage
                   </label>
                   <select
                     value={updateStatus}
                     onChange={(e) => setUpdateStatus(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100"
                   >
                     <option value="Booked">Booked (Pending)</option>
                     <option value="Assistant_Assigned">Assistant Assigned</option>
@@ -958,13 +958,13 @@ export const Appointments = () => {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Assign Lab Assistant
                   </label>
                   <select
                     value={assignAssistantId}
                     onChange={(e) => setAssignAssistantId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100"
                   >
                     <option value="">Unassigned</option>
                     {labAssistants.map((la) => (
@@ -977,21 +977,21 @@ export const Appointments = () => {
               </div>
 
               {/* Reschedule Date & Time */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Reschedule Date
                   </label>
                   <input
                     type="date"
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Reschedule Time Slot
                   </label>
                   <input
@@ -999,19 +999,19 @@ export const Appointments = () => {
                     placeholder="e.g. 10:00 - 11:00 AM"
                     value={rescheduleTimeSlot}
                     onChange={(e) => setRescheduleTimeSlot(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 outline-none focus:border-cyan-500 focus:bg-white dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-100"
                   />
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
+              <div className="flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4 dark:border-slate-800">
                 {selectedApt && ['Completed', 'Report_Generated', 'Delivered'].includes(selectedApt.status) && (
                   <a
                     href={getCertificateViewUrl(selectedApt._id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mr-auto inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-all active:scale-95"
+                    className="mr-auto inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-500/20 active:scale-95 dark:text-emerald-300"
                   >
                     <ExternalLink size={13} />
                     <span>Preview Public Certificate ↗</span>
@@ -1020,14 +1020,14 @@ export const Appointments = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedApt(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingChanges}
-                  className="flex items-center gap-1.5 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-cyan-700 active:scale-95 disabled:opacity-50"
                 >
                   <Save size={14} />
                   <span>{savingChanges ? 'Saving Changes...' : 'Save Updates'}</span>

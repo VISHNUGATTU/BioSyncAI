@@ -54,41 +54,57 @@ const GoogleMapController = ({ center, zoom }) => {
 
 const StatCard = ({ title, value, subtext, icon: Icon, tone, suffix = '', onClick }) => {
   const tones = {
-    cyan:    'text-cyan-600 bg-cyan-50/80 border-cyan-100',
-    emerald: 'text-emerald-600 bg-emerald-50/80 border-emerald-100',
-    amber:   'text-amber-600 bg-amber-50/80 border-amber-100',
-    red:     'text-red-500 bg-red-50/80 border-red-100',
-    indigo:  'text-indigo-600 bg-indigo-50/80 border-indigo-100',
-    purple:  'text-purple-600 bg-purple-50/80 border-purple-100',
+    cyan:    'text-cyan-600 bg-cyan-500/10 border-cyan-500/20 dark:text-cyan-400 dark:bg-cyan-400/10 dark:border-cyan-400/20',
+    emerald: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-400/10 dark:border-emerald-400/20',
+    amber:   'text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-400/10 dark:border-amber-400/20',
+    red:     'text-rose-600 bg-rose-500/10 border-rose-500/20 dark:text-rose-400 dark:bg-rose-400/10 dark:border-rose-400/20',
+    indigo:  'text-indigo-600 bg-indigo-500/10 border-indigo-500/20 dark:text-indigo-400 dark:bg-indigo-400/10 dark:border-indigo-400/20',
+    purple:  'text-purple-600 bg-purple-500/10 border-purple-500/20 dark:text-purple-400 dark:bg-purple-400/10 dark:border-purple-400/20',
+  };
+
+  const glowTones = {
+    cyan:    'bg-cyan-500/10',
+    emerald: 'bg-emerald-500/10',
+    amber:   'bg-amber-500/10',
+    red:     'bg-rose-500/10',
+    indigo:  'bg-indigo-500/10',
+    purple:  'bg-purple-500/10',
   };
 
   return (
     <div
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-xl border border-white/65 bg-white/45
-        p-4 sm:p-5 shadow-sm backdrop-blur-xl transition-all duration-200
-        ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-md' : ''}`}
+      className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80
+        p-4 sm:p-5 shadow-xs backdrop-blur-xl transition-all duration-200
+        dark:border-slate-800/80 dark:bg-slate-900/60
+        ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:border-cyan-500/35 hover:bg-white hover:shadow-md dark:hover:border-cyan-400/35 dark:hover:bg-slate-900/85' : ''}`}
     >
-      <div className="flex items-center gap-3.5">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-xs ${tones[tone] || tones.cyan}`}>
-          <Icon size={19} strokeWidth={2} />
+      <div className={`pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full blur-2xl transition-opacity opacity-70 group-hover:opacity-100 ${glowTones[tone] || glowTones.cyan}`} />
+
+      <div className="relative flex items-center gap-3.5">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-2xs ${tones[tone] || tones.cyan}`}>
+          <Icon size={19} strokeWidth={2.2} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="flex items-baseline gap-1 text-[21px] font-extrabold tracking-tight text-slate-900">
+          <p className="flex items-baseline gap-1 text-[22px] font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums">
             {value}
-            {suffix && <span className="text-xs font-semibold text-slate-400">{suffix}</span>}
+            {suffix && <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">{suffix}</span>}
           </p>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
             {title}
           </p>
           {subtext && (
-            <p className="mt-0.5 truncate text-[10.5px] font-medium text-slate-400">
+            <p className="mt-0.5 truncate text-[10.5px] font-medium text-slate-400 dark:text-slate-500">
               {subtext}
             </p>
           )}
         </div>
         {onClick && (
-          <ArrowUpRight size={15} strokeWidth={2.5} className="hidden shrink-0 text-slate-300 transition-colors group-hover:text-cyan-500 sm:block" />
+          <ArrowUpRight
+            size={15}
+            strokeWidth={2.5}
+            className="hidden shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-cyan-500 dark:text-slate-600 dark:group-hover:text-cyan-400 sm:block"
+          />
         )}
       </div>
     </div>
@@ -106,24 +122,24 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
   }, [densestArea]);
 
   return (
-    <section className="relative flex h-[360px] flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/40 shadow-sm backdrop-blur-xl">
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/60 bg-white/60 px-5 py-3.5 backdrop-blur-md">
+    <section className="relative flex h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/85 px-5 py-3.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/85">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-100 bg-cyan-50 text-cyan-600 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-600 shadow-2xs dark:text-cyan-400">
             <MapPin size={18} strokeWidth={2} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">Field Dispatch & User Density</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Field Dispatch &amp; User Density</h2>
               <span className="flex h-2 w-2">
                 <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-cyan-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500" />
               </span>
             </div>
-            <p className="text-[11px] font-medium text-slate-500">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {densestArea ? (
                 <>
-                  Highest density: <strong className="text-slate-800">{densestArea.area || 'Active Zone'}</strong> ({densestArea.userCount} active patients)
+                  Highest density: <strong className="text-slate-800 dark:text-slate-200">{densestArea.area || 'Active Zone'}</strong> ({densestArea.userCount} active patients)
                 </>
               ) : (
                 'Monitoring active metropolitan clusters...'
@@ -136,7 +152,7 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
           <button
             type="button"
             onClick={() => setMapTarget({ center: HYDERABAD_COORDS, zoom: 11 })}
-            className="rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-white hover:text-cyan-600"
+            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-cyan-400"
           >
             Regional View
           </button>
@@ -144,7 +160,7 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
             <button
               type="button"
               onClick={() => setMapTarget({ center: { lat: densestArea.lat, lng: densestArea.lng }, zoom: 13 })}
-              className="flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-bold text-cyan-700 shadow-sm transition hover:bg-cyan-100"
+              className="flex items-center gap-1.5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-700 shadow-2xs transition hover:bg-cyan-500/20 dark:text-cyan-300"
             >
               <Radio size={12} className="animate-pulse" />
               Focus Zone
@@ -153,7 +169,7 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
         </div>
       </div>
 
-      <div className="relative z-0 h-full w-full bg-slate-50">
+      <div className="relative z-0 h-full w-full bg-slate-100 dark:bg-slate-950">
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
             defaultCenter={HYDERABAD_COORDS}
@@ -181,10 +197,10 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
                       <div className={`relative z-10 flex items-center justify-center rounded-full border-2 bg-white shadow-lg transition-colors ${
                         isDensest ? 'h-11 w-11 border-cyan-400' : 'h-9 w-9 border-slate-300'
                       }`}>
-                        <img 
-                          src="/images/Logo.png" 
-                          alt="BioSync Pin" 
-                          className="h-full w-full rounded-full object-contain p-1.5" 
+                        <img
+                          src="/images/Logo.png"
+                          alt="BioSync Pin"
+                          className="h-full w-full rounded-full object-contain p-1.5"
                         />
                       </div>
 
@@ -194,13 +210,13 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
                     </div>
 
                     <div className="pointer-events-none absolute bottom-full left-1/2 mb-3 -translate-x-1/2 opacity-0 transition-opacity group-hover:opacity-100">
-                      <div className="whitespace-nowrap rounded-lg border border-white/80 bg-white/95 px-2.5 py-1.5 text-center font-sans shadow-xl backdrop-blur-md">
-                        <p className="font-bold text-slate-900">{cluster.area || 'Active Cluster'}</p>
-                        <p className="text-[11px] font-semibold text-cyan-600">
+                      <div className="whitespace-nowrap rounded-xl border border-slate-200/80 bg-white/95 px-3 py-1.5 text-center font-sans shadow-xl backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/95">
+                        <p className="font-bold text-slate-900 dark:text-white">{cluster.area || 'Active Cluster'}</p>
+                        <p className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400">
                           {cluster.userCount} Active Patients
                         </p>
                         {isDensest && (
-                          <span className="mt-1 inline-block rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
+                          <span className="mt-1 inline-block rounded bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 dark:text-rose-400">
                             Peak Demand Area
                           </span>
                         )}
@@ -219,33 +235,33 @@ const LiveUserMap = ({ userClusters, densestArea }) => {
 
 const SystemHealth = ({ health }) => {
   return (
-    <section className="flex flex-col justify-between rounded-2xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-xl">
+    <section className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-100 bg-violet-50 text-violet-600 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-600 shadow-2xs dark:text-violet-400">
             <Server size={18} strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-900">System Telemetry</h2>
-            <p className="text-[11px] font-semibold text-slate-500">Node cluster response latency</p>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">System Telemetry</h2>
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Node cluster response latency</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+        <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
           <CircleDot size={10} className="animate-pulse" />
           Optimal
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-white/80 bg-white/60 p-3 shadow-sm backdrop-blur-md">
-          <div className="flex items-center justify-between text-slate-400">
-            <Database size={15} />
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">MongoDB</span>
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+            <Database size={15} className="text-emerald-500" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-wider">MongoDB</span>
           </div>
-          <p className="mt-2 text-xl font-extrabold text-slate-900">
-            {health.dbLatency} <span className="text-xs font-semibold text-slate-500">ms</span>
+          <p className="mt-2 font-mono text-xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+            {health.dbLatency} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ms</span>
           </p>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 health.dbLatency > 50 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -255,15 +271,15 @@ const SystemHealth = ({ health }) => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/80 bg-white/60 p-3 shadow-sm backdrop-blur-md">
-          <div className="flex items-center justify-between text-slate-400">
-            <Wifi size={15} />
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Gateway</span>
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+            <Wifi size={15} className="text-cyan-500" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-wider">Gateway</span>
           </div>
-          <p className="mt-2 text-xl font-extrabold text-slate-900">
-            {health.apiLatency} <span className="text-xs font-semibold text-slate-500">ms</span>
+          <p className="mt-2 font-mono text-xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+            {health.apiLatency} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ms</span>
           </p>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 health.apiLatency > 80 ? 'bg-amber-500' : 'bg-cyan-500'
@@ -273,15 +289,15 @@ const SystemHealth = ({ health }) => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/80 bg-white/60 p-3 shadow-sm backdrop-blur-md">
-          <div className="flex items-center justify-between text-slate-400">
-            <Layers size={15} />
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cache</span>
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="flex items-center justify-between text-slate-400 dark:text-slate-500">
+            <Layers size={15} className="text-indigo-500" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-wider">Cache</span>
           </div>
-          <p className="mt-2 text-xl font-extrabold text-slate-900">
-            {health.cacheLatency} <span className="text-xs font-semibold text-slate-500">ms</span>
+          <p className="mt-2 font-mono text-xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+            {health.cacheLatency} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ms</span>
           </p>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
             <div
               className="h-full rounded-full bg-indigo-500 transition-all duration-500"
               style={{ width: `${Math.min(100, (health.cacheLatency / 20) * 100)}%` }}
@@ -461,14 +477,14 @@ export const Dashboard = () => {
 
   // 8 Canonical Stages for the State Machine Funnel
   const lifecycleStages = [
-    { id: 'Pending', label: '1. Booked', count: kpis.stages?.pending || 0, color: '#f59e0b', bg: 'bg-amber-500/10', border: 'border-amber-500/25', text: 'text-amber-500' },
-    { id: 'Assigned', label: '2. Assigned', count: kpis.stages?.assigned || 0, color: '#06b6d4', bg: 'bg-cyan-500/10', border: 'border-cyan-500/25', text: 'text-cyan-500' },
-    { id: 'On_The_Way', label: '3. En Route', count: kpis.stages?.onTheWay || 0, color: '#3b82f6', bg: 'bg-blue-500/10', border: 'border-blue-500/25', text: 'text-blue-500' },
-    { id: 'Arrived', label: '4. Arrived', count: kpis.stages?.arrived || 0, color: '#6366f1', bg: 'bg-indigo-500/10', border: 'border-indigo-500/25', text: 'text-indigo-500' },
-    { id: 'Collecting', label: '5. Collecting', count: kpis.stages?.collecting || 0, color: '#a855f7', bg: 'bg-purple-500/10', border: 'border-purple-500/25', text: 'text-purple-500' },
-    { id: 'Sample_Collected', label: '6. Secured', count: kpis.stages?.collected || 0, color: '#14b8a6', bg: 'bg-teal-500/10', border: 'border-teal-500/25', text: 'text-teal-500' },
-    { id: 'At_Laboratory', label: '7. At Lab', count: kpis.stages?.atLaboratory || 0, color: '#8b5cf6', bg: 'bg-violet-500/10', border: 'border-violet-500/25', text: 'text-violet-500' },
-    { id: 'Completed', label: '8. Complete', count: kpis.stages?.completed || 0, color: '#10b981', bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-500' },
+    { id: 'Pending', label: '1. Booked', count: kpis.stages?.pending || 0, color: '#f59e0b', bg: 'bg-amber-500/10', border: 'border-amber-500/25', text: 'text-amber-600 dark:text-amber-400' },
+    { id: 'Assigned', label: '2. Assigned', count: kpis.stages?.assigned || 0, color: '#06b6d4', bg: 'bg-cyan-500/10', border: 'border-cyan-500/25', text: 'text-cyan-600 dark:text-cyan-400' },
+    { id: 'On_The_Way', label: '3. En Route', count: kpis.stages?.onTheWay || 0, color: '#3b82f6', bg: 'bg-blue-500/10', border: 'border-blue-500/25', text: 'text-blue-600 dark:text-blue-400' },
+    { id: 'Arrived', label: '4. Arrived', count: kpis.stages?.arrived || 0, color: '#6366f1', bg: 'bg-indigo-500/10', border: 'border-indigo-500/25', text: 'text-indigo-600 dark:text-indigo-400' },
+    { id: 'Collecting', label: '5. Collecting', count: kpis.stages?.collecting || 0, color: '#a855f7', bg: 'bg-purple-500/10', border: 'border-purple-500/25', text: 'text-purple-600 dark:text-purple-400' },
+    { id: 'Sample_Collected', label: '6. Secured', count: kpis.stages?.collected || 0, color: '#14b8a6', bg: 'bg-teal-500/10', border: 'border-teal-500/25', text: 'text-teal-600 dark:text-teal-400' },
+    { id: 'At_Laboratory', label: '7. At Lab', count: kpis.stages?.atLaboratory || 0, color: '#8b5cf6', bg: 'bg-violet-500/10', border: 'border-violet-500/25', text: 'text-violet-600 dark:text-violet-400' },
+    { id: 'Completed', label: '8. Complete', count: kpis.stages?.completed || 0, color: '#10b981', bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-600 dark:text-emerald-400' },
   ];
 
   const totalActiveInPipeline = useMemo(() => {
@@ -492,14 +508,14 @@ export const Dashboard = () => {
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600">
-              Operational Fleet & Diagnostics Hub
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">
+              Operational Fleet &amp; Diagnostics Hub
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
             Live Healthcare Command Center
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Real-time phlebotomist fleet monitoring, 8-stage state machine throughput, and clinical safety alerts.
           </p>
         </div>
@@ -507,7 +523,7 @@ export const Dashboard = () => {
         {/* Polling & Manual Refresh Bar */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Refresh interval selector */}
-          <div className="flex items-center gap-1 rounded-xl border border-white/70 bg-white/60 p-1 shadow-xs backdrop-blur-md">
+          <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white/80 p-1 shadow-2xs backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
             {[
               { label: '5s', val: 5000 },
               { label: '15s', val: 15000 },
@@ -520,8 +536,8 @@ export const Dashboard = () => {
                 onClick={() => setPollInterval(p.val)}
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
                   pollInterval === p.val
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                    ? 'bg-cyan-600 text-white shadow-2xs dark:bg-cyan-500 dark:text-slate-950'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
                 }`}
               >
                 {p.val === 0 ? <Pause size={10} className="inline mr-1" /> : null}
@@ -535,7 +551,7 @@ export const Dashboard = () => {
             type="button"
             onClick={() => fetchRealtimeData(true)}
             disabled={isRefreshing}
-            className="flex items-center gap-1.5 rounded-xl border border-white/70 bg-white/70 px-3 py-2 text-xs font-bold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:bg-white hover:text-cyan-600 active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs backdrop-blur-md transition-all hover:bg-white hover:text-cyan-600 active:scale-95 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-cyan-400"
           >
             <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-cyan-500' : ''} />
             <span>Refresh</span>
@@ -571,7 +587,7 @@ export const Dashboard = () => {
           subtext={`Free: ${kpis.fleet?.available || 0} · Transit: ${kpis.fleet?.onRoute || 0} · In Lab: ${kpis.fleet?.collecting || 0}`}
           icon={Truck}
           tone="indigo"
-          onClick={() => navigate('/lab-assistants')}
+          onClick={() => navigate('/assistants')}
         />
 
         <StatCard
@@ -596,26 +612,28 @@ export const Dashboard = () => {
       {/* ------------------------------------------------------------- */}
       {/* 2. 8-STAGE STRICT STATE MACHINE LIFECYCLE PIPELINE            */}
       {/* ------------------------------------------------------------- */}
-      <section className="overflow-hidden rounded-2xl border border-white/65 bg-white/45 p-5 shadow-sm backdrop-blur-xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/50 pb-3">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 pb-3.5 dark:border-slate-800/80">
           <div>
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-cyan-500" />
-              <h2 className="text-sm font-bold text-slate-900">8-Stage Strict State Machine Lifecycle Throughput</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                8-Stage Strict State Machine Lifecycle Throughput
+              </h2>
             </div>
-            <p className="text-[11px] font-medium text-slate-500">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Guarded progression tracking from online booking to automated biomarker report generation
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-900/5 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+          <div className="flex items-center gap-2.5">
+            <span className="rounded-full border border-slate-200/80 bg-slate-100/80 px-3 py-1 font-mono text-[11px] font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 tabular-nums">
               {totalActiveInPipeline} Active Visits in Flight
             </span>
             <button
               type="button"
               onClick={() => navigate('/appointments')}
-              className="flex items-center gap-1 text-[11px] font-bold text-cyan-600 hover:text-cyan-700"
+              className="flex items-center gap-1 text-[11.5px] font-bold text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
             >
               <span>Manage Queue</span>
               <ChevronRight size={13} />
@@ -631,10 +649,10 @@ export const Dashboard = () => {
                 key={stage.id}
                 onClick={() => navigate(`/appointments?status=${stage.id}`)}
                 className={`group relative flex flex-col justify-between rounded-xl border p-3 cursor-pointer transition-all duration-150
-                  hover:-translate-y-0.5 hover:shadow-xs ${stage.bg} ${stage.border}`}
+                  hover:-translate-y-0.5 hover:shadow-sm ${stage.bg} ${stage.border}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${stage.text}`}>
+                  <span className={`font-mono text-[10px] font-extrabold uppercase tracking-wider ${stage.text}`}>
                     Stage {idx + 1}
                   </span>
                   <div
@@ -644,15 +662,15 @@ export const Dashboard = () => {
                 </div>
 
                 <div className="my-2">
-                  <p className="text-xl font-extrabold text-slate-900">
+                  <p className="font-mono text-xl font-extrabold text-slate-900 dark:text-white tabular-nums">
                     {stage.count}
                   </p>
-                  <p className="truncate text-[11px] font-bold text-slate-700">
+                  <p className="truncate text-[11px] font-bold text-slate-700 dark:text-slate-300">
                     {stage.label.replace(/^\d+\.\s*/, '')}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-black/5 text-[10px] font-medium text-slate-500">
+                <div className="flex items-center justify-between pt-1 border-t border-slate-900/5 dark:border-white/5 text-[10px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                   <span>{totalActiveInPipeline > 0 ? `${Math.round((stage.count / totalActiveInPipeline) * 100)}%` : '0%'}</span>
                   <ChevronRight size={11} className="opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
@@ -674,20 +692,20 @@ export const Dashboard = () => {
           {/* Dual Analytics Row: 14-Day Appointment Flow + Specimen Breakdown */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* 14-Day Appointment & Intake Trend */}
-            <section className="flex flex-col justify-between rounded-2xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-xl">
+            <section className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-100 bg-cyan-50 text-cyan-600 shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-600 shadow-2xs dark:text-cyan-400">
                     <TrendingUp size={18} strokeWidth={2} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">14-Day Intake Velocity</h2>
-                    <p className="text-[11px] font-semibold text-slate-500">Scheduled sample collection visits</p>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">14-Day Intake Velocity</h2>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Scheduled sample collection visits</p>
                   </div>
                 </div>
               </div>
 
-              <div className="h-[150px] w-full">
+              <div className="h-[155px] w-full">
                 {analytics.dailyAppointments.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -705,10 +723,11 @@ export const Dashboard = () => {
                       <YAxis stroke="#94a3b8" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          backgroundColor: 'rgba(15, 23, 42, 0.94)',
                           borderRadius: '10px',
-                          border: '1px solid rgba(226, 232, 240, 0.8)',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                          border: '1px solid rgba(51, 65, 85, 0.8)',
+                          color: '#f8fafc',
+                          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
                           fontSize: '11px',
                         }}
                       />
@@ -716,7 +735,7 @@ export const Dashboard = () => {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">
+                  <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 dark:text-slate-500">
                     Collecting historical trends...
                   </div>
                 )}
@@ -724,20 +743,20 @@ export const Dashboard = () => {
             </section>
 
             {/* Specimen Pipeline Distribution */}
-            <section className="flex flex-col justify-between rounded-2xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-xl">
+            <section className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-600 shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 shadow-2xs dark:text-indigo-400">
                     <FlaskConical size={18} strokeWidth={2} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">Specimens By Body Fluid</h2>
-                    <p className="text-[11px] font-semibold text-slate-500">Physical sample volume breakdown</p>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">Specimens By Body Fluid</h2>
+                    <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Physical sample volume breakdown</p>
                   </div>
                 </div>
               </div>
 
-              <div className="h-[150px] w-full">
+              <div className="h-[155px] w-full">
                 {analytics.specimenDistribution.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -749,10 +768,11 @@ export const Dashboard = () => {
                       <YAxis stroke="#94a3b8" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          backgroundColor: 'rgba(15, 23, 42, 0.94)',
                           borderRadius: '10px',
-                          border: '1px solid rgba(226, 232, 240, 0.8)',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                          border: '1px solid rgba(51, 65, 85, 0.8)',
+                          color: '#f8fafc',
+                          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
                           fontSize: '11px',
                         }}
                       />
@@ -764,7 +784,7 @@ export const Dashboard = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">
+                  <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400 dark:text-slate-500">
                     Awaiting specimen accession scans...
                   </div>
                 )}
@@ -778,19 +798,19 @@ export const Dashboard = () => {
 
         {/* Right Column: Actionable Alerts & Fleet Utilization Feed */}
         <div className="min-w-0">
-          <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/40 shadow-sm backdrop-blur-xl">
+          <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-xs backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60">
             {/* Critical Patient Alerts Header */}
-            <div className="flex items-center justify-between border-b border-white/60 p-4 sm:p-5">
+            <div className="flex items-center justify-between border-b border-slate-200/80 p-4 dark:border-slate-800/80 sm:p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 shadow-sm">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 shadow-2xs dark:text-rose-400">
                   <AlertTriangle size={18} strokeWidth={2} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Critical Patient Alerts</h2>
-                  <p className="text-[11px] font-semibold text-slate-500">Real-time vital threshold breaches</p>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Critical Patient Alerts</h2>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Real-time vital threshold breaches</p>
                 </div>
               </div>
-              <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-600">
+              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-0.5 font-mono text-xs font-bold text-rose-600 dark:text-rose-400 tabular-nums">
                 {alerts.length} Active
               </span>
             </div>
@@ -798,21 +818,21 @@ export const Dashboard = () => {
             {/* Alert List */}
             <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-5 max-h-[460px]">
               {alerts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/40 px-4 py-10 text-center">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-10 text-center dark:border-slate-800 dark:bg-slate-950/40">
                   <CheckCircle size={28} className="text-emerald-500" />
-                  <p className="mt-2 text-xs font-bold text-slate-700">No active critical alerts</p>
-                  <p className="text-[11px] text-slate-400">All physical biomarker readings are within normal thresholds.</p>
+                  <p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-200">No active critical alerts</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">All physical biomarker readings are within normal thresholds.</p>
                 </div>
               ) : (
                 alerts.map((alert, idx) => (
                   <div
                     key={alert._id || idx}
-                    className="flex flex-col gap-2 rounded-xl border border-red-100 bg-white/85 p-3.5 shadow-sm backdrop-blur-md"
+                    className="flex flex-col gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-3.5 shadow-2xs backdrop-blur-md dark:border-rose-500/25 dark:bg-rose-500/[0.07]"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-ping" />
-                        <p className="truncate text-xs font-bold text-slate-800">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)] animate-ping" />
+                        <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
                           {alert.patientName || alert.user?.firstName || 'Patient'}
                         </p>
                       </div>
@@ -821,19 +841,19 @@ export const Dashboard = () => {
                         type="button"
                         onClick={() => handleResolveAlert(alert.vitalsId, alert.alertDetailId)}
                         disabled={resolvingAlertId === (alert.alertDetailId || alert.vitalsId)}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600 shadow-xs hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95 disabled:opacity-50"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-bold text-slate-700 shadow-2xs transition hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-700 active:scale-95 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/40 dark:hover:text-emerald-300"
                       >
                         {resolvingAlertId === (alert.alertDetailId || alert.vitalsId) ? 'Saving...' : 'Resolve'}
                       </button>
                     </div>
 
-                    <p className="text-[11px] leading-relaxed text-slate-600">
+                    <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
                       {alert.description || alert.criticalAlertDetails || 'Critical biometric reading detected.'}
                     </p>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 pt-1.5 border-t border-slate-200/60 dark:border-slate-800">
                       <span>{alert.patientPhone !== 'N/A' ? alert.patientPhone : 'Phone on file'}</span>
-                      <span>
+                      <span className="font-mono">
                         {alert.recordedAt ? new Date(alert.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                       </span>
                     </div>
@@ -842,17 +862,17 @@ export const Dashboard = () => {
               )}
 
               {/* Fleet Operations Overview Bar */}
-              <div className="mt-4 rounded-xl border border-slate-100 bg-white/70 p-3 shadow-xs">
+              <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-950/60">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                     Phlebotomist Fleet Utilization
                   </span>
-                  <span className="text-[11px] font-extrabold text-cyan-600">
+                  <span className="font-mono text-[11px] font-extrabold text-cyan-600 dark:text-cyan-400 tabular-nums">
                     {kpis.fleet?.totalActive || 0} Online
                   </span>
                 </div>
 
-                <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 gap-0.5">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800 gap-0.5">
                   <div
                     title="Available"
                     className="bg-emerald-500"
@@ -870,7 +890,7 @@ export const Dashboard = () => {
                   />
                 </div>
 
-                <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                <div className="mt-2.5 flex items-center justify-between text-[10px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                   <span className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Available ({kpis.fleet?.available || 0})
@@ -888,15 +908,15 @@ export const Dashboard = () => {
 
               {/* System Audit Operations Feed */}
               {logs.length > 0 && (
-                <div className="mt-4 border-t border-slate-100 pt-3">
-                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="mt-4 border-t border-slate-200/70 pt-3 dark:border-slate-800">
+                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     System Audit Trace
                   </h3>
                   <div className="space-y-1.5">
                     {logs.slice(0, 4).map((log, idx) => (
                       <div key={log._id || idx} className="flex items-center justify-between text-[10.5px]">
-                        <span className="truncate font-medium text-slate-700">{log.action}</span>
-                        <span className="text-[9.5px] text-slate-400 shrink-0 ml-2">
+                        <span className="truncate font-medium text-slate-700 dark:text-slate-300">{log.action}</span>
+                        <span className="font-mono text-[9.5px] text-slate-400 dark:text-slate-500 shrink-0 ml-2">
                           {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -907,13 +927,13 @@ export const Dashboard = () => {
             </div>
 
             {/* Bottom Node Status */}
-            <div className="border-t border-white/60 bg-white/50 px-5 py-3">
+            <div className="border-t border-slate-200/80 bg-slate-50/75 px-5 py-3 dark:border-slate-800/80 dark:bg-slate-950/60">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Activity size={14} className="text-cyan-600 animate-pulse" />
-                  <span className="font-semibold text-slate-700">BioSync AI Core Active</span>
+                  <Activity size={14} className="text-cyan-600 dark:text-cyan-400 animate-pulse" />
+                  <span className="font-bold text-slate-700 dark:text-slate-200">BioSync AI Core Active</span>
                 </div>
-                <span className="text-[11px] font-medium text-slate-500">
+                <span className="font-mono text-[10.5px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                   Sync: {lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               </div>

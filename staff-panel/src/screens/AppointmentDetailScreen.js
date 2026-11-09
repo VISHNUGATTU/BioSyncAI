@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ import {
   AlertOctagon,
 } from 'lucide-react-native';
 
-import { colors, useTheme } from '../theme/colors';
+import { useTheme } from '../theme/colors';
 import useAppointmentStore from '../store/appointmentStore';
 
 import GlassCard from '../components/GlassCard';
@@ -48,7 +48,8 @@ export const AppointmentDetailScreen = ({
   route,
   navigation,
 }) => {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const { appointment } = route.params || {};
 
   const {
@@ -1175,7 +1176,7 @@ export const AppointmentDetailScreen = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.bgDark,
@@ -1191,9 +1192,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
 
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
+    borderBottomColor: isDark ? colors.borderDefault : colors.borderSubtle,
 
-    backgroundColor: colors.bgSurface,
+    backgroundColor: isDark ? colors.bgSurface : '#FFFFFF',
   },
 
   backBtn: {

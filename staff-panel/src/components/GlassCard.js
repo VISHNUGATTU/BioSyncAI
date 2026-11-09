@@ -24,21 +24,30 @@ const GlassCard = ({
 }) => {
   const { colors, gradients, isDark, shadows } = useTheme();
 
+  const resolvedBorderColor =
+    borderColor ||
+    (accent
+      ? colors.borderCyan
+      : isDark
+      ? colors.borderSubtle
+      : colors.borderDefault);
+
   const cardStyle = [
     styles.card,
     {
-      backgroundColor: colors.bgCard,
+      backgroundColor: elevated ? colors.bgCardElevated : colors.bgCard,
       borderRadius: radius,
       borderWidth,
-      borderColor:
-        borderColor ||
-        (accent
-          ? colors.borderCyan
-          : colors.borderSubtle),
+      borderColor: resolvedBorderColor,
       padding,
     },
-    !isDark && (elevated ? shadows.md : shadows.sm),
-    elevated && isDark && styles.elevated,
+    isDark
+      ? elevated
+        ? shadows.md
+        : shadows.sm
+      : elevated
+      ? shadows.md
+      : shadows.sm,
     style,
   ];
 
@@ -89,20 +98,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-
-  elevated: {
-    shadowOpacity: 0.32,
-    shadowRadius: 20,
-    elevation: 7,
   },
 
   content: {

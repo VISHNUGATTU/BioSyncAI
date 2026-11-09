@@ -92,7 +92,7 @@ export default function FamilyPlatingGuideScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.bgDark }]}>
       {/* Top Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.bgSurface }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.bgSurface, borderBottomColor: colors.borderSubtle }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}

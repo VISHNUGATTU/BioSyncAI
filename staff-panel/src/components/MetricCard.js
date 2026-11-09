@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import {
   TrendingUp,
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react-native';
 
 import GlassCard from './GlassCard';
-import { colors } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 const MetricCard = ({
   title,
@@ -27,7 +28,9 @@ const MetricCard = ({
   style,
   compact = false,
 }) => {
-  const effectiveIconColor = accentColor || iconColor || colors.primaryLight || colors.primary;
+  const { colors, isDark } = useTheme();
+  const effectiveIconColor =
+    accentColor || iconColor || colors.primaryLight || colors.primary;
 
   const getTrendColor = () => {
     if (trend === 'up') {
@@ -64,8 +67,8 @@ const MetricCard = ({
           style={[
             styles.iconContainer,
             {
-              backgroundColor: `${effectiveIconColor}15`,
-              borderColor: `${effectiveIconColor}30`,
+              backgroundColor: `${effectiveIconColor}${isDark ? '18' : '14'}`,
+              borderColor: `${effectiveIconColor}${isDark ? '35' : '30'}`,
             },
           ]}
         >
@@ -84,8 +87,8 @@ const MetricCard = ({
             style={[
               styles.trendBadge,
               {
-                backgroundColor: `${currentTrendColor}12`,
-                borderColor: `${currentTrendColor}25`,
+                backgroundColor: `${currentTrendColor}14`,
+                borderColor: `${currentTrendColor}28`,
               },
             ]}
           >
@@ -114,9 +117,10 @@ const MetricCard = ({
 
       <View className="mt-3.5" style={styles.valueContainer}>
         <Text
-          className={`text-white font-extrabold tracking-tight ${compact ? 'text-xl leading-7' : 'text-2xl leading-8'}`}
+          className={`font-extrabold tracking-tight ${compact ? 'text-xl leading-7' : 'text-2xl leading-8'}`}
           style={[
             styles.value,
+            { color: colors.textPrimary },
             compact && styles.compactValue,
           ]}
           numberOfLines={1}
@@ -126,8 +130,8 @@ const MetricCard = ({
         </Text>
 
         <Text
-          className="text-neutral-400 text-xs font-semibold mt-1"
-          style={styles.title}
+          className="text-xs font-semibold mt-1"
+          style={[styles.title, { color: colors.textSecondary }]}
           numberOfLines={1}
         >
           {title || 'Metric'}
@@ -138,8 +142,8 @@ const MetricCard = ({
         <View className="flex-row items-center justify-between mt-3" style={styles.bottomRow}>
           {subtitle ? (
             <Text
-              className="flex-1 text-neutral-500 text-[10px] font-medium"
-              style={styles.subtitle}
+              className="flex-1 text-[10px] font-medium"
+              style={[styles.subtitle, { color: colors.textMuted }]}
               numberOfLines={1}
             >
               {subtitle}
@@ -150,8 +154,8 @@ const MetricCard = ({
 
           {trendLabel ? (
             <Text
-              className="text-neutral-500 text-[9px] font-medium ml-2"
-              style={styles.trendLabel}
+              className="text-[9px] font-medium ml-2"
+              style={[styles.trendLabel, { color: colors.textMuted }]}
               numberOfLines={1}
             >
               {trendLabel}
@@ -163,10 +167,8 @@ const MetricCard = ({
   );
 
   if (onPress) {
-    const TouchableCard = require('react-native').TouchableOpacity;
-
     return (
-      <TouchableCard
+      <TouchableOpacity
         activeOpacity={0.86}
         onPress={onPress}
         style={[{ width: '100%' }, style]}
@@ -179,7 +181,7 @@ const MetricCard = ({
         >
           {content}
         </GlassCard>
-      </TouchableCard>
+      </TouchableOpacity>
     );
   }
 
@@ -243,11 +245,11 @@ const styles = StyleSheet.create({
   },
 
   value: {
-    color: colors.textPrimary,
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+    fontVariant: ['tabular-nums'],
   },
 
   compactValue: {
@@ -256,9 +258,8 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: colors.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 2,
   },
 
@@ -271,15 +272,14 @@ const styles = StyleSheet.create({
 
   subtitle: {
     flex: 1,
-    color: colors.textMuted,
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 
   trendLabel: {
-    color: colors.textMuted,
     fontSize: 9,
-    fontWeight: '500',
+    fontWeight: '600',
     marginLeft: 8,
   },
 });
