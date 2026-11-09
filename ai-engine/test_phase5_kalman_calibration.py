@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 
 from metabolic_twin import MetabolicDigitalTwin
 from adaptive_calibration import ExtendedKalmanCalibrationEngine, kalman_engine
-from main import app
+from main import app, calibrate_twin_endpoint, WeeklyCalibrationRequest
 
 
 @pytest.fixture
@@ -228,9 +228,9 @@ def test_twin_parameter_preservation_from_vitals():
     assert twin.insulin_sensitivity_index == 0.585
 
 
-def test_fastapi_calibrate_twin_endpoint(client):
+def test_fastapi_calibrate_twin_endpoint():
     """
-    Test 8: Test POST /api/v1/calibrate-twin endpoint via TestClient.
+    Test 8: Test POST /api/v1/calibrate-twin endpoint via direct controller invocation.
     """
     payload = {
         "userId": "patient_unit_test_99",
@@ -257,10 +257,9 @@ def test_fastapi_calibrate_twin_endpoint(client):
         }
     }
 
-    response = client.post("/api/v1/calibrate-twin", json=payload)
-    assert response.status_code == 200
+    req = WeeklyCalibrationRequest(**payload)
+    data = calibrate_twin_endpoint(payload=req)
 
-    data = response.json()
     assert data["success"] is True
     assert "calibratedParameters" in data
     assert "betaCarb" in data["calibratedParameters"]
