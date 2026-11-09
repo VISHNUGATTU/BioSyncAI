@@ -6,7 +6,7 @@ ai-engine/.venv/
 # Environment Variables & Secrets (PUBLIC REPO SECURITY MANDATE)
 .env
 .env.*
-!.env.example
+!**/.env.example
 *.env
 *.env.local
 

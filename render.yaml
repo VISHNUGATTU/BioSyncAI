@@ -1,0 +1,70 @@
+# =====================================================================
+# BioSync AI - Render Blueprint Specification (render.yaml)
+# Deploys:
+#   1. BioSync Server (Node.js 22 / Express API)
+#   2. BioSync AI Engine (Python 3.11 / FastAPI In-Silico Metabolic Twin)
+# =====================================================================
+
+services:
+  # -------------------------------------------------------------------
+  # 1. PRIMARY BACKEND API SERVER (Node.js)
+  # -------------------------------------------------------------------
+  - type: web
+    name: biosync-server
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        value: https://biosyncadmin.vercel.app
+      - key: ADMIN_URL
+        value: https://biosyncadmin.vercel.app
+      - key: AI_ENGINE_URL
+        fromService:
+          type: web
+          name: biosync-ai-engine
+          property: host
+      - key: FAST2SMS_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_APP_PASSWORD
+        sync: false
+
+  # -------------------------------------------------------------------
+  # 2. METABOLIC DIGITAL TWIN & NUTRITION ENGINE (Python / FastAPI)
+  # -------------------------------------------------------------------
+  - type: web
+    name: biosync-ai-engine
+    runtime: python
+    rootDir: ai-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: "https://biosyncadmin.vercel.app,http://localhost:5173"
+      - key: MODEL_DEVICE
+        value: cpu

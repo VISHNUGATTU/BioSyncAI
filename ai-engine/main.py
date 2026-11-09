@@ -1106,5 +1106,5 @@ def verify_gravimetric_plating_endpoint(req: GravimetricPlatingRequest):
 
 if __name__ == "__main__":
     host = os.getenv("AI_ENGINE_HOST", "0.0.0.0")
-    port = int(os.getenv("AI_ENGINE_PORT", 8000))
-    uvicorn.run(app, host=host, port=port)
+    port = int(os.getenv("PORT", os.getenv("AI_ENGINE_PORT", 8000)))
+    uvicorn.run("main:app", host=host, port=port)

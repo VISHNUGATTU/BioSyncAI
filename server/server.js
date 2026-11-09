@@ -104,8 +104,8 @@ const allowedOrigins = [
 
 app.use(cors({ 
   origin: (origin, callback) => {
-    // Allow mobile apps (which send undefined origins), allowed web clients, or local dev
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    // Allow mobile apps (which send undefined origins), allowed web clients, Vercel deployments, or local dev
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     return callback(new Error('Blocked by CORS policy'));
@@ -158,8 +158,8 @@ app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'BioSync AI Backend API is running optimally.' });
 });
 
-// Comprehensive production health check probe for load balancers & orchestrators
-app.get('/health', (req, res) => {
+// Comprehensive production health check probe for load balancers & orchestrators (Render / Kubernetes)
+app.get(['/health', '/api/health'], (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
   res.status(isDbConnected ? 200 : 503).json({
     status: isDbConnected ? 'healthy' : 'degraded',
