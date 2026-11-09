@@ -32,6 +32,8 @@ import Appointments from './pages/Appointments';
 import Roles from './pages/Roles';
 import AuditLogs from './pages/AuditLogs';
 import ErrorMonitoring from './pages/ErrorMonitoring';
+import KitchenKDS from './pages/KitchenKDS';
+import ClinicalSurveillance from './pages/ClinicalSurveillance';
 
 function App() {
    const initTheme = useThemeStore((state) => state.initTheme);
@@ -85,6 +87,8 @@ function App() {
 
           <Route path="ai-analytics" element={<AIAnalytics />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="kitchen-kds" element={<KitchenKDS />} />
+          <Route path="clinical-surveillance" element={<ClinicalSurveillance />} />
 
           <Route path="payments" element={<Payments />} />
           <Route path="tickets" element={<Tickets />} />

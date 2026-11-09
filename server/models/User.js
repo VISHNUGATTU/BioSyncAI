@@ -77,6 +77,42 @@ const userSchema = new mongoose.Schema({
   needsRecalibration: { type: Boolean, default: false, index: true },
   lastBloodDrawDate: { type: Date },
   lastCalibrationDate: { type: Date },
+
+  // Ayushman Bharat Digital Mission (ABDM) National Health Gateway Integration
+  abha: {
+    abhaNumber: { type: String, trim: true, index: true }, // e.g. '91-1234-5678-9012'
+    abhaAddress: { type: String, trim: true, index: true }, // e.g. 'patient@abdm' or 'patient@sbx'
+    status: { 
+      type: String, 
+      enum: ['NOT_LINKED', 'OTP_PENDING', 'LINKED', 'REVOKED'], 
+      default: 'NOT_LINKED',
+      index: true
+    },
+    linkedAt: { type: Date },
+    hipId: { type: String, default: 'IN3610001899' }, // National Health Authority registered HIP ID
+    profileData: {
+      fullName: String,
+      gender: String,
+      dateOfBirth: String,
+      yearOfBirth: Number,
+      monthOfBirth: Number,
+      dayOfBirth: Number,
+      stateName: String,
+      districtName: String,
+      pincode: String,
+      mobile: String,
+      kycVerified: { type: Boolean, default: false }
+    },
+    consentArtefacts: [{
+      consentId: String,
+      status: { type: String, enum: ['REQUESTED', 'GRANTED', 'DENIED', 'REVOKED'], default: 'REQUESTED' },
+      grantedAt: Date,
+      expiresAt: Date,
+      hiTypes: [String],
+      careContexts: [String]
+    }]
+  },
+
   accountStatus: { type: String, enum: ['Active', 'Suspended', 'Banned'], default: 'Active', index: true },
   suspensionReason: { type: String, trim: true },
   strikeCount: { type: Number, default: 0, min: 0 },

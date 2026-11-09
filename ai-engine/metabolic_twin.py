@@ -36,6 +36,7 @@ class MetabolicDigitalTwin:
         bmi: float = 23.5,                  # kg/m2
         age: int = 35,
         gender: str = "Unspecified",
+        active_medications: Optional[list] = None,
     ):
         self.user_id = user_id or "anonymous_twin"
         self.fasting_glucose = max(50.0, float(fasting_glucose))
@@ -50,6 +51,7 @@ class MetabolicDigitalTwin:
         self.bmi = max(14.0, float(bmi))
         self.age = int(age)
         self.gender = gender
+        self.active_medications = list(active_medications or [])
 
         # Adaptive individual coefficients (calibrated by Kalman filter in Phase 5)
         self.insulin_sensitivity_index = self._compute_insulin_sensitivity()
@@ -110,6 +112,7 @@ class MetabolicDigitalTwin:
         elif kalman_data.get("insulinSensitivity") is not None:
             twin.insulin_sensitivity_index = float(kalman_data["insulinSensitivity"])
 
+        twin.active_medications = list(vitals.get("activeMedications") or vitals.get("active_medications") or [])
         return twin
 
     def _compute_insulin_sensitivity(self) -> float:

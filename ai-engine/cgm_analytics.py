@@ -86,6 +86,7 @@ class CGMAnalyticsEngine:
         agp_metrics = cls.compute_agp_metrics(sensor_values)
 
         return {
+            "stream": cgm_points,
             "samplingIntervalMinutes": sampling_interval_min,
             "diffusionLagConstantMin": tau_lag_min,
             "totalReadings": len(cgm_points),
@@ -124,10 +125,15 @@ class CGMAnalyticsEngine:
 
         return {
             "meanGlucose": float(np.round(mean_g, 1)),
+            "meanCgmGlucose": float(np.round(mean_g, 1)),
+            "estimatedGMI": float(np.round(3.31 + 0.02392 * mean_g, 1)),
             "standardDeviation": float(np.round(sd_g, 1)),
             "coefficientOfVariationPercent": cv_pct,
             "cvStatus": "Stable (<36%)" if cv_pct < 36.0 else "Elevated Glycemic Variability (>=36%)",
-            "timeInRangePercent": {
+            "timeInRangePercent": tir_euglycemic,
+            "timeAboveRangePercent": tar_l1 + tar_l2,
+            "timeBelowRangePercent": tbr_l1 + tbr_l2,
+            "ranges": {
                 "euglycemic70_140": tir_euglycemic,
                 "tightRange70_120": tight_tir,
                 "tarLevel1_140_180": tar_l1,
@@ -136,6 +142,7 @@ class CGMAnalyticsEngine:
                 "tbrLevel2_below54": tbr_l2
             },
             "mage": float(np.round(mage, 1)),
+            "mageMgDl": float(np.round(mage, 1)),
             "jIndex": j_index,
             "glycemicRiskIndices": {
                 "lbgi": float(np.round(lbgi, 2)),

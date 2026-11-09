@@ -1,34 +1,55 @@
+# Dependencies
 node_modules/
+.venv/
+ai-engine/.venv/
+
+# Environment Variables & Secrets (PUBLIC REPO SECURITY MANDATE)
 .env
-.env*.local
-.venv
+.env.*
+!.env.example
+*.env
+*.env.local
+
+# Python artifacts
 __pycache__/
 *.pyc
 .pytest_cache/
+ai-engine/.pytest_cache/
+ai-engine/__pycache__/
+ai-engine/edge_models/
+
+# System and Editor Files
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build outputs
 dist/
 build/
 .next/
 out/
 coverage/
-.vscode/
 .expo/
+user-panel/.expo/
+staff-panel/.expo/
 scratch/
 
-# Media & Document Assets Exclusion
-images/
+# Large Model Weights and Raw Media
 uploads/
 server/uploads/
-user-panel/assets/
-staff-panel/assets/
-*.docx
-*.doc
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.mp4
 *.pt
 *.pth
 *.onnx
+*.mp4
+*.docx
+*.doc
+*.pdf
+
+# Whitelist App Store & Google Play mobile app assets
+!user-panel/assets/
+!user-panel/assets/*
+!staff-panel/assets/
+!staff-panel/assets/*
+!admin-panel/public/*
+!admin-panel/public/**/*

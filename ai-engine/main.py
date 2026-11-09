@@ -18,6 +18,13 @@ from pharmacodynamics import pharmacodynamics_engine
 from cgm_analytics import cgm_analytics_engine
 from micronutrient_synergy import micronutrient_synergy_engine
 from omni_twin_engine import omni_twin_engine
+from food_simulation_engine import food_simulation_engine
+from family_allocator import family_plating_allocator
+from ayur_pharma_matrix import ayur_pharma_matrix
+from kds_formatter import kds_formatter
+from hemodynamic_estimator import hemodynamic_estimator
+from vernacular_voice_coach import vernacular_voice_coach
+from smart_kitchen_hardware_interface import smart_kitchen_hardware
 
 app = FastAPI(
     title="BioSync AI Engine",
@@ -37,7 +44,7 @@ app.add_middleware(
 
 
 @app.get("/")
-async def root():
+def root():
     return {
         "status": "online",
         "service": "BioSync AI Engine - Omni-Twin Physiology Suite v3.0",
@@ -54,13 +61,25 @@ async def root():
             "foodCatalog": "/api/v1/nutrition/catalog",
             "clinicalRank": "/api/v1/twin/clinical-rank",
             "simulateVitalSurge": "/api/v1/twin/simulate-vital-surge",
-            "calibrateTwin": "/api/v1/twin/calibrate"
+            "calibrateTwin": "/api/v1/twin/calibrate",
+            "simulateMealForecast": "/api/v1/simulate-meal-forecast",
+            "ambulationPlan": "/api/v1/biohacks/ambulation-plan",
+            "familyAllocate": "/api/v1/family/allocate-single-pot",
+            "ayurPharmaScreen": "/api/v1/ayur-pharma/screen",
+            "kdsFormatTicket": "/api/v1/kds/format-ticket",
+            "cufflessBP": "/api/v1/hemodynamics/estimate-cuffless-bp",
+            "analyzeHRV": "/api/v1/hemodynamics/analyze-hrv",
+            "detectMealStart": "/api/v1/sensors/detect-meal-start",
+            "vernacularVoiceParse": "/api/v1/voice/parse-and-simulate",
+            "vernacularKitchenCoach": "/api/v1/voice/kitchen-coach",
+            "readOpticalOilSensor": "/api/v1/hardware/read-optical-oil-sensor",
+            "verifyGravimetricPlating": "/api/v1/hardware/verify-gravimetric-plating"
         }
     }
 
 
 @app.get("/health")
-async def health_check():
+def health_check():
     return {
         "status": "healthy",
         "service": "BioSync AI Engine",
@@ -73,13 +92,20 @@ async def health_check():
             "omniTwinEngine": True,
             "cgmAnalyticsEngine": True,
             "pharmacodynamicsEngine": True,
-            "micronutrientSynergyEngine": True
+            "micronutrientSynergyEngine": True,
+            "foodSimulationEngine": True,
+            "familyPlatingAllocator": True,
+            "ayurPharmaMatrix": True,
+            "kdsFormatter": True,
+            "hemodynamicEstimator": True,
+            "vernacularVoiceCoach": True,
+            "smartKitchenHardware": True
         }
     }
 
 
 @app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
+def favicon():
     return JSONResponse(status_code=204, content={})
 
 
@@ -159,8 +185,62 @@ class WeeklyCalibrationRequest(BaseModel):
     adaptiveNoise: Optional[bool] = Field(False, description="Whether to use Sage-Husa adaptive innovation noise covariance")
 
 
+class MealForecastRequest(BaseModel):
+    vitals: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Patient's current or baseline vitals")
+    items: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Cart items to simulate")
+    orderMode: Optional[str] = Field("VITALS_GUARD", description="Commerce mode: VITALS_GUARD or CHEAT_MODE_OVERRIDE")
+    mealTimeHour: Optional[float] = Field(None, ge=0.0, le=24.0, description="Hour of meal for circadian curve")
+
+
+class AmbulationPlanRequest(BaseModel):
+    simulatedPeakGlucose: float = Field(..., ge=40.0, le=600.0, description="Projected peak glucose in mg/dL")
+    targetCeilingGlucose: Optional[float] = Field(140.0, ge=70.0, le=250.0, description="Desired safe ceiling (default 140 mg/dL)")
+    bmi: Optional[float] = Field(24.5, ge=10.0, le=60.0, description="Patient BMI for volume of distribution calculation")
+    timeToPeakMin: Optional[int] = Field(45, ge=5, le=180, description="Projected time to peak excursion")
+
+
+class FamilyAllocationRequest(BaseModel):
+    familyMembers: List[Dict[str, Any]] = Field(..., description="Array of family member profiles with clinical targets")
+    orderedDishes: List[Dict[str, Any]] = Field(..., description="Array of shared bulk dishes ordered for the household")
+
+
+class AyurPharmaScreenRequest(BaseModel):
+    botanicals: List[Dict[str, Any]] = Field(..., description="Active botanicals in the food items (Karela, Methi, Giloy, etc.)")
+    medications: List[str] = Field(default_factory=list, description="Patient's current active allopathic prescriptions")
+    clinicalConditions: Optional[List[str]] = Field(default_factory=list, description="Patient's clinical diagnoses (CKD, T2D, etc.)")
+
+
+class KDSTicketRequest(BaseModel):
+    orderNumber: str = Field(..., description="Unique order tracking identifier")
+    restaurantName: str = Field(..., description="Restaurant / Cloud Kitchen name")
+    orderMode: Optional[str] = Field("VITALS_GUARD", description="Commerce mode: VITALS_GUARD or CHEAT_MODE_OVERRIDE")
+    items: List[Dict[str, Any]] = Field(..., description="Ordered items with applied health modifications")
+    mitigationPlan: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Pre-bite sequencing and ambulation instructions")
+    familyAllocation: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Multi-member plate allocation guide")
+
+
+class CufflessBPEstimateRequest(BaseModel):
+    ptt_ms: float = Field(..., ge=80.0, le=600.0, description="Pulse Transit Time in milliseconds")
+    heart_rate_bpm: Optional[float] = Field(72.0, ge=30.0, le=240.0, description="Simultaneous heart rate in bpm")
+    patient_height_cm: Optional[float] = Field(172.0, ge=100.0, le=250.0, description="Patient height for aortic length scaling")
+    baseline_sbp: Optional[float] = Field(120.0, ge=70.0, le=240.0, description="Baseline calibrated systolic blood pressure")
+    baseline_dbp: Optional[float] = Field(80.0, ge=40.0, le=140.0, description="Baseline calibrated diastolic blood pressure")
+    ppg_inflection_ratio: Optional[float] = Field(0.65, ge=0.1, le=1.5, description="Photoplethysmography dicrotic notch inflection ratio")
+
+
+class HRVAnalysisRequest(BaseModel):
+    rr_intervals_ms: List[float] = Field(..., description="Array of inter-beat intervals (RR) in milliseconds")
+
+
+class MealInitiationDetectRequest(BaseModel):
+    accelerometer_variance: float = Field(..., description="IMU 3-axis motion variance from smartwatch")
+    audio_frequency_spectrum: Optional[List[float]] = Field(default_factory=list, description="Acoustic energy spectrum in 1.2-2.5 Hz band")
+    continuous_heart_rate: Optional[float] = Field(72.0, description="Real-time optical heart rate")
+    resting_baseline_hr: Optional[float] = Field(70.0, description="Patient resting heart rate baseline")
+
+
 @app.post("/api/v1/omni-twin/simulate")
-async def simulate_omni_twin_endpoint(payload: OmniTwinSimulateRequest = Body(...)):
+def simulate_omni_twin_endpoint(payload: OmniTwinSimulateRequest = Body(...)):
     """
     Omni-Twin v3.0 Core Endpoint:
     Executes UVA-Padova / Dalla-Man 7-compartment metabolic integration,
@@ -224,7 +304,7 @@ async def simulate_omni_twin_endpoint(payload: OmniTwinSimulateRequest = Body(..
 
 
 @app.post("/api/v1/omni-twin/cgm-stream")
-async def generate_cgm_stream_endpoint(payload: CGMGenerateRequest = Body(...)):
+def generate_cgm_stream_endpoint(payload: CGMGenerateRequest = Body(...)):
     """
     Transforms arbitrary plasma glucose trajectories into continuous subcutaneous
     CGM sensor streams with interstitial lag and clinical AGP metrics.
@@ -237,7 +317,7 @@ async def generate_cgm_stream_endpoint(payload: CGMGenerateRequest = Body(...)):
 
 
 @app.post("/api/v1/omni-twin/pharmacodynamics")
-async def evaluate_pharmacodynamics_endpoint(payload: PharmacodynamicsRequest = Body(...)):
+def evaluate_pharmacodynamics_endpoint(payload: PharmacodynamicsRequest = Body(...)):
     """
     Evaluates multi-drug cardiometabolic pharmacodynamic modulation and food-drug interactions.
     """
@@ -261,7 +341,7 @@ async def evaluate_pharmacodynamics_endpoint(payload: PharmacodynamicsRequest = 
 
 
 @app.post("/api/v1/omni-twin/micronutrient-synergy")
-async def evaluate_micronutrient_synergy_endpoint(payload: MicronutrientSynergyRequest = Body(...)):
+def evaluate_micronutrient_synergy_endpoint(payload: MicronutrientSynergyRequest = Body(...)):
     """
     Evaluates dietary electrolyte ratios (Na:K, Ca:Mg) and biochemical absorption synergies.
     """
@@ -275,12 +355,213 @@ async def evaluate_micronutrient_synergy_endpoint(payload: MicronutrientSynergyR
     }
 
 
+@app.post("/api/v1/simulate-meal-forecast")
+def simulate_meal_forecast_endpoint(payload: MealForecastRequest = Body(...)):
+    """
+    Phase 2 Core In-Silico Pre-Order Endpoint:
+    Simulates multi-item restaurant carts against the user's 7-compartment digital twin,
+    factoring in amylose retardation, resistant starch, gastric emptying delays,
+    and returns 4-hour trajectories, peak projections, and autonomous bio-hack plans.
+    """
+    try:
+        result = food_simulation_engine.simulate_meal_cart(
+            vitals=payload.vitals,
+            items=payload.items,
+            order_mode=payload.orderMode or "VITALS_GUARD",
+            meal_time_hour=payload.mealTimeHour
+        )
+        return result
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"In-Silico meal forecast failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/biohacks/ambulation-plan")
+def calculate_ambulation_plan_endpoint(payload: AmbulationPlanRequest = Body(...)):
+    """
+    Computes exact walking minutes and step quotas to clear excess glycemic pool
+    via non-insulin-mediated GLUT4 translocation.
+    """
+    try:
+        plan = food_simulation_engine.calculate_ambulation_plan(
+            simulated_peak_glucose=payload.simulatedPeakGlucose,
+            target_ceiling_glucose=payload.targetCeilingGlucose or 140.0,
+            bmi=payload.bmi or 24.5,
+            time_to_peak_min=payload.timeToPeakMin or 45
+        )
+        return {
+            "success": True,
+            "data": plan
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Ambulation plan calculation failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/family/allocate-single-pot")
+def allocate_family_single_pot_endpoint(payload: FamilyAllocationRequest = Body(...)):
+    """
+    Phase 3 Core Endpoint:
+    Disaggregates shared family bulk dishes (1kg Biryani handi, dals, curries)
+    into individualized plate gram weights conforming to multi-generational metabolic targets.
+    """
+    try:
+        allocation = family_plating_allocator.allocate_single_pot(
+            family_members=payload.familyMembers,
+            ordered_dishes=payload.orderedDishes
+        )
+        return allocation
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Family single-pot allocation failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/ayur-pharma/screen")
+def screen_ayur_pharma_endpoint(payload: AyurPharmaScreenRequest = Body(...)):
+    """
+    Phase 3 Core Endpoint:
+    Screens active Indian botanicals against patient's prescription allopathic drugs
+    for severe adverse interactions (e.g. Karela + Glimepiride hypoglycemia, Giloy + Statin HILI).
+    """
+    try:
+        report = ayur_pharma_matrix.evaluate_cross_interactions(
+            botanicals=payload.botanicals,
+            medications=payload.medications,
+            clinical_conditions=payload.clinicalConditions
+        )
+        return report
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Ayur-Pharma screening failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/kds/format-ticket")
+def format_kds_ticket_endpoint(payload: KDSTicketRequest = Body(...)):
+    """
+    Phase 3 Core Endpoint:
+    Generates standardized Cloud Kitchen Display System (KDS) and ESC/POS thermal printer tickets
+    annotated with recipe modifications, food sequencing box labels, and cryptographic order hashes.
+    """
+    try:
+        ticket = kds_formatter.generate_kitchen_ticket(
+            order_number=payload.orderNumber,
+            restaurant_name=payload.restaurantName,
+            order_mode=payload.orderMode or "VITALS_GUARD",
+            items=payload.items,
+            mitigation_plan=payload.mitigationPlan,
+            family_allocation=payload.familyAllocation
+        )
+        return ticket
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"KDS ticket formatting failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/hemodynamics/estimate-cuffless-bp")
+def estimate_cuffless_bp_endpoint(payload: CufflessBPEstimateRequest = Body(...)):
+    """
+    Phase 4 Core Endpoint:
+    Estimates continuous Systolic & Diastolic Blood Pressure from Pulse Transit Time (PTT)
+    using the Moens-Korteweg vascular elasticity equations.
+    """
+    try:
+        result = hemodynamic_estimator.estimate_cuffless_bp(
+            ptt_ms=payload.ptt_ms,
+            heart_rate_bpm=payload.heart_rate_bpm or 72.0,
+            patient_height_cm=payload.patient_height_cm or 172.0,
+            baseline_sbp=payload.baseline_sbp or 120.0,
+            baseline_dbp=payload.baseline_dbp or 80.0,
+            ppg_inflection_ratio=payload.ppg_inflection_ratio or 0.65
+        )
+        return result
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Cuffless BP estimation failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/hemodynamics/analyze-hrv")
+def analyze_hrv_endpoint(payload: HRVAnalysisRequest = Body(...)):
+    """
+    Phase 4 Core Endpoint:
+    Extracts time-domain (SDNN, RMSSD, pNN50) and Baevsky Sympathetic Stress Index
+    from continuous RR intervals to detect acute postprandial visceral stress.
+    """
+    try:
+        report = hemodynamic_estimator.analyze_hrv(
+            rr_intervals_ms=payload.rr_intervals_ms
+        )
+        return report
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"HRV analysis failed: {str(e)}"
+            }
+        )
+
+
+@app.post("/api/v1/sensors/detect-meal-start")
+def detect_meal_start_endpoint(payload: MealInitiationDetectRequest = Body(...)):
+    """
+    Phase 4 Core Endpoint:
+    Classifies unlogged meal initiation from smartwatch accelerometer variance,
+    audio mastication frequency band (1.2-2.5 Hz), and cephalic heart rate surge.
+    """
+    try:
+        detection = hemodynamic_estimator.detect_meal_initiation(
+            accelerometer_variance=payload.accelerometer_variance,
+            audio_frequency_spectrum=payload.audio_frequency_spectrum or [],
+            continuous_heart_rate=payload.continuous_heart_rate or 72.0,
+            resting_baseline_hr=payload.resting_baseline_hr or 70.0
+        )
+        return detection
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Meal initiation detection failed: {str(e)}"
+            }
+        )
+
+
 
 
 
 @app.post("/api/v1/calibrate-twin")
 @app.post("/api/v1/twin/calibrate")
-async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...)):
+def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...)):
     """
     Phase 5 Core Endpoint:
     Recursively updates personal metabolic sensitivities (beta_carb, beta_sodium, S_I)
@@ -299,7 +580,7 @@ async def calibrate_twin_endpoint(payload: WeeklyCalibrationRequest = Body(...))
 
 @app.post("/api/v1/simulate-vital-surge")
 @app.post("/api/v1/twin/simulate-vital-surge")
-async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Body(...)):
+def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Body(...)):
     """
     Phase 4 Core Endpoint:
     Simulates continuous 180-minute postprandial vital dynamics using
@@ -375,7 +656,7 @@ async def simulate_vital_surge_endpoint(payload: VitalSurgeSimulateRequest = Bod
 
 @app.post("/api/v1/clinical-rank")
 @app.post("/api/v1/twin/clinical-rank")
-async def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
+def rank_candidates_endpoint(payload: ClinicalRankRequest = Body(...)):
     """
     Phase 3 Core Endpoint:
     Confined Personal Digital Twin (M_user) evaluates candidates using multi-objective
@@ -406,7 +687,7 @@ def get_nutrition_catalog():
 
 @app.post("/api/v1/nutrition-decompose")
 @app.post("/api/v1/nutrition/decompose")
-async def decompose_nutrition(payload: NutritionDecomposeRequest = Body(...)):
+def decompose_nutrition(payload: NutritionDecomposeRequest = Body(...)):
     """
     Phase 2 Core Endpoint:
     Decomposes foods into exact macronutrients, micronutrients/minerals,
@@ -460,7 +741,7 @@ async def decompose_nutrition(payload: NutritionDecomposeRequest = Body(...)):
 
 
 @app.post("/api/v1/detect-items")
-async def detect_items_in_frame(
+def detect_items_in_frame(
     file: UploadFile = File(...),
     vitals: Optional[str] = Form(None)
 ):
@@ -471,7 +752,7 @@ async def detect_items_in_frame(
     nutritional decomposition, and optionally evaluates against user vitals.
     """
     try:
-        image_bytes = await file.read()
+        image_bytes = file.file.read()
         if not image_bytes or len(image_bytes) < 100:
             return JSONResponse(
                 status_code=400,
@@ -557,7 +838,7 @@ async def detect_items_in_frame(
 
 
 @app.post("/api/v1/analyze")
-async def analyze_frame_legacy(
+def analyze_frame_legacy(
     file: UploadFile = File(...),
     vitals: Optional[str] = Form(None)
 ):
@@ -569,7 +850,7 @@ async def analyze_frame_legacy(
     Zero static/mock data.
     """
     try:
-        image_bytes = await file.read()
+        image_bytes = file.file.read()
         inspection_result = vision_pipeline.inspect_frame(image_bytes)
 
         if not inspection_result.get("identified", False) or not inspection_result.get("items"):
@@ -731,6 +1012,96 @@ async def analyze_frame_legacy(
                 "message": f"Analysis pipeline error: {str(e)}"
             }
         )
+
+
+class VernacularVoiceParseRequest(BaseModel):
+    transcript: str = Field(..., description="Raw spoken transcript in Hindi, Telugu, Tamil, Marathi, Hinglish, or English")
+    language: Optional[str] = Field(None, description="Language code: hi, te, ta, mr, en")
+    userPhenotype: Optional[Dict[str, Any]] = None
+
+
+class VernacularKitchenCoachRequest(BaseModel):
+    potSizeGrams: float = Field(..., description="Total weight of single-pot vessel (grams)")
+    dishName: str = Field(..., description="Name of dish e.g. Hyderabadi Dum Biryani")
+    familyMembers: List[Dict[str, Any]] = Field(..., description="List of family members and phenotypes")
+    language: str = Field("hi", description="Language code for audio directives")
+
+
+@app.post("/api/v1/voice/parse-and-simulate")
+def vernacular_voice_parse_endpoint(req: VernacularVoiceParseRequest):
+    try:
+        result = vernacular_voice_coach.process_vernacular_food_speech(
+            transcript=req.transcript,
+            user_phenotype=req.userPhenotype,
+            language=req.language
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/voice/kitchen-coach")
+def vernacular_kitchen_coach_endpoint(req: VernacularKitchenCoachRequest):
+    try:
+        result = vernacular_voice_coach.generate_vernacular_kitchen_coaching(
+            pot_size_grams=req.potSizeGrams,
+            dish_name=req.dishName,
+            family_members=req.familyMembers,
+            language=req.language
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class OpticalOilSensorRequest(BaseModel):
+    absorbance_450nm: float = Field(..., description="Optical absorbance at 450nm (blue-violet)")
+    absorbance_600nm: float = Field(..., description="Optical absorbance at 600nm (orange-red reference)")
+    oil_temperature_c: Optional[float] = Field(175.0, description="Temperature of frying medium in Celsius")
+    oil_type: Optional[str] = Field("A2_Mustard_Ghee_Blend", description="Type of cooking medium")
+
+
+class GravimetricPlatingRequest(BaseModel):
+    total_pot_grams: float = Field(..., description="Total unsegregated single-pot vessel weight in grams")
+    plate_measurements: List[Dict[str, Any]] = Field(..., description="Array of load-cell scale readings per plate")
+    tolerance_grams: Optional[float] = Field(3.0, description="Permissible mass conservation error in grams")
+
+
+@app.post("/api/v1/hardware/read-optical-oil-sensor")
+def read_optical_oil_sensor_endpoint(req: OpticalOilSensorRequest):
+    """
+    Phase 10 / Grant-Level Cyber-Physical Endpoint:
+    Processes physical dual-wavelength NIR spectrophotometer signals to audit
+    cooking medium degradation, Total Polar Compounds (TPC), and FSSAI statutory compliance.
+    """
+    try:
+        result = smart_kitchen_hardware.read_optical_oil_sensor(
+            absorbance_450nm=req.absorbance_450nm,
+            absorbance_600nm=req.absorbance_600nm,
+            oil_temperature_c=req.oil_temperature_c,
+            oil_type=req.oil_type
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/hardware/verify-gravimetric-plating")
+def verify_gravimetric_plating_endpoint(req: GravimetricPlatingRequest):
+    """
+    Phase 10 / Grant-Level Cyber-Physical Endpoint:
+    Receives digital load-cell scale telemetry from the smart plating workstation
+    and validates real-time mass conservation across family plates.
+    """
+    try:
+        result = smart_kitchen_hardware.verify_gravimetric_plating(
+            total_pot_grams=req.total_pot_grams,
+            plate_measurements=req.plate_measurements,
+            tolerance_grams=req.tolerance_grams or 3.0
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

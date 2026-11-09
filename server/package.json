@@ -6,6 +6,13 @@
     "server": "nodemon server.js",
     "start": "node server.js",
     "seed": "node seed.js",
+    "seed:foodtech": "node seedFoodTech.js",
+    "test:foodtech": "node tests/phase1_foodtech.test.js",
+    "test:phase5": "node tests/phase5_user_experience.test.js",
+    "test:phase6": "node tests/phase6_admin_kds.test.js",
+    "test:phase7": "node tests/phase7_system_e2e_security.test.js",
+    "test:phase8": "node tests/phase8_patent_specifications.test.js",
+    "test:phase9": "node tests/phase9_abdm_vernacular.test.js",
     "sim:iot": "node ../scripts/iot_watch_simulator.js"
   },
   "keywords": [],

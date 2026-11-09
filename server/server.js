@@ -26,6 +26,10 @@ import notificationRouter from './routes/notificationRoute.js';
 import doctorRouter from './routes/doctorRoute.js';
 import fhirRouter from './routes/fhirRoute.js';
 import chatRouter from './routes/chatRoute.js';
+import foodOrderRouter from './routes/foodOrderRoute.js';
+import wearableRouter from './routes/wearableRoute.js';
+import abdmRouter from './routes/abdmRoute.js';
+import voiceRouter from './routes/voiceRoute.js';
 import { initRecalibrationCron } from './services/recalibrationCron.js';
 
 // Load environment secrets
@@ -145,6 +149,10 @@ app.use('/api/notifications', notificationRouter);
 app.use('/api/doctor', doctorRouter);
 app.use('/api/fhir', fhirRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/food-delivery', foodOrderRouter);
+app.use('/api/wearables', wearableRouter);
+app.use('/api/abdm', abdmRouter);
+app.use('/api/voice', voiceRouter);
 
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'BioSync AI Backend API is running optimally.' });

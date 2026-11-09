@@ -33,6 +33,9 @@ import {
   ArrowRight,
   Sliders,
   Bot,
+  Utensils,
+  Mic,
+  Globe,
 } from 'lucide-react-native';
 import { useTheme } from '../theme/colors';
 import { useAuthStore } from '../store/authStore';
@@ -602,6 +605,131 @@ export const HomeScreen = ({ navigation }) => {
                 <TrendingUp size={20} color="#a78bfa" />
               </View>
               <Text style={[styles.actionTitle, { color: colors.textPrimary }]}>Analytics</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ========================================================= */}
+          {/* 3.5 BIOSYNC EATS BANNER (Vital-Constrained Food Delivery) */}
+          {/* ========================================================= */}
+          <TouchableOpacity
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 16,
+              borderRadius: 16,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: 'rgba(16, 185, 129, 0.35)',
+            }}
+            onPress={() => navigation.navigate('FoodDeliveryHome')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#064e3b', '#022c22']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ padding: 14, flexDirection: 'row', alignItems: 'center' }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12,
+                }}
+              >
+                <Utensils size={22} color="#10B981" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#10B981', letterSpacing: 0.8 }}>
+                    NEW • SWIGGY ON VITALS
+                  </Text>
+                  <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.25)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 8, fontWeight: '800', color: '#6ee7b7' }}>OQI AUDITED</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: '900', color: '#ffffff', marginBottom: 2 }}>
+                  BioSync Eats: Order Safe Food
+                </Text>
+                <Text style={{ fontSize: 11, color: '#94a3b8', lineHeight: 15 }}>
+                  Dishes locked to your live glucose & BP ceiling. In-silico forecast & post-meal walk target.
+                </Text>
+              </View>
+              <ArrowRight size={18} color="#10B981" />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* ========================================================= */}
+          {/* 3B. NATIONAL HEALTH (ABDM/ABHA) & VERNACULAR VOICE LAUNCHERS */}
+          {/* ========================================================= */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+            {/* ABHA Gateway Launcher */}
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                borderRadius: 14,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: 'rgba(217, 119, 6, 0.35)',
+              }}
+              onPress={() => navigation.navigate('AbhaRegistration')}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#451a03', '#1e0a01']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 12 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <ShieldCheck size={18} color="#F59E0B" />
+                  <Text style={{ fontSize: 8, fontWeight: '800', color: '#FCD34D', letterSpacing: 0.5 }}>
+                    NHA • ABDM
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', marginBottom: 2 }}>
+                  ABHA Health ID
+                </Text>
+                <Text style={{ fontSize: 10, color: '#94a3b8', lineHeight: 13 }}>
+                  Link certified FHIR reports to National Locker
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Vernacular Voice Assistant Launcher */}
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                borderRadius: 14,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: 'rgba(13, 148, 136, 0.35)',
+              }}
+              onPress={() => navigation.navigate('VernacularVoice')}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#134e4a', '#042f2e']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 12 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Mic size={18} color="#2DD4BF" />
+                  <Text style={{ fontSize: 8, fontWeight: '800', color: '#99F6E4', letterSpacing: 0.5 }}>
+                    INDIC AI
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', marginBottom: 2 }}>
+                  Voice Assistant
+                </Text>
+                <Text style={{ fontSize: 10, color: '#94a3b8', lineHeight: 13 }}>
+                  Speak in Hindi, Telugu, Tamil for food & plating
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 

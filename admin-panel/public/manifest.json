@@ -1,0 +1,19 @@
+{
+  "name": "BioSync AI - Clinical Surveillance & KDS Workstation",
+  "short_name": "BioSync Admin",
+  "description": "Multi-Tenant Cloud Kitchen KDS, Doctor Surveillance Portal & Central Phlebotomy Dispatch",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

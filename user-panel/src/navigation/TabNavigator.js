@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Utensils, Scan, TrendingUp, User } from 'lucide-react-native';
+import { Home, Utensils, Clock, Scan, TrendingUp, User } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 import HomeScreen          from '../screens/HomeScreen';
+import FoodDeliveryHomeScreen from '../screens/FoodDeliveryHomeScreen';
 import FoodHistoryScreen   from '../screens/FoodHistoryScreen';
 import FoodScannerScreen   from '../screens/FoodScannerScreen';
 import VitalsAnalysisScreen from '../screens/VitalsAnalysisScreen';
@@ -14,8 +15,9 @@ const Tab = createBottomTabNavigator();
 
 const TAB_ITEMS = [
   { name: 'Home',     label: 'Home',     Icon: Home,        component: HomeScreen },
-  { name: 'History',  label: 'History',  Icon: Utensils,    component: FoodHistoryScreen },
+  { name: 'Eats',     label: 'Eats',     Icon: Utensils,    component: FoodDeliveryHomeScreen },
   { name: 'Scan',     label: 'Scan',     Icon: Scan,        component: FoodScannerScreen },
+  { name: 'History',  label: 'History',  Icon: Clock,       component: FoodHistoryScreen },
   { name: 'Analysis', label: 'Analysis', Icon: TrendingUp,  component: VitalsAnalysisScreen },
   { name: 'Profile',  label: 'Profile',  Icon: User,        component: ProfileScreen },
 ];

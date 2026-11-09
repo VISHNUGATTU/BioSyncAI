@@ -9,16 +9,15 @@ import unittest
 import numpy as np
 import cv2
 import io
-from fastapi.testclient import TestClient
-
 from nutrition_db import BioNutritionalDatabase, nutrition_db
-from main import app
+from vision_pipeline import vision_pipeline
+from main import get_nutrition_catalog, decompose_nutrition, NutritionDecomposeRequest, DecomposeItemInput, detect_items_in_frame
+from starlette.datastructures import UploadFile
 
 
 class TestBioNutritionalEngine(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
         cls.db = nutrition_db
 
     def test_01_catalog_completeness(self):
@@ -100,17 +99,14 @@ class TestBioNutritionalEngine(unittest.TestCase):
         print("PASSED: Strict non-hallucination guardrail verified on 5 non-food items.")
 
     def test_07_api_decompose_endpoint(self):
-        """Tests POST /api/v1/nutrition-decompose HTTP endpoint."""
-        payload = {
-            "items": [
-                {"itemName": "Nestle Maggi Noodles", "quantity": 1.0},
-                {"itemName": "Amul Curd", "quantity": 1.0},
-                {"itemName": "Unknown Gadget", "quantity": 1.0}
-            ]
-        }
-        res = self.client.post("/api/v1/nutrition-decompose", json=payload)
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
+        """Tests POST /api/v1/nutrition-decompose endpoint."""
+        items = [
+            DecomposeItemInput(itemName="Nestle Maggi Noodles", quantity=1.0),
+            DecomposeItemInput(itemName="Amul Curd", quantity=1.0),
+            DecomposeItemInput(itemName="Unknown Gadget", quantity=1.0)
+        ]
+        req = NutritionDecomposeRequest(items=items)
+        data = decompose_nutrition(req)
         self.assertTrue(data["success"])
         self.assertEqual(data["resolvedCount"], 2)
         self.assertEqual(data["unresolvedCount"], 1)
@@ -119,10 +115,8 @@ class TestBioNutritionalEngine(unittest.TestCase):
         print("PASSED: POST /api/v1/nutrition-decompose endpoint verified with mixed items and explicit refusal.")
 
     def test_08_api_catalog_endpoint(self):
-        """Tests GET /api/v1/nutrition-catalog HTTP endpoint."""
-        res = self.client.get("/api/v1/nutrition-catalog")
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
+        """Tests GET /api/v1/nutrition-catalog endpoint."""
+        data = get_nutrition_catalog()
         self.assertTrue(data["success"])
         self.assertGreaterEqual(data["totalItems"], 45)
         self.assertGreaterEqual(len(data["categories"]), 4)
@@ -133,10 +127,8 @@ class TestBioNutritionalEngine(unittest.TestCase):
         img = np.zeros((300, 300, 3), dtype=np.uint8)
         cv2.putText(img, "APPLE", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
         _, buf = cv2.imencode(".jpg", img)
-
-        res = self.client.post("/api/v1/detect-items", files={"file": ("frame.jpg", io.BytesIO(buf), "image/jpeg")})
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
+        upload_file = UploadFile(filename="frame.jpg", file=io.BytesIO(buf.tobytes()))
+        data = detect_items_in_frame(file=upload_file)
         self.assertTrue(data["identified"])
         item0 = data["items"][0]
         self.assertIsNotNone(item0.get("nutritionProfile"))

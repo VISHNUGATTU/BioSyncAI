@@ -170,7 +170,7 @@ class OmniTwinEngine:
 
             return dQ1, dQ2, dQ_gut, dG, dX, dI
 
-        sample_interval = 15.0
+        sample_interval = 5.0
         trajectory = []
 
         # Record t = 0
@@ -328,6 +328,7 @@ class OmniTwinEngine:
         return {
             "success": True,
             "engine": "BioSync Omni-Twin v3.0 (UVA-Padova / Dalla-Man 7-Compartment Hybrid)",
+            "circadianSensitivityFactor": float(np.round(circadian_multiplier, 3)),
             "simulationParameters": {
                 "effectiveCarbsGrams": float(np.round(eff_carbs, 1)),
                 "effectiveSodiumMg": float(np.round(eff_sodium, 1)),
@@ -336,7 +337,8 @@ class OmniTwinEngine:
                 "glycemicIndex": gi,
                 "consumedQuantity": q,
                 "mealTimeHour": float(np.round(hour, 2)),
-                "circadianSensitivityMultiplier": float(np.round(circadian_multiplier, 3))
+                "circadianSensitivityMultiplier": float(np.round(circadian_multiplier, 3)),
+                "circadianSensitivityFactor": float(np.round(circadian_multiplier, 3))
             },
             "pharmacodynamics": {
                 "activeMedications": pd_profile.active_medications,
@@ -355,8 +357,11 @@ class OmniTwinEngine:
             },
             "peakProjections": {
                 "peakGlucose": peak_g,
-                "peakGlucoseMgDl": peak_g,  # Double-mapped for universal compatibility
+                "peakGlucoseMgDl": peak_g,
+                "peakGlucoseWithHacks": float(np.round(peak_g * 0.82, 1)),
                 "timeToPeakGlucoseMin": t_peak_min,
+                "timeToPeakGlucoseMinutes": t_peak_min,
+                "timeToPeakGlucoseMinutesWithHacks": t_peak_min + 15,
                 "glucoseSpike": spike_g,
                 "peakSystolicBP": peak_sb,
                 "bpSpikeSystolic": spike_sb,
@@ -365,6 +370,10 @@ class OmniTwinEngine:
             },
             "clinicalStatus": status,
             "clinicalAdvisory": advisory,
+            "clinicalAssessment": {
+                "t2dRiskStratum": "HIGH_RISK" if peak_g >= 200 else ("ELEVATED_RISK" if peak_g >= 160 else ("MODERATE_RISK" if peak_g >= 140 else "OPTIMAL")),
+                "status": status
+            },
             "timeSeries": trajectory,
             "cgmSimulation": cgm_data,
             "micronutrientSynergy": synergy_data

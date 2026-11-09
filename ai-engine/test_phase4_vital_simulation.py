@@ -6,17 +6,15 @@ Portion Scaling, Harm Reduction Doctor Hacks Comparative Simulation, and API End
 
 import unittest
 import numpy as np
-from fastapi.testclient import TestClient
 
 from metabolic_twin import MetabolicDigitalTwin
 from vital_simulator import VitalSurgeSimulator, vital_simulator
-from main import app
+from main import simulate_vital_surge_endpoint, VitalSurgeSimulateRequest
 
 
 class TestPhase4VitalSurgeSimulator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
         cls.simulator = vital_simulator
 
     def test_01_rk4_solver_convergence_and_dimensions(self):
@@ -120,7 +118,7 @@ class TestPhase4VitalSurgeSimulator(unittest.TestCase):
         print(f"PASSED: Windkessel BP transient curve verified (Peak BP: {bp_peak} mmHg, 180m: {bp_180} mmHg).")
 
     def test_07_api_simulate_vital_surge_endpoint(self):
-        """Tests POST /api/v1/simulate-vital-surge HTTP endpoint."""
+        """Tests POST /api/v1/simulate-vital-surge endpoint."""
         payload = {
             "itemName": "Maggi 2-Minute Masala Noodles",
             "consumedQuantity": 1.5,
@@ -130,9 +128,8 @@ class TestPhase4VitalSurgeSimulator(unittest.TestCase):
                 "hba1c": 5.8
             }
         }
-        res = self.client.post("/api/v1/simulate-vital-surge", json=payload)
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
+        req = VitalSurgeSimulateRequest(**payload)
+        data = simulate_vital_surge_endpoint(req)
         self.assertTrue(data["success"])
         self.assertEqual(data["consumedQuantity"], 1.5)
         self.assertIn("timeSeries", data)

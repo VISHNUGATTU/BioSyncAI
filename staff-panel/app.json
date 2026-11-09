@@ -17,8 +17,9 @@
       "bundleIdentifier": "com.biosync.staff",
       "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "BioSync AI uses your location to route you to patient home appointments and provide live ETA to patients.",
-        "NSCameraUsageDescription": "BioSync AI uses the camera to scan sample barcodes and capture specimen verification photos."
+        "NSLocationWhenInUseUsageDescription": "BioSync AI uses your location to route you efficiently to patient home appointments and provide live arrival ETA to patients.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BioSync AI monitors route progression to update patient dispatch tracking and cold-chain sample safety windows.",
+        "NSCameraUsageDescription": "BioSync AI uses the camera to scan diagnostic sample tube barcodes and capture specimen custody verification photos."
       }
     },
     "android": {
@@ -31,10 +32,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "CAMERA",
-        "NOTIFICATIONS"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
       ]
     },
     "plugins": [
@@ -42,7 +46,14 @@
       "expo-notifications"
     ],
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "shortName": "BioSync Staff",
+      "name": "BioSync AI Staff & Phlebotomy Portal",
+      "description": "Mobile Workforce Management & Sample Cold-Chain Tracking Application",
+      "themeColor": "#0f172a",
+      "backgroundColor": "#0f172a",
+      "display": "standalone"
     }
   }
 }

@@ -4,7 +4,7 @@ import {
   Stethoscope, CalendarDays, BrainCircuit, AlertTriangle,
   CreditCard, Bell, BarChart3, ShieldCheck, ClipboardList,
   Settings, UserRoundCog, Headset, FileCode2, X, ChevronRight,
-  Activity, ShieldAlert,
+  Activity, ShieldAlert, ChefHat, Utensils,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
@@ -23,6 +23,13 @@ const navigationGroups = [
       { path: '/doctors',      label: 'Doctors',          icon: Stethoscope },
       { path: '/appointments', label: 'Appointments',     icon: CalendarDays },
       { path: '/reports',      label: 'Reports',          icon: FileText },
+    ],
+  },
+  {
+    title: 'Metabolic Food Delivery',
+    items: [
+      { path: '/kitchen-kds',           label: 'Kitchen KDS (Tickets)', icon: ChefHat, accent: true },
+      { path: '/clinical-surveillance', label: 'Clinical Nutrition',    icon: Activity, accent: true },
     ],
   },
   {

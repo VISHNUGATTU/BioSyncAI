@@ -15,6 +15,12 @@ import SupportScreen from '../screens/SupportScreen';
 import HealthTimelineScreen from '../screens/HealthTimelineScreen';
 import WearableSyncScreen from '../screens/WearableSyncScreen';
 import ChatbotScreen from '../screens/ChatbotScreen';
+import FoodDeliveryHomeScreen from '../screens/FoodDeliveryHomeScreen';
+import RestaurantMenuScreen from '../screens/RestaurantMenuScreen';
+import CartSimulationScreen from '../screens/CartSimulationScreen';
+import FamilyPlatingGuideScreen from '../screens/FamilyPlatingGuideScreen';
+import AbhaRegistrationScreen from '../screens/AbhaRegistrationScreen';
+import VernacularVoiceScreen from '../screens/VernacularVoiceScreen';
 import TabNavigator from './TabNavigator';
 import pushNotificationService from '../services/pushNotificationService';
 
@@ -124,6 +130,30 @@ export default function AppNavigator() {
           <Stack.Screen
             name="Chatbot"
             component={ChatbotScreen}
+          />
+          <Stack.Screen
+            name="FoodDeliveryHome"
+            component={FoodDeliveryHomeScreen}
+          />
+          <Stack.Screen
+            name="RestaurantMenu"
+            component={RestaurantMenuScreen}
+          />
+          <Stack.Screen
+            name="CartSimulation"
+            component={CartSimulationScreen}
+          />
+          <Stack.Screen
+            name="FamilyPlatingGuide"
+            component={FamilyPlatingGuideScreen}
+          />
+          <Stack.Screen
+            name="AbhaRegistration"
+            component={AbhaRegistrationScreen}
+          />
+          <Stack.Screen
+            name="VernacularVoice"
+            component={VernacularVoiceScreen}
           />
         </>
       )}

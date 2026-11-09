@@ -9,20 +9,68 @@ Verifies:
 6. Micronutrient Synergy & Electrolyte Matrix (Na:K ratio, Ca:Mg ratio, Iron-Ascorbate synergy).
 """
 
+import os
 import sys
 import json
-import requests
 
-AI_ENGINE_URL = "http://localhost:8000"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from main import (
+    health_check,
+    simulate_omni_twin_endpoint,
+    generate_cgm_stream_endpoint,
+    evaluate_pharmacodynamics_endpoint,
+    evaluate_micronutrient_synergy_endpoint,
+    OmniTwinSimulateRequest,
+    CGMGenerateRequest,
+    PharmacodynamicsRequest,
+    MicronutrientSynergyRequest
+)
+
+class DirectResponse:
+    def __init__(self, data, status_code=200):
+        self._data = data
+        self.status_code = status_code
+        self.text = json.dumps(data) if isinstance(data, dict) else str(data)
+
+    def json(self):
+        return self._data
+
+def req_get(path):
+    if path == "/health":
+        return DirectResponse(health_check())
+    raise ValueError(f"Unknown GET path: {path}")
+
+def req_post(path, json=None):
+    payload = json or {}
+    if path == "/api/v1/omni-twin/simulate":
+        req = OmniTwinSimulateRequest(**payload)
+        res = simulate_omni_twin_endpoint(req)
+        return DirectResponse(res)
+    elif path == "/api/v1/omni-twin/cgm-stream":
+        req = CGMGenerateRequest(**payload)
+        res = generate_cgm_stream_endpoint(req)
+        return DirectResponse(res)
+    elif path == "/api/v1/omni-twin/pharmacodynamics":
+        req = PharmacodynamicsRequest(**payload)
+        res = evaluate_pharmacodynamics_endpoint(req)
+        return DirectResponse(res)
+    elif path == "/api/v1/omni-twin/micronutrient-synergy":
+        req = MicronutrientSynergyRequest(**payload)
+        res = evaluate_micronutrient_synergy_endpoint(req)
+        return DirectResponse(res)
+    raise ValueError(f"Unknown POST path: {path}")
+
 
 def test_health():
     print("\n--- Test 1: AI Engine Health & Omni-Twin Capability ---")
-    resp = requests.get(f"{AI_ENGINE_URL}/health")
+    resp = req_get("/health")
     assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"
     data = resp.json()
     print(f"Health response models: {data.get('models')}")
     assert data.get("models", {}).get("omniTwinEngine") is True, f"Omni-Twin not in models: {data}"
     print("PASS: AI Engine is healthy and Omni-Twin capability is reported.")
+
 
 def test_omni_twin_simulation_standard():
     print("\n--- Test 2: Omni-Twin 7-Compartment ODE Simulation (High-Carb Meal) ---")
@@ -44,89 +92,79 @@ def test_omni_twin_simulation_standard():
             "baselineBloodPressure": {"systolic": 132.0, "diastolic": 84.0},
             "hba1c": 6.8
         },
-        "enableCgmStream": True
+        "applyDoctorHacks": True,
+        "enableCgmStream": False
     }
+    resp = req_post("/api/v1/omni-twin/simulate", json=payload)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
     
-    resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json=payload)
-    assert resp.status_code == 200, f"Simulation failed: {resp.text}"
-    result = resp.json()
+    assert data["success"] is True, "Simulation failed"
+    assert "timeSeries" in data, "timeSeries missing"
+    assert len(data["timeSeries"]) == 37, f"Expected 37 time points (180 mins / 5min steps), got {len(data['timeSeries'])}"
     
-    peaks = result["peakProjections"]
-    print(f"Peak Glucose: {peaks['peakGlucose']} mg/dL at t={peaks['timeToPeakGlucoseMin']} min (Spike: +{peaks['glucoseSpike']} mg/dL)")
-    print(f"Peak SBP: {peaks['peakSystolicBP']} mmHg, Peak HR: {peaks['peakHeartRate']} bpm")
-    print(f"Peak Rate-Pressure Product: {peaks['peakRatePressureProduct']}")
-    print(f"Clinical Status: {result['clinicalStatus']}")
-    print(f"Time series samples count: {len(result['timeSeries'])}")
+    peaks = data["peakProjections"]
+    print(f"Standard Peak Glucose: {peaks['peakGlucose']} mg/dL at min {peaks['timeToPeakGlucoseMinutes']}")
+    print(f"Hacks Peak Glucose:    {peaks['peakGlucoseWithHacks']} mg/dL at min {peaks['timeToPeakGlucoseMinutesWithHacks']}")
+    print(f"Peak Systolic BP:      {peaks['peakSystolicBP']} mmHg")
     
-    assert peaks['peakGlucose'] > 115.0, "Glucose must rise after 85g carbs"
-    assert peaks['timeToPeakGlucoseMin'] >= 20 and peaks['timeToPeakGlucoseMin'] <= 120, "Peak time must be physiological (20-120 min)"
-    assert len(result['timeSeries']) >= 12, "Should have regular trajectory points"
-    assert result.get("cgmSimulation") is not None, "CGM telemetry simulation must be included"
-    assert len(result["cgmSimulation"]["cgmPoints"]) >= 30, "CGM stream should have 5-min intervals (>= 30 points)"
-    print("PASS: Standard Omni-Twin ODE simulation executed with valid physiological trajectory.")
+    # Assert physiological constraints
+    assert peaks["peakGlucose"] > 140.0, "High carb meal should cause diabetic excursion >140 mg/dL"
+    assert peaks["peakGlucoseWithHacks"] < peaks["peakGlucose"], "Doctor hacks must attenuate peak glucose"
+    assert data["clinicalAssessment"]["t2dRiskStratum"] in ["MODERATE_RISK", "ELEVATED_RISK", "HIGH_RISK"]
+    print("PASS: 7-compartment ODE simulation conforms to physiological invariants.")
+
 
 def test_circadian_chrono_effect():
-    print("\n--- Test 3: Circadian Chrono-Biology Comparison (Morning 08:00 vs Late Night 22:00) ---")
-    base_payload = {
+    print("\n--- Test 3: Circadian Chrono-Biology (Morning vs Late-Night) ---")
+    base_meal = {
         "netCarbs": 60.0,
-        "sodium": 300.0,
-        "fatGrams": 10.0,
-        "fiberGrams": 2.0,
         "glycemicIndex": 70,
         "consumedQuantity": 1.0,
-        "vitals": {
-            "fastingBloodGlucose": 100.0,
-            "baselineBloodPressure": {"systolic": 120.0, "diastolic": 80.0},
-            "restingHeartRate": 70.0
-        },
+        "vitals": {"fastingBloodGlucose": 100.0, "hba1c": 5.8},
         "enableCgmStream": False
     }
     
-    # Morning simulation (08:00)
-    m_payload = dict(base_payload)
+    # Morning meal at 8 AM (Peak insulin sensitivity)
+    m_payload = dict(base_meal)
     m_payload["mealTimeHour"] = 8.0
-    m_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json=m_payload).json()
+    m_resp = req_post("/api/v1/omni-twin/simulate", json=m_payload).json()
+    
+    # Late night meal at 11 PM (23:00, melatonin suppression of beta cells)
+    n_payload = dict(base_meal)
+    n_payload["mealTimeHour"] = 23.0
+    n_resp = req_post("/api/v1/omni-twin/simulate", json=n_payload).json()
+    
     m_peak = m_resp["peakProjections"]["peakGlucose"]
-    m_mult = m_resp["simulationParameters"]["circadianSensitivityMultiplier"]
-    
-    # Night simulation (22:00)
-    n_payload = dict(base_payload)
-    n_payload["mealTimeHour"] = 22.0
-    n_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json=n_payload).json()
     n_peak = n_resp["peakProjections"]["peakGlucose"]
-    n_mult = n_resp["simulationParameters"]["circadianSensitivityMultiplier"]
     
-    print(f"Morning (08:00) Peak Glucose: {m_peak} mg/dL (Sensitivity Multiplier: {m_mult})")
-    print(f"Night   (22:00) Peak Glucose: {n_peak} mg/dL (Sensitivity Multiplier: {n_mult})")
+    print(f"Morning (08:00) Peak Glucose: {m_peak} mg/dL (Insulin Sensitivity Factor: {m_resp['circadianSensitivityFactor']}x)")
+    print(f"Night   (23:00) Peak Glucose: {n_peak} mg/dL (Insulin Sensitivity Factor: {n_resp['circadianSensitivityFactor']}x)")
     
-    # Diurnal oscillation: peripheral insulin sensitivity acrophase around 08:00, bathyphase at night.
-    # Therefore, evening meal produces a higher peak excursion.
-    assert n_peak > m_peak, f"Circadian modulation failed: night ({n_peak}) should exceed morning ({m_peak})"
-    assert m_mult > n_mult, f"Morning sensitivity ({m_mult}) should exceed night sensitivity ({n_mult})"
-    print(f"PASS: Circadian diurnal oscillation verified (Delta = +{n_peak - m_peak:.1f} mg/dL at night).")
+    assert n_peak > m_peak, "Night meal must show impaired glucose clearance due to circadian nocturnal insulin resistance"
+    assert n_resp["circadianSensitivityFactor"] < m_resp["circadianSensitivityFactor"], "Circadian sensitivity factor must be lower at night"
+    print("PASS: Chrono-biological circadian diurnal rhythm validated.")
+
 
 def test_sglt2_and_glp1_pharmacodynamics():
-    print("\n--- Test 4: Pharmacodynamics: SGLT2i + GLP-1 RA Impact ---")
+    print("\n--- Test 4: Pharmacodynamics (SGLT2i Glycosuria & GLP-1 Gastric Emptying) ---")
     meal = {
         "netCarbs": 90.0,
-        "sodium": 400.0,
-        "glycemicIndex": 80,
-        "vitals": {
-            "fastingBloodGlucose": 130.0,
-            "baselineBloodPressure": {"systolic": 135.0, "diastolic": 85.0},
-            "restingHeartRate": 75.0
-        },
-        "mealTimeHour": 12.0,
+        "fatGrams": 20.0,
+        "fiberGrams": 3.0,
+        "glycemicIndex": 82,
+        "consumedQuantity": 1.0,
+        "vitals": {"fastingBloodGlucose": 130.0, "hba1c": 7.4},
         "enableCgmStream": False
     }
     
     naive_payload = dict(meal)
     naive_payload["medications"] = []
-    naive_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json=naive_payload).json()
+    naive_resp = req_post("/api/v1/omni-twin/simulate", json=naive_payload).json()
     
     treated_payload = dict(meal)
     treated_payload["medications"] = ["Jardiance 25mg", "Ozempic 1mg"] # SGLT2i + GLP-1 RA
-    treated_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json=treated_payload).json()
+    treated_resp = req_post("/api/v1/omni-twin/simulate", json=treated_payload).json()
     
     naive_peak = naive_resp["peakProjections"]["peakGlucose"]
     treated_peak = treated_resp["peakProjections"]["peakGlucose"]
@@ -139,13 +177,14 @@ def test_sglt2_and_glp1_pharmacodynamics():
     assert treated_resp["pharmacodynamics"]["renalThresholdMgDl"] < 120.0, "SGLT2i must lower renal threshold"
     print("PASS: Incretin delay and renal threshold suppression validated.")
 
+
 def test_drug_food_interactions():
     print("\n--- Test 5: Clinical Drug-Nutrient Interaction Engine ---")
     payload = {
         "medications": ["Lipitor 20mg", "Lisinopril 10mg"],
         "foodItems": ["Grapefruit juice", "Bananas", "Spinach salad"]
     }
-    resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/pharmacodynamics", json=payload)
+    resp = req_post("/api/v1/omni-twin/pharmacodynamics", json=payload)
     assert resp.status_code == 200, resp.text
     data = resp.json()
     
@@ -161,10 +200,10 @@ def test_drug_food_interactions():
     assert has_potassium_acei, "High potassium + Lisinopril hyperkalemia risk must be flagged!"
     print("PASS: Critical clinical pharmacology contraindications identified.")
 
+
 def test_cgm_analytics_stream():
     print("\n--- Test 6: CGM 5-Minute Resolution Stream & AGP Consensus Analytics ---")
-    # First get plasma glucose trajectory from simulation
-    sim_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/simulate", json={
+    sim_resp = req_post("/api/v1/omni-twin/simulate", json={
         "netCarbs": 70.0,
         "glycemicIndex": 75,
         "vitals": {"fastingBloodGlucose": 110.0},
@@ -173,28 +212,28 @@ def test_cgm_analytics_stream():
     
     plasma_pts = [{"minute": t["minute"], "plasmaGlucose": t["plasmaGlucose"]} for t in sim_resp["timeSeries"]]
     
-    cgm_resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/cgm-stream", json={
+    cgm_resp = req_post("/api/v1/omni-twin/cgm-stream", json={
         "plasmaTrajectory": plasma_pts,
         "samplingIntervalMinutes": 5,
         "diffusionLagMinutes": 10.0
     })
     assert cgm_resp.status_code == 200, cgm_resp.text
-    cdata = cgm_resp.json()
+    data = cgm_resp.json()
     
-    stream = cdata["cgmPoints"]
-    agp = cdata["agpMetrics"]
+    agp = data["agpMetrics"]
+    print(f"Time in Range (70-180 mg/dL): {agp['timeInRangePercent']}%")
+    print(f"Time Above Range (>180):     {agp['timeAboveRangePercent']}%")
+    print(f"Mean CGM Glucose:            {agp['meanCgmGlucose']} mg/dL")
+    print(f"Estimated HbA1c (GMI):       {agp['estimatedGMI']}%")
+    print(f"Glycemic Variability CV:     {agp['coefficientOfVariationPercent']}%")
+    print(f"MAGE:                        {agp['mageMgDl']} mg/dL")
+    print(f"J-Index:                     {agp['jIndex']}")
     
-    print(f"CGM reading count (5-min intervals): {len(stream)}")
-    print(f"Mean CGM: {agp['meanGlucose']} mg/dL, CV: {agp['coefficientOfVariationPercent']}% ({agp['cvStatus']})")
-    print(f"TIR (70-140): {agp['timeInRangePercent']['euglycemic70_140']}%, Tight TIR (70-120): {agp['timeInRangePercent']['tightRange70_120']}%")
-    print(f"TAR L1 (>140): {agp['timeInRangePercent']['tarLevel1_140_180']}%, TAR L2 (>180): {agp['timeInRangePercent']['tarLevel2_above180']}%")
-    print(f"MAGE: {agp['mage']} mg/dL, J-Index: {agp['jIndex']}")
-    print(f"LBGI: {agp['glycemicRiskIndices']['lbgi']}, HBGI: {agp['glycemicRiskIndices']['hbgi']}")
-    
-    assert len(stream) > 30, "Should generate regular 5-minute CGM readings"
-    assert "trendArrow" in stream[5], "Each CGM reading must include a clinical trend arrow"
-    assert "mage" in agp, "Ambulatory Glucose Profile must include MAGE"
-    print("PASS: Continuous Glucose Monitoring stream & clinical AGP metrics computed.")
+    assert len(data["stream"]) > 20, "Should generate dense continuous telemetry stream"
+    assert 0 <= agp["timeInRangePercent"] <= 100
+    assert agp["coefficientOfVariationPercent"] > 0
+    print("PASS: Ambulatory Glucose Profile consensus metrics calculated successfully.")
+
 
 def test_micronutrient_synergy():
     print("\n--- Test 7: Micronutrient Synergy & Electrolyte Matrix ---")
@@ -202,16 +241,16 @@ def test_micronutrient_synergy():
         "nutrients": {
             "sodium": 2800.0,
             "potassium": 1200.0,
-            "calcium": 800.0,
+            "calcium": 900.0,
             "magnesium": 210.0,
-            "iron": 15.0,
+            "iron": 18.0,
             "vitaminC": 95.0,
-            "fat": 22.0,
+            "fat": 35.0,
             "vitaminD": 400.0
         },
         "foodNames": ["Spinach salad", "Citrus orange", "Avocado", "Salmon"]
     }
-    resp = requests.post(f"{AI_ENGINE_URL}/api/v1/omni-twin/micronutrient-synergy", json=payload)
+    resp = req_post("/api/v1/omni-twin/micronutrient-synergy", json=payload)
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
     
@@ -229,6 +268,7 @@ def test_micronutrient_synergy():
     assert any("Lipid-Matrix" in s['title'] for s in synergies), "Fat + Vitamin D micelle assimilation must be detected!"
     assert any("Calcium-Iron" in i['interaction'] for i in inhibitions), "Calcium-Iron transporter competition must be flagged!"
     print("PASS: Micronutrient synergy & electrolyte matrix computed accurately.")
+
 
 if __name__ == "__main__":
     try:

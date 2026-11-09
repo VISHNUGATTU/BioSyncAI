@@ -13,7 +13,8 @@ from fastapi.testclient import TestClient
 
 from metabolic_twin import MetabolicDigitalTwin
 from clinical_ranker import ClinicalParetoRanker, clinical_ranker
-from main import app
+from main import app, rank_candidates_endpoint, analyze_frame_legacy, ClinicalRankRequest
+from starlette.datastructures import UploadFile
 
 
 class TestPhase3DigitalTwinAndRanker(unittest.TestCase):
@@ -125,22 +126,20 @@ class TestPhase3DigitalTwinAndRanker(unittest.TestCase):
 
     def test_07_api_clinical_rank_endpoint(self):
         """Tests POST /api/v1/clinical-rank HTTP endpoint."""
-        payload = {
-            "items": [
+        payload = ClinicalRankRequest(
+            items=[
                 {"itemName": "Maggi 2-Minute Masala Noodles"},
                 {"itemName": "Fresh Apple"},
                 {"itemName": "Plain Fresh Curd"}
             ],
-            "vitals": {
+            vitals={
                 "fastingGlucose": 115,
                 "hba1c": 5.9,
                 "systolicBP": 130
             },
-            "mealContext": "Lunch"
-        }
-        res = self.client.post("/api/v1/clinical-rank", json=payload)
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
+            mealContext="Lunch"
+        )
+        data = rank_candidates_endpoint(payload=payload)
         self.assertTrue(data["success"])
         self.assertEqual(data["totalCandidatesEvaluated"], 3)
         self.assertIn("Pre-Diabetic", data["patientPhenotype"])
@@ -155,14 +154,12 @@ class TestPhase3DigitalTwinAndRanker(unittest.TestCase):
         _, buf = cv2.imencode(".jpg", img)
 
         vitals_json = json.dumps({"fastingGlucose": 120, "systolicBP": 135, "hba1c": 6.0})
+        upload_file = UploadFile(filename="maggi.jpg", file=io.BytesIO(buf.tobytes()))
 
-        res = self.client.post(
-            "/api/v1/analyze",
-            files={"file": ("maggi.jpg", io.BytesIO(buf), "image/jpeg")},
-            data={"vitals": vitals_json}
+        data = analyze_frame_legacy(
+            file=upload_file,
+            vitals=vitals_json
         )
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
         self.assertTrue(data["success"])
         analysis = data["data"]
         self.assertIn("doctorHacks", analysis)

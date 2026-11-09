@@ -14,9 +14,10 @@ import io
 import json
 from fastapi.testclient import TestClient
 
-from main import app
+from main import app, analyze_frame_legacy
 from vision_pipeline import vision_pipeline
 from nutrition_db import nutrition_db
+from starlette.datastructures import UploadFile
 
 
 class TestMultiItemPerceptionEngine(unittest.TestCase):
@@ -77,15 +78,13 @@ class TestMultiItemPerceptionEngine(unittest.TestCase):
         """Verifies POST /api/v1/analyze aggregates nutrients and returns composite meal title."""
         img_bytes = self._create_synthetic_multi_item_plate()
         vitals = json.dumps({"fastingGlucose": 110, "systolicBP": 125, "hba1c": 5.7})
+        upload_file = UploadFile(filename="plate.jpg", file=io.BytesIO(img_bytes))
 
-        res = self.client.post(
-            "/api/v1/analyze",
-            files={"file": ("plate.jpg", io.BytesIO(img_bytes), "image/jpeg")},
-            data={"vitals": vitals}
+        data = analyze_frame_legacy(
+            file=upload_file,
+            vitals=vitals
         )
 
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
         self.assertTrue(data["success"])
         self.assertTrue(data["identified"])
 
@@ -128,14 +127,12 @@ class TestMultiItemPerceptionEngine(unittest.TestCase):
         img = np.zeros((300, 300, 3), dtype=np.uint8)
         cv2.putText(img, "APPLE", (40, 160), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
         _, buf = cv2.imencode(".jpg", img)
+        upload_file = UploadFile(filename="apple.jpg", file=io.BytesIO(buf.tobytes()))
 
-        res = self.client.post(
-            "/api/v1/analyze",
-            files={"file": ("apple.jpg", io.BytesIO(buf), "image/jpeg")}
+        data = analyze_frame_legacy(
+            file=upload_file
         )
 
-        self.assertEqual(res.status_code, 200)
-        data = res.json()
         self.assertTrue(data["success"])
         self.assertTrue(data["identified"])
         self.assertEqual(data["data"]["recognizedItemName"], "Fresh Apple")

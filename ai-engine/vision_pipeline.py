@@ -300,7 +300,13 @@ class VisionPerceptionPipeline:
         # 3. EasyOCR Reader for Package and Label Inspection
         if EASYOCR_AVAILABLE:
             try:
-                self.ocr_reader = easyocr.Reader(['en'], gpu=False, verbose=False)
+                local_model_dir = os.path.join(os.path.dirname(__file__), "edge_models", "easyocr")
+                if os.path.isdir(local_model_dir):
+                    user_network_dir = os.path.join(local_model_dir, "user_network")
+                    os.makedirs(user_network_dir, exist_ok=True)
+                    self.ocr_reader = easyocr.Reader(['en'], gpu=False, verbose=False, model_storage_directory=local_model_dir, user_network_directory=user_network_dir, download_enabled=False)
+                else:
+                    self.ocr_reader = easyocr.Reader(['en'], gpu=False, verbose=False)
                 print("[VisionPipeline] EasyOCR Reader initialized.")
             except Exception as e:
                 print(f"[VisionPipeline] EasyOCR initialization fallback: {e}")

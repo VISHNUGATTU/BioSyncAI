@@ -552,8 +552,13 @@ export const buildFhirObservation = ({ metricKey, value, patientId, recordedAt, 
 
 /**
  * Compiles a full FHIR R4 DiagnosticReport Document Bundle for a Sample / Lab Report
+ * Accepts either an options object ({ sample, user, doctor }) or positional args (sample, user, doctor).
  */
-export const exportSampleToFhirBundle = ({ sample, user, doctor }) => {
+export const exportSampleToFhirBundle = (sampleOrOpts, userParam, doctorParam) => {
+  const sample = (sampleOrOpts && sampleOrOpts.sample) ? sampleOrOpts.sample : sampleOrOpts;
+  const user = (sampleOrOpts && sampleOrOpts.user) ? sampleOrOpts.user : (userParam || sample?.user);
+  const doctor = (sampleOrOpts && sampleOrOpts.doctor) ? sampleOrOpts.doctor : (doctorParam || sample?.doctor);
+
   const patientResource = buildFhirPatientResource(user);
   const practitionerResource = buildFhirPractitionerResource(doctor);
   const orgResource = buildFhirOrganizationResource();
@@ -562,8 +567,9 @@ export const exportSampleToFhirBundle = ({ sample, user, doctor }) => {
   const observations = [];
 
   // Extract from sample structuredResults or testResults
-  if (sample.testResults && Array.isArray(sample.testResults)) {
-    for (const tr of sample.testResults) {
+  const results = sample?.testResults || sample?.structuredResults || [];
+  if (Array.isArray(results)) {
+    for (const tr of results) {
       // Find matching metric key by name or LOINC mapping
       const keyCandidate = Object.keys(LOINC_METRIC_MAP).find(
         k => k.toLowerCase() === tr.name?.replace(/\s+/g, '').toLowerCase() ||
@@ -682,7 +688,19 @@ export const exportSampleToFhirBundle = ({ sample, user, doctor }) => {
 /**
  * Compiles a full longitudinal FHIR bundle from User's historical Vitals records
  */
-export const exportVitalsToFhirBundle = ({ user, vitalsRecords = [] }) => {
+export const exportVitalsToFhirBundle = (arg1, arg2) => {
+  let user, vitalsRecords;
+  if (arg1 && (arg1.user || Array.isArray(arg1.vitalsRecords))) {
+    user = arg1.user;
+    vitalsRecords = arg1.vitalsRecords || [];
+  } else if (Array.isArray(arg1)) {
+    vitalsRecords = arg1;
+    user = arg2;
+  } else {
+    user = arg1;
+    vitalsRecords = Array.isArray(arg2) ? arg2 : [];
+  }
+
   const patientResource = buildFhirPatientResource(user);
   const orgResource = buildFhirOrganizationResource();
   const observations = [];
